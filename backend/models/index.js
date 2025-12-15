@@ -10,16 +10,99 @@ import { Client_Profile } from "./users/Client_Profile.js";
 import { Membership } from "./membership/Membership.js";
 import { Class_Session } from "./classes/Class_Session.js";
 import { Membership_Type } from "./membership/Membership_Type.js";
-import { Equipment } from "./gym/Equipment.js";
 import { Class_Type } from "./classes/Class_Type.js";
 import { Class_Enrollment } from "./classes/Class_Enrollment.js";
 import { Exercise } from "./workouts/Exercise.js";
 import { Workout } from "./workouts/Workout.js";
-import { Exercise_Equipment } from "./workouts/Exercise_Equipment.js";
-import { Gym_Equipment } from "./gym/Gym_Equipment.js";
 import { Workout_Exercise } from "./workouts/Workout_Exercise.js";
-import { Exercise_Set_Log } from "./workouts/Exercise_Set_Log.js";
 import { Workout_Session } from "./workouts/Workout_Session.js";
+
+//User
+
+User.hasOne(Client_Profile, { foreignKey: "user_id" });
+Client_Profile.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(Reset_Token, { foreignKey: "user_id" });
+Reset_Token.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(QR_Code, { foreignKey: "user_id" });
+QR_Code.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(Gym_Attendance, { foreignKey: "user_id" });
+Gym_Attendance.belongsTo(User, { foreignKey: "user_id" });
+
+User.hasMany(Membership, { foreignKey: "client_id" });
+Membership.belongsTo(User, { foreignKey: "client_id" });
+
+//Gym
+Gym.hasMany(Gym_Attendance, { foreignKey: "gym_id" });
+Gym_Attendance.belongsTo(Gym, { foreignKey: "gym_id" });
+
+//membership
+Membership_Type.hasMany(Membership, {
+  foreignKey: "membership_type_id",
+});
+Membership.belongsTo(Membership_Type, {
+  foreignKey: "membership_type_id",
+});
+
+//classes
+Class_Type.hasMany(Class_Session, {
+  foreignKey: "class_type_id",
+});
+Class_Session.belongsTo(Class_Type, {
+  foreignKey: "class_type_id",
+});
+
+Gym.hasMany(Class_Session, { foreignKey: "gym_id" });
+Class_Session.belongsTo(Gym, { foreignKey: "gym_id" });
+
+User.hasMany(Class_Session, { foreignKey: "trainer_id" });
+Class_Session.belongsTo(User, { foreignKey: "trainer_id" });
+
+Class_Session.hasMany(Class_Enrollment, { foreignKey: "session_id" });
+Class_Enrollment.belongsTo(Class_Session, { foreignKey: "session_id" });
+
+User.hasMany(Class_Enrollment, { foreignKey: "client_id" });
+Class_Enrollment.belongsTo(User, { foreignKey: "client_id" });
+
+//ai
+User.hasMany(Conversation_AI, { foreignKey: "client_id" });
+Conversation_AI.belongsTo(User, { foreignKey: "client_id" });
+
+Conversation_AI.hasMany(Message, {
+  foreignKey: "conversation_id",
+});
+Message.belongsTo(Conversation_AI, {
+  foreignKey: "conversation_id",
+});
+
+Conversation_AI.belongsTo(Workout, {
+  foreignKey: "linked_plan_id",
+});
+
+//workout
+Workout.hasMany(Workout_Exercise, {
+  foreignKey: "workout_id",
+  onDelete: "CASCADE",
+});
+Workout_Exercise.belongsTo(Workout, {
+  foreignKey: "workout_id",
+});
+
+Exercise.hasMany(Workout_Exercise, {
+  foreignKey: "exercise_id",
+});
+Workout_Exercise.belongsTo(Exercise, {
+  foreignKey: "exercise_id",
+});
+
+User.hasMany(Workout_Session, { foreignKey: "user_id" });
+Workout_Session.belongsTo(User, { foreignKey: "user_id" });
+
+Workout.hasMany(Workout_Session, { foreignKey: "workout_id" });
+Workout_Session.belongsTo(Workout, { foreignKey: "workout_id" });
+
 export const initDatabase = async () => {
   try {
     await db.authenticate();

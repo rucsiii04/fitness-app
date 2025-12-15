@@ -1,4 +1,4 @@
-import { DataTypes, DATE } from "sequelize";
+import { DataTypes } from "sequelize";
 import { db } from "../../config/db.js";
 
 export const Workout = db.define(
@@ -9,37 +9,38 @@ export const Workout = db.define(
       autoIncrement: true,
       primaryKey: true,
     },
+
     name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
     description: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
+
     source: {
       type: DataTypes.ENUM("trainer", "ai", "user"),
       allowNull: false,
     },
+
     created_by_user_id: {
-      type: DataTypes.INTEGER, //this can also be null if this was made by the AI
-      allowNull: true,
-    },
-    assigned_to_user_id: {
       type: DataTypes.INTEGER,
-      allowNull: true, // in case the user made a workout for himself=this will be null
+      allowNull: true, 
+      // null dacă workoutul e creat de ai
     },
+
     difficulty_level: {
       type: DataTypes.ENUM("beginner", "intermediate", "advanced"),
       allowNull: false,
     },
-    duration_minutes: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
+
     is_public: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      defaultValue: false,
     },
+
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,

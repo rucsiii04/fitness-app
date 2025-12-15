@@ -1,4 +1,4 @@
-import { DataTypes, DATE } from "sequelize";
+import { DataTypes } from "sequelize";
 import { db } from "../../config/db.js";
 
 export const Exercise = db.define(
@@ -9,10 +9,12 @@ export const Exercise = db.define(
       autoIncrement: true,
       primaryKey: true,
     },
+
     name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
     muscle_group: {
       type: DataTypes.ENUM(
         "chest",
@@ -25,13 +27,15 @@ export const Exercise = db.define(
       ),
       allowNull: false,
     },
-    exercise_type: {
-      type: DataTypes.ENUM("machine", "free-weights", "bodyweight"),
-      allowNull: false,
+
+    equipment_required: {
+      type: DataTypes.STRING, 
+      allowNull: true, 
     },
+
     description: {
-      type: DataTypes.STRING,
-      allowNull: false,
+      type: DataTypes.TEXT,
+      allowNull: true,
     },
   },
   {
