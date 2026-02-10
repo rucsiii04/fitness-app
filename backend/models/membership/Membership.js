@@ -34,6 +34,14 @@ export const Membership = db.define(
       type: DataTypes.ENUM("card", "cash"),
       allowNull: false,
     },
+    remaining_freeze_days:{
+      type:DataTypes.INTEGER,
+    allowNull:false
+    },
+    pause_reason:{
+      type:DataTypes.ENUM("user","admin"),
+      allowNull:true
+    }
   },
   {
     freezeTableName: true,

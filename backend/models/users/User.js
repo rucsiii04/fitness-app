@@ -32,7 +32,7 @@ export const User = db.define(
       unique: true,
     },
     role: {
-      type: DataTypes.ENUM("client", "trainer", "gym_admin", "admin_global"),
+      type: DataTypes.ENUM("client", "trainer","receptionist", "gym_admin", "admin_global"),
       defaultValue: "client",
     },
     specialization: {
@@ -43,6 +43,11 @@ export const User = db.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
+    gym_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

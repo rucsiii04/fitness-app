@@ -54,6 +54,9 @@ Class_Session.belongsTo(Class_Type, {
   foreignKey: "class_type_id",
 });
 
+Gym.hasMany(User, { foreignKey: "gym_id" });
+User.belongsTo(Gym, { foreignKey: "gym_id" });
+
 Gym.hasMany(Class_Session, { foreignKey: "gym_id" });
 Class_Session.belongsTo(Gym, { foreignKey: "gym_id" });
 
@@ -115,4 +118,23 @@ export const initDatabase = async () => {
   } catch (err) {
     console.log("Database error: ", err);
   }
+};
+export {
+  User,
+  Reset_Token,
+  Client_Profile,
+  Gym,
+  Membership,
+  Membership_Type,
+  Class_Session,
+  Class_Type,
+  Class_Enrollment,
+  QR_Code,
+  Gym_Attendance,
+  Conversation_AI,
+  Message,
+  Workout,
+  Workout_Exercise,
+  Workout_Session,
+  Exercise,
 };
