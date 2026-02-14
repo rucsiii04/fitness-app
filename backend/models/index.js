@@ -16,7 +16,7 @@ import { Exercise } from "./workouts/Exercise.js";
 import { Workout } from "./workouts/Workout.js";
 import { Workout_Exercise } from "./workouts/Workout_Exercise.js";
 import { Workout_Session } from "./workouts/Workout_Session.js";
-
+import { Trainer_Assignment } from "./users/Trainer_Assignment.js";
 //User
 
 User.hasOne(Client_Profile, { foreignKey: "user_id" });
@@ -33,6 +33,28 @@ Gym_Attendance.belongsTo(User, { foreignKey: "user_id" });
 
 User.hasMany(Membership, { foreignKey: "client_id" });
 Membership.belongsTo(User, { foreignKey: "client_id" });
+
+User.belongsToMany(User, {
+  through: Trainer_Assignment,
+  as: "Clients",
+  foreignKey: "trainer_id",
+  otherKey: "client_id",
+});
+
+User.belongsToMany(User, {
+  through: Trainer_Assignment,
+  as: "Trainers",
+  foreignKey: "client_id",
+  otherKey: "trainer_id",
+});
+Trainer_Assignment.belongsTo(User, {
+  as: "Trainer",
+  foreignKey: "trainer_id",
+});
+Trainer_Assignment.belongsTo(User, {
+  as: "Client",
+  foreignKey: "client_id",
+});
 
 //Gym
 Gym.hasMany(Gym_Attendance, { foreignKey: "gym_id" });
@@ -137,4 +159,5 @@ export {
   Workout_Exercise,
   Workout_Session,
   Exercise,
+  Trainer_Assignment,
 };

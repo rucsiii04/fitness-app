@@ -20,11 +20,15 @@ export const Client_Profile = db.define(
         "light",
         "moderate",
         "active",
-        "very_active"
+        "very_active",
       ),
     },
     main_goal: {
       type: DataTypes.ENUM("lose_weight", "maintain", "gain_weight"),
+    },
+    gender: {
+      type: DataTypes.ENUM("male", "female"),
+      allowNull: false,
     },
     medical_restriction: {
       type: DataTypes.STRING,
@@ -33,5 +37,5 @@ export const Client_Profile = db.define(
   {
     freezeTableName: true,
     timestamps: false,
-  }
+  },
 );
