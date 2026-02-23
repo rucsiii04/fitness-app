@@ -29,7 +29,7 @@ export const Trainer_Assignment = db.define("Trainer_Assignment", {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM("pending", "accepted", "rejected"),
+    type: DataTypes.ENUM("pending", "accepted", "rejected","ended"),
     defaultValue: "pending",
   },
 });

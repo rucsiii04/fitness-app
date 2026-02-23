@@ -41,10 +41,7 @@ export const User = db.define(
       ),
       defaultValue: "client",
     },
-    specialization: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
+
     registration_date: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -53,15 +50,15 @@ export const User = db.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    trainer_id: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: "User",
-        key: "user_id",
-      },
-      onDelete: "SET NULL",
-    },
+    // trainer_id: {
+    //   type: DataTypes.INTEGER,
+    //   allowNull: true,
+    //   references: {
+    //     model: "User",
+    //     key: "user_id",
+    //   },
+    //   onDelete: "SET NULL",
+    // }, //nu mi mai trb ca am tabela trainer assignments
 
     is_active: {
       type: DataTypes.BOOLEAN,

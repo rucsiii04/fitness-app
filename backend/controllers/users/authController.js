@@ -136,7 +136,7 @@ export const controller = {
       }
       const hashedPassord = await hashPassword(newPassword);
       await User.update(
-        { password: hashedPassord },
+        { password: hashedPassord ,is_active:true},
         { where: { user_id: userId } },
       );
       resetToken.used = true;

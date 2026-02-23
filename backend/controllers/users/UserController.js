@@ -1,9 +1,23 @@
+import { Op } from "sequelize";
 import { User, Trainer_Assignment } from "../../models/index.js";
 
 export const controller = {
   sendRequest: async (req, res) => {
     try {
       const requester = req.user;
+
+      if (requester.role === "client") {
+        const hasTrainer = await Trainer_Assignment.findOne({
+          where: {
+            client_id: requester.user_id,
+            status: "accepted",
+          },
+        });
+
+        if (hasTrainer) {
+          return res.status(400).send("You already have an active trainer");
+        }
+      }
       const { targetUserId } = req.body;
       if (!targetUserId) {
         return res.status(400).send("Target user required");
@@ -16,6 +30,12 @@ export const controller = {
         return res
           .status(400)
           .send("You cannot assign yourself to be your trainer");
+      }
+      if (targetUser.gym_id !== requester.gym_id) {
+        return res.status(400).send("Users must belong to the same gym");
+      }
+      if (!targetUser.is_active) {
+        return res.status(400).send("Target user is not active");
       }
       let trainerId, clientId;
       if (requester.role === "trainer" && targetUser.role == "client") {
@@ -32,6 +52,7 @@ export const controller = {
         where: {
           trainer_id: trainerId,
           client_id: clientId,
+          status: { [Op.in]: ["pending", "accepted"] },
         },
       });
       if (existing) {
@@ -53,7 +74,7 @@ export const controller = {
       const requester = req.user; //userul care primeste requestul de train-client ->poate fi trainerul sau poate fi userul
       const { requestId } = req.params;
       const { action } = req.body;
-      const request = await Trainer_Assignment.findByPk(requestId);
+      const request = await Trainer_Assignment.findByPk(requestId); //luam requestul din tabela
       if (!request) {
         return res.status(404).send("Request not found");
       }
@@ -71,7 +92,20 @@ export const controller = {
       ) {
         return res.status(403).send("Not allowed");
       }
+
       if (action === "accept") {
+        const alreadyAccepted = await Trainer_Assignment.findOne({
+          where: {
+            client_id: request.client_id,
+            status: "accepted",
+            // id: { [Op.ne]: request.id },
+          },
+        });
+
+        if (alreadyAccepted) {
+          return res.status(400).send("Client already has an active trainer");
+        }
+
         request.status = "accepted";
       } else if (action === "reject") {
         request.status = "rejected";
@@ -170,9 +204,53 @@ export const controller = {
       if (!assignment) {
         return res.status(404).send("No active trainer found");
       }
-      return res.status(200).json(assignment);
+      return res.status(200).json(assignment.Trainer);
     } catch (err) {
       return res.status(500).send("Error while fetching trainer: " + err);
+    }
+  },
+  endTraining: async (req, res) => {
+    try {
+      const user = req.user;
+      const relationship = await Trainer_Assignment.findOne({
+        where: {
+          client_id: user.user_id,
+          status: "accepted",
+        },
+      });
+      if (!relationship) {
+        return res.status(404).send("No active trainer relationship found");
+      }
+      relationship.status = "ended";
+      await relationship.save();
+      return res.status(200).send("Trainer relationship ended");
+    } catch (err) {
+      return res.status(500).send("Error" + err);
+    }
+  },
+  endClientTraining: async (req, res) => {
+    try {
+      const trainer = req.user;
+      const { clientId } = req.params;
+
+      const relationship = await Trainer_Assignment.findOne({
+        where: {
+          trainer_id: trainer.user_id,
+          client_id: clientId,
+          status: "accepted",
+        },
+      });
+
+      if (!relationship) {
+        return res.status(404).send("No active relationship found");
+      }
+
+      relationship.status = "ended";
+      await relationship.save();
+
+      return res.status(200).send("Client relationship ended");
+    } catch (err) {
+      return res.status(500).send("Error: " + err.message);
     }
   },
 };

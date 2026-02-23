@@ -17,13 +17,16 @@ import { Workout } from "./workouts/Workout.js";
 import { Workout_Exercise } from "./workouts/Workout_Exercise.js";
 import { Workout_Session } from "./workouts/Workout_Session.js";
 import { Trainer_Assignment } from "./users/Trainer_Assignment.js";
+import { Trainer_Profile } from "./users/Trainer_Profile.js";
+
+
 //User
 
-User.hasOne(Client_Profile, { foreignKey: "user_id" });
-Client_Profile.belongsTo(User, { foreignKey: "user_id" });
+User.hasOne(Client_Profile, { foreignKey: "user_id"});
+Client_Profile.belongsTo(User, { foreignKey: "user_id",  onDelete: "CASCADE"  });
 
 User.hasMany(Reset_Token, { foreignKey: "user_id" });
-Reset_Token.belongsTo(User, { foreignKey: "user_id" });
+Reset_Token.belongsTo(User, { foreignKey: "user_id" ,  onDelete: "CASCADE"});
 
 User.hasMany(QR_Code, { foreignKey: "user_id" });
 QR_Code.belongsTo(User, { foreignKey: "user_id" });
@@ -40,6 +43,9 @@ User.belongsToMany(User, {
   foreignKey: "trainer_id",
   otherKey: "client_id",
 });
+
+User.hasOne(Trainer_Profile, { foreignKey: "user_id" });
+Trainer_Profile.belongsTo(User, { foreignKey: "user_id" });
 
 User.belongsToMany(User, {
   through: Trainer_Assignment,
@@ -60,6 +66,9 @@ Trainer_Assignment.belongsTo(User, {
 Gym.hasMany(Gym_Attendance, { foreignKey: "gym_id" });
 Gym_Attendance.belongsTo(Gym, { foreignKey: "gym_id" });
 
+User.hasMany(Gym, { foreignKey: "admin_user_id", as: "ManagedGyms" });
+Gym.belongsTo(User, { foreignKey: "admin_user_id", as: "Admin" });
+
 //membership
 Membership_Type.hasMany(Membership, {
   foreignKey: "membership_type_id",
@@ -76,8 +85,8 @@ Class_Session.belongsTo(Class_Type, {
   foreignKey: "class_type_id",
 });
 
-Gym.hasMany(User, { foreignKey: "gym_id" });
-User.belongsTo(Gym, { foreignKey: "gym_id" });
+Gym.hasMany(User, { foreignKey: "gym_id", as: "Members" });
+User.belongsTo(Gym, { foreignKey: "gym_id", as: "Gym" });
 
 Gym.hasMany(Class_Session, { foreignKey: "gym_id" });
 Class_Session.belongsTo(Gym, { foreignKey: "gym_id" });
@@ -133,8 +142,8 @@ export const initDatabase = async () => {
     await db.authenticate();
     console.log("Database connected");
 
-    // await db.sync({ alter: true });
-    await db.sync();
+    await db.sync({ force: true });
+    // await db.sync();
 
     console.log("Models synced");
   } catch (err) {
@@ -160,4 +169,5 @@ export {
   Workout_Session,
   Exercise,
   Trainer_Assignment,
+  Trainer_Profile
 };

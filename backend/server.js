@@ -10,7 +10,7 @@ import { router } from "./routes/index.js";
 const app = express();
 
 const port = 8080;
-initDatabase();
+// initDatabase();
 app.use(express.json());
 app.use("/api", router);
 app.listen(port, () => {
