@@ -136,8 +136,8 @@ export const controller = {
       if (gender !== undefined) {
         if (gender !== "female" && gender !== "male") {
           return res.status(400).send("Invalid gender");
-          updates.gender = gender;
         }
+        updates.gender = gender;
       }
       if (Object.keys(updates).length === 0) {
         return res.status(400).send("No valid fields provided");

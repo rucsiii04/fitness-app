@@ -45,7 +45,7 @@ User.belongsToMany(User, {
 });
 
 User.hasOne(Trainer_Profile, { foreignKey: "user_id" });
-Trainer_Profile.belongsTo(User, { foreignKey: "user_id" });
+Trainer_Profile.belongsTo(User, { foreignKey: "user_id" ,onDelete:"CASCADE"});
 
 User.belongsToMany(User, {
   through: Trainer_Assignment,

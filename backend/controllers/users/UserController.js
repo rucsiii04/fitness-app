@@ -253,4 +253,61 @@ export const controller = {
       return res.status(500).send("Error: " + err.message);
     }
   },
+  getTrainerInbox: async (req, res) => {
+    try {
+      const user = req.user;
+      const requests = await Trainer_Assignment.findAll({
+        where: {
+          status: "pending",
+          [Op.or]: [
+            {
+              trainer_id: user.user_id,
+            },
+            { client_id: user.user_id },
+          ],
+        },
+        include: [
+          {
+            model: User,
+            as: "Client",
+            attributes: [
+              "user_id",
+              "first_name",
+              "last_name",
+              "email",
+              "phone",
+            ],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
+      return res.status(200).json(requests);
+    } catch (err) {
+      return res.status(500).send("Error:" + err);
+    }
+  },
+  getClientInbox: async (req, res) => {
+    try {
+      const user = req.user;
+
+      const requests = await Trainer_Assignment.findAll({
+        where: {
+          client_id: user.user_id,
+          status: "pending",
+        },
+        include: [
+          {
+            model: User,
+            as: "Trainer",
+            attributes: ["user_id", "first_name", "last_name", "email"],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
+
+      return res.status(200).json(requests);
+    } catch (err) {
+      return res.status(500).send("Error: " + err.message);
+    }
+  },
 };
