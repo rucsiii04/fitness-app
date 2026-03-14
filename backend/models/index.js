@@ -19,14 +19,13 @@ import { Workout_Session } from "./workouts/Workout_Session.js";
 import { Trainer_Assignment } from "./users/Trainer_Assignment.js";
 import { Trainer_Profile } from "./users/Trainer_Profile.js";
 
-
 //User
 
-User.hasOne(Client_Profile, { foreignKey: "user_id"});
-Client_Profile.belongsTo(User, { foreignKey: "user_id",  onDelete: "CASCADE"  });
+User.hasOne(Client_Profile, { foreignKey: "user_id" });
+Client_Profile.belongsTo(User, { foreignKey: "user_id", onDelete: "CASCADE" });
 
 User.hasMany(Reset_Token, { foreignKey: "user_id" });
-Reset_Token.belongsTo(User, { foreignKey: "user_id" ,  onDelete: "CASCADE"});
+Reset_Token.belongsTo(User, { foreignKey: "user_id", onDelete: "CASCADE" });
 
 User.hasMany(QR_Code, { foreignKey: "user_id" });
 QR_Code.belongsTo(User, { foreignKey: "user_id" });
@@ -45,7 +44,7 @@ User.belongsToMany(User, {
 });
 
 User.hasOne(Trainer_Profile, { foreignKey: "user_id" });
-Trainer_Profile.belongsTo(User, { foreignKey: "user_id" ,onDelete:"CASCADE"});
+Trainer_Profile.belongsTo(User, { foreignKey: "user_id", onDelete: "CASCADE" });
 
 User.belongsToMany(User, {
   through: Trainer_Assignment,
@@ -137,15 +136,13 @@ Workout_Session.belongsTo(User, { foreignKey: "user_id" });
 Workout.hasMany(Workout_Session, { foreignKey: "workout_id" });
 Workout_Session.belongsTo(Workout, { foreignKey: "workout_id" });
 
+Gym.hasMany(Membership_Type, { foreignKey: "gym_id" });
+Membership_Type.belongsTo(Gym, { foreignKey: "gym_id" });
+
 export const initDatabase = async () => {
   try {
     await db.authenticate();
     console.log("Database connected");
-
-    await db.sync({ force: true });
-    // await db.sync();
-
-    console.log("Models synced");
   } catch (err) {
     console.log("Database error: ", err);
   }
@@ -169,5 +166,5 @@ export {
   Workout_Session,
   Exercise,
   Trainer_Assignment,
-  Trainer_Profile
+  Trainer_Profile,
 };

@@ -4,6 +4,7 @@ import { controller as userController } from "./users/UserController.js";
 import { controller as adminController } from "./admin/adminController.js";
 import { controller as globalAdminController } from "./admin/globalAdminController.js";
 import { controller as trainerProfileController } from "./users/trainerProfileController.js";
+import { controller as membershipController } from "./membership/membershipController.js";
 export const controllers = {
   authController,
   profileController,
@@ -11,4 +12,5 @@ export const controllers = {
   adminController,
   globalAdminController,
   trainerProfileController,
+  membershipController,
 };

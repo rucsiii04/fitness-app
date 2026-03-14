@@ -13,6 +13,10 @@ export const Membership_Type = db.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     duration_days: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -26,9 +30,24 @@ export const Membership_Type = db.define(
       allowNull: false,
       defaultValue: false,
     },
+    freeze_days: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+    gym_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: "Gym", key: "gym_id" },
+    },
   },
   {
     freezeTableName: true,
     timestamps: false,
-  }
+  },
 );

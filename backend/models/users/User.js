@@ -35,7 +35,7 @@ export const User = db.define(
       type: DataTypes.ENUM(
         "client",
         "trainer",
-        "receptionist",
+        "front_desk",
         "gym_admin",
         "admin_global",
       ),

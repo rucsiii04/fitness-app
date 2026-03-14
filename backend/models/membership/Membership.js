@@ -34,17 +34,22 @@ export const Membership = db.define(
       type: DataTypes.ENUM("card", "cash"),
       allowNull: false,
     },
-    remaining_freeze_days:{
-      type:DataTypes.INTEGER,
-    allowNull:false
+    remaining_freeze_days: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
-    pause_reason:{
-      type:DataTypes.ENUM("user","admin"),
-      allowNull:true
-    }
+    pause_reason: {
+      type: DataTypes.ENUM("user", "admin"),
+      allowNull: true,
+    },
+    cancelled_reason: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   },
   {
     freezeTableName: true,
     timestamps: false,
-  }
+  },
 );
