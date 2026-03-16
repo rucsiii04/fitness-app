@@ -33,7 +33,7 @@ export const Membership_Type = db.define(
     freeze_days: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 0,
+      defaultValue: 3,
     },
     is_active: {
       type: DataTypes.BOOLEAN,

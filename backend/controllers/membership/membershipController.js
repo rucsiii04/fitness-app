@@ -32,6 +32,34 @@ const expireOutdatedMemberships = async (clientId = null) => {
   await Membership.update({ status: "expired" }, { where });
 };
 
+const reactivateCompletedPauses = async (clientId = null) => {
+  const where = {
+    status: "paused",
+    pause_end_date: {
+      [Op.lte]: new Date(),
+    },
+  };
+
+  if (clientId) {
+    where.client_id = clientId;
+  }
+
+  await Membership.update(
+    {
+      status: "active",
+      pause_reason: null,
+      pause_start_date: null,
+      pause_end_date: null,
+    },
+    { where },
+  );
+};
+
+const syncMembershipStatuses = async (clientId = null) => {
+  await reactivateCompletedPauses(clientId);
+  await expireOutdatedMemberships(clientId);
+};
+
 const canManageGym = async (requester, gymId) => {
   if (requester.role === "gym_admin") {
     const managedGym = await Gym.findOne({
@@ -77,7 +105,9 @@ export const controller = {
       const canManage = await canManageGym(req.user, gymId);
 
       if (!canManage) {
-        return res.status(403).send("You cannot manage membership types for this gym");
+        return res
+          .status(403)
+          .send("You cannot manage membership types for this gym");
       }
 
       const types = await Membership_Type.findAll({
@@ -87,7 +117,9 @@ export const controller = {
 
       return res.status(200).json(types);
     } catch (err) {
-      return res.status(500).send("Error fetching managed membership types: " + err);
+      return res
+        .status(500)
+        .send("Error fetching managed membership types: " + err);
     }
   },
 
@@ -100,21 +132,27 @@ export const controller = {
         duration_days,
         price,
         includes_group_classes = false,
-        freeze_days = 0,
+        freeze_days = 3,
         is_active = true,
       } = req.body;
 
-      if (!gym_id || !name || !duration_days || price === undefined) {
+      if (!gym_id || !name || !duration_days || !price) {
         return res.status(400).send("Missing required fields");
       }
 
-      if (Number(duration_days) <= 0 || Number(price) < 0 || Number(freeze_days) < 0) {
+      if (
+        Number(duration_days) <= 0 ||
+        Number(price) < 0 ||
+        Number(freeze_days) < 0
+      ) {
         return res.status(400).send("Invalid membership type values");
       }
 
       const canManage = await canManageGym(req.user, gym_id);
       if (!canManage) {
-        return res.status(403).send("You cannot create membership types for this gym");
+        return res
+          .status(403)
+          .send("You cannot create membership types for this gym");
       }
 
       const type = await Membership_Type.create({
@@ -145,7 +183,9 @@ export const controller = {
 
       const canManage = await canManageGym(req.user, type.gym_id);
       if (!canManage) {
-        return res.status(403).send("You cannot update membership types for this gym");
+        return res
+          .status(403)
+          .send("You cannot update membership types for this gym");
       }
 
       const updates = {};
@@ -166,7 +206,8 @@ export const controller = {
       }
 
       if (
-        (updates.duration_days !== undefined && Number(updates.duration_days) <= 0) ||
+        (updates.duration_days !== undefined &&
+          Number(updates.duration_days) <= 0) ||
         (updates.price !== undefined && Number(updates.price) < 0) ||
         (updates.freeze_days !== undefined && Number(updates.freeze_days) < 0)
       ) {
@@ -183,7 +224,8 @@ export const controller = {
 
   issueMembership: async (req, res) => {
     try {
-      const { client_id, membership_type_id, payment_method, start_date } = req.body;
+      const { client_id, membership_type_id, payment_method, start_date } =
+        req.body;
 
       if (!client_id || !membership_type_id || !payment_method) {
         return res.status(400).send("Missing required fields");
@@ -199,7 +241,9 @@ export const controller = {
 
       const canManage = await canManageGym(req.user, membershipType.gym_id);
       if (!canManage) {
-        return res.status(403).send("You cannot issue memberships for this gym");
+        return res
+          .status(403)
+          .send("You cannot issue memberships for this gym");
       }
 
       const client = await User.findByPk(client_id);
@@ -211,7 +255,7 @@ export const controller = {
         return res.status(400).send("Invalid start date");
       }
 
-      await expireOutdatedMemberships(client_id);
+      await syncMembershipStatuses(client_id);
 
       const currentMembership = await Membership.findOne({
         where: {
@@ -238,7 +282,8 @@ export const controller = {
       const startDate = start_date ? new Date(start_date) : new Date();
       const endDate = addDays(startDate, membershipType.duration_days);
       const isChangingGym =
-        client.gym_id && Number(client.gym_id) !== Number(membershipType.gym_id);
+        client.gym_id &&
+        Number(client.gym_id) !== Number(membershipType.gym_id);
 
       const membership = await Membership.create({
         client_id,
@@ -262,14 +307,17 @@ export const controller = {
         { where: { user_id: client_id } },
       );
 
-      const createdMembership = await Membership.findByPk(membership.membership_id, {
-        include: [
-          {
-            model: Membership_Type,
-            include: [{ model: Gym }],
-          },
-        ],
-      });
+      const createdMembership = await Membership.findByPk(
+        membership.membership_id,
+        {
+          include: [
+            {
+              model: Membership_Type,
+              include: [{ model: Gym }],
+            },
+          ],
+        },
+      );
 
       return res.status(201).json(createdMembership);
     } catch (err) {
@@ -279,7 +327,7 @@ export const controller = {
 
   getMyCurrentMembership: async (req, res) => {
     try {
-      await expireOutdatedMemberships(req.user.user_id);
+      await syncMembershipStatuses(req.user.user_id);
 
       const membership = await Membership.findOne({
         where: {
@@ -309,7 +357,7 @@ export const controller = {
 
   getMyMembershipHistory: async (req, res) => {
     try {
-      await expireOutdatedMemberships(req.user.user_id);
+      await syncMembershipStatuses(req.user.user_id);
 
       const memberships = await Membership.findAll({
         where: { client_id: req.user.user_id },
@@ -327,4 +375,180 @@ export const controller = {
       return res.status(500).send("Error fetching membership history: " + err);
     }
   },
+
+  pauseMyMembership: async (req, res) => {
+    try {
+      const { pause_days } = req.body;
+
+      if (!pause_days || Number(pause_days) <= 0) {
+        return res.status(400).send("pause_days must be a positive number");
+      }
+
+      await syncMembershipStatuses(req.user.user_id);
+
+      const membership = await Membership.findOne({
+        where: {
+          client_id: req.user.user_id,
+          status: "active",
+        },
+        include: [
+          {
+            model: Membership_Type,
+            include: [{ model: Gym }],
+          },
+        ],
+        order: [["start_date", "DESC"]],
+      });
+
+      if (!membership) {
+        return res.status(404).send("No active membership found");
+      }
+
+      const pauseDays = Number(pause_days);
+      if (pauseDays > membership.remaining_freeze_days) {
+        return res.status(400).send("Not enough remaining freeze days");
+      }
+
+      const now = new Date();
+      const pauseEndDate = addDays(now, pauseDays);
+
+      await membership.update({
+        status: "paused",
+        pause_reason: "user",
+        pause_start_date: now,
+        pause_end_date: pauseEndDate,
+        end_date: addDays(membership.end_date, pauseDays),
+        remaining_freeze_days: membership.remaining_freeze_days - pauseDays,
+      });
+
+      const pausedMembership = await Membership.findByPk(
+        membership.membership_id,
+        {
+          include: [
+            {
+              model: Membership_Type,
+              include: [{ model: Gym }],
+            },
+          ],
+        },
+      );
+
+      return res.status(200).json(pausedMembership);
+    } catch (err) {
+      return res.status(500).send("Error pausing membership: " + err);
+    }
+  },
+
+  pauseGymMemberships: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const { pause_days, reason } = req.body;
+
+      if (!pause_days || Number(pause_days) <= 0) {
+        return res.status(400).send("pause_days must be positive");
+      }
+
+      if (!reason) {
+        return res.status(400).send("Pause reason required");
+      }
+
+      const canManage = await canManageGym(req.user, gymId);
+      if (!canManage) {
+        return res.status(403).send("You cannot manage this gym");
+      }
+
+      const memberships = await Membership.findAll({
+        where: {
+          status: "active",
+        },
+        include: {
+          model: Membership_Type,
+          where: { gym_id: gymId },
+        },
+      });
+
+      if (!memberships.length) {
+        return res.status(404).send("No active memberships found");
+      }
+
+      const now = new Date();
+      const pauseEndDate = addDays(now, pause_days);
+
+      for (const membership of memberships) {
+        await membership.update({
+          status: "paused",
+          pause_reason: reason,
+          pause_start_date: now,
+          pause_end_date: pauseEndDate,
+          end_date: addDays(membership.end_date, pause_days),
+        });
+      }
+
+      return res.status(200).send(`Paused ${memberships.length} memberships`);
+    } catch (err) {
+      return res.status(500).send("Error pausing gym memberships: " + err);
+    }
+  },
+ resumeMyMembership: async (req, res) => {
+  try {
+
+    await syncMembershipStatuses(req.user.user_id);
+
+    const membership = await Membership.findOne({
+      where: {
+        client_id: req.user.user_id,
+        status: "paused"
+      },
+      include: [
+        {
+          model: Membership_Type,
+          include: [{ model: Gym }]
+        }
+      ],
+      order: [["start_date", "DESC"]],
+    });
+
+    if (!membership) {
+      return res.status(404).send("No paused membership found");
+    }
+
+    const now = new Date();
+
+    let remainingPauseDays = Math.ceil(
+      (new Date(membership.pause_end_date) - now) / (1000 * 60 * 60 * 24)
+    );
+
+    if (remainingPauseDays < 0) remainingPauseDays = 0;
+
+    const newEndDate = addDays(membership.end_date, -remainingPauseDays);
+
+    await membership.update({
+      status: "active",
+      pause_reason: null,
+      pause_start_date: null,
+      pause_end_date: null,
+      end_date: newEndDate,
+
+      remaining_freeze_days:
+        membership.remaining_freeze_days + remainingPauseDays
+    });
+
+    const resumedMembership = await Membership.findByPk(
+      membership.membership_id,
+      {
+        include: [
+          {
+            model: Membership_Type,
+            include: [{ model: Gym }]
+          }
+        ],
+      }
+    );
+
+    return res.status(200).json(resumedMembership);
+
+  } catch (err) {
+    return res.status(500).send("Error resuming membership: " + err);
+  }
+}
 };

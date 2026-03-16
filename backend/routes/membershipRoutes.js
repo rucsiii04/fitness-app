@@ -34,10 +34,23 @@ router.put(
 router.post(
   "/issue",
   verifyToken,
-  requireRole("gym_admin", "front_desk"),
+  requireRole("front_desk"),
   controllers.membershipController.issueMembership,
 );
 
+router.post(
+  "/me/pause",
+  verifyToken,
+  requireRole("client"),
+  controllers.membershipController.pauseMyMembership,
+);
+
+router.post(
+  "/gyns/:gymId/pause-memberships",
+  verifyToken,
+  requireRole("gym-admin"),
+  controllers.membershipController.pauseGymMemberships,
+);
 router.get(
   "/me/current",
   verifyToken,
@@ -48,4 +61,10 @@ router.get(
   "/me/history",
   verifyToken,
   controllers.membershipController.getMyMembershipHistory,
+);
+router.post(
+  "/me/resume",
+  verifyToken,
+  requireRole("client"),
+  controllers.membershipController.resumeMyMembership,
 );

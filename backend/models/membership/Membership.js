@@ -39,8 +39,16 @@ export const Membership = db.define(
       allowNull: false,
       defaultValue: 0,
     },
+    pause_start_date: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    pause_end_date: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     pause_reason: {
-      type: DataTypes.ENUM("user", "admin"),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     cancelled_reason: {
