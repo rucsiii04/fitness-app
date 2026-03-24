@@ -25,6 +25,14 @@ export const Class_Type = db.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    gym_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "Gym",
+        key: "gym_id",
+      },
+    },
   },
   { freezeTableName: true, timestamps: false }
 );

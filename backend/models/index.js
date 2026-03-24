@@ -84,6 +84,9 @@ Class_Session.belongsTo(Class_Type, {
   foreignKey: "class_type_id",
 });
 
+Gym.hasMany(Class_Type, { foreignKey: "gym_id" });
+Class_Type.belongsTo(Gym, { foreignKey: "gym_id" });
+
 Gym.hasMany(User, { foreignKey: "gym_id", as: "Members" });
 User.belongsTo(Gym, { foreignKey: "gym_id", as: "Gym" });
 

@@ -31,6 +31,8 @@ export const Class_Session = db.define(
     },
     status: {
       type: DataTypes.ENUM("scheduled", "ongoing", "completed", "cancelled"),
+      allowNull: false,
+      defaultValue: "scheduled",
     },
   },
   {
