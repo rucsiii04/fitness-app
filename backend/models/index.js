@@ -43,6 +43,24 @@ User.belongsToMany(User, {
   otherKey: "client_id",
 });
 
+User.hasMany(Workout, {
+  foreignKey: "assigned_to_user_id",
+  as: "AssignedWorkouts",
+});
+
+Workout.belongsTo(User, {
+  foreignKey: "assigned_to_user_id",
+  as: "AssignedUser",
+});
+User.hasMany(Workout, {
+  foreignKey: "created_by_user_id",
+  as: "CreatedWorkouts",
+});
+
+Workout.belongsTo(User, {
+  foreignKey: "created_by_user_id",
+  as: "Creator",
+});
 User.hasOne(Trainer_Profile, { foreignKey: "user_id" });
 Trainer_Profile.belongsTo(User, { foreignKey: "user_id", onDelete: "CASCADE" });
 

@@ -13,6 +13,7 @@ export const Exercise = db.define(
     name: {
       type: DataTypes.STRING,
       allowNull: false,
+      unique: true,
     },
 
     muscle_group: {

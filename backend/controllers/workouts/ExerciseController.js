@@ -43,14 +43,16 @@ export const controller = {
 
   create: async (req, res) => {
     try {
-    
-
       const { name, muscle_group, equipment_required, description } = req.body;
-
       if (!name || !muscle_group) {
         return res.status(400).json({
           message: "Name and muscle_group are required",
         });
+      }
+      const existing = await Exercise.findOne({ where: { name } });
+
+      if (existing) {
+        return res.status(400).json({ message: "Exercise already exists" });
       }
 
       const exercise = await Exercise.create({
@@ -69,7 +71,6 @@ export const controller = {
 
   update: async (req, res) => {
     try {
-   
       const { id } = req.params;
       const { name, muscle_group, equipment_required, description } = req.body;
 
@@ -95,8 +96,6 @@ export const controller = {
 
   delete: async (req, res) => {
     try {
-    
-
       const { id } = req.params;
 
       const exercise = await Exercise.findByPk(id);
@@ -121,7 +120,6 @@ export const controller = {
   },
   restore: async (req, res) => {
     try {
-   
       const { id } = req.params;
 
       const exercise = await Exercise.findByPk(id);

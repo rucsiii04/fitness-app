@@ -27,10 +27,13 @@ export const Workout = db.define(
 
     created_by_user_id: {
       type: DataTypes.INTEGER,
-      allowNull: true, 
+      allowNull: true,
       // null dacă workoutul e creat de ai
     },
-
+    assigned_to_user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     difficulty_level: {
       type: DataTypes.ENUM("beginner", "intermediate", "advanced"),
       allowNull: false,
@@ -50,5 +53,5 @@ export const Workout = db.define(
   {
     freezeTableName: true,
     timestamps: false,
-  }
+  },
 );
