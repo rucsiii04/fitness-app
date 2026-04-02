@@ -6,7 +6,7 @@ import { router as globalAdminRouter } from "./adminGlobalRoutes.js";
 import { router as trainerRouter } from "./trainerRoutes.js";
 import { router as membershipRouter } from "./membershipRoutes.js";
 import { router as classRouter } from "./classRoutes.js";
-
+import { router as exerciseRouter } from "./exerciseRoutes.js";
 export const router = express.Router();
 
 router.use("/auth", authRouter);
@@ -16,3 +16,4 @@ router.use("/global-admin", globalAdminRouter);
 router.use("/trainer", trainerRouter);
 router.use("/memberships", membershipRouter);
 router.use("/classes", classRouter);
+router.use("/exercises", exerciseRouter);

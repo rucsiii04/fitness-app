@@ -5,68 +5,76 @@ import { requireRole } from "../middleware/requireRole.js";
 
 export const router = express.Router();
 
+
 router.get(
-  "/gyms/:gymId/types",
-  controllers.classController.getClassTypesByGym,
+  "/gyms/:gymId/class-types",
+  controllers.classController.getClassTypesByGym
 );
 
+
 router.post(
-  "/types",
+  "/class-types",
   verifyToken,
   requireRole("gym_admin"),
-  controllers.classController.createClassType,
+  controllers.classController.createClassType
 );
 
+
 router.get(
-  "/gyms/:gymId/sessions",
-  controllers.classController.getSessionsByGym,
+  "/gyms/:gymId/class-sessions",
+  controllers.classController.getSessionsByGym
 );
 
 router.post(
-  "/sessions",
+  "/class-sessions",
   verifyToken,
   requireRole("trainer", "gym_admin"),
-  controllers.classController.createClassSession,
+  controllers.classController.createClassSession
 );
 
-router.post(
-  "/sessions/:sessionId/enroll",
-  verifyToken,
-  requireRole("client"),
-  controllers.classController.enrollInSession,
-);
-
-router.delete(
-  "/sessions/:sessionId/enroll",
-  verifyToken,
-  requireRole("client"),
-  controllers.classController.cancelEnrollment,
-);
-
-router.get(
-  "/sessions/:sessionId/enrollments",
-  verifyToken,
-  requireRole("trainer", "gym_admin"),
-  controllers.classController.getSessionEnrollments,
-);
 
 router.patch(
-  "/sessions/:sessionId/cancel",
+  "/class-sessions/:sessionId/cancel",
   verifyToken,
   requireRole("trainer", "gym_admin"),
-  controllers.classController.cancelSession,
+  controllers.classController.cancelSession
 );
 
-router.get(
-  "/my/enrollments",
+
+router.post(
+  "/class-sessions/:sessionId/enrollments",
   verifyToken,
   requireRole("client"),
-  controllers.classController.getMyEnrollments,
+  controllers.classController.enrollInSession
+);
+
+
+router.delete(
+  "/class-sessions/:sessionId/enrollments",
+  verifyToken,
+  requireRole("client"),
+  controllers.classController.cancelEnrollment
+);
+
+
+router.get(
+  "/class-sessions/:sessionId/enrollments",
+  verifyToken,
+  requireRole("trainer", "gym_admin"),
+  controllers.classController.getSessionEnrollments
+);
+
+
+router.get(
+  "/enrollments/my",
+  verifyToken,
+  requireRole("client"),
+  controllers.classController.getMyEnrollments
 );
 
 router.patch(
   "/enrollments/:enrollmentId/attendance",
   verifyToken,
   requireRole("trainer", "gym_admin"),
-  controllers.classController.markAttendance,
+  controllers.classController.markAttendance
 );

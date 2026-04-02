@@ -23,23 +23,27 @@ export const Exercise = db.define(
         "shoulders",
         "arms",
         "core",
-        "full-body"
+        "full-body",
       ),
       allowNull: false,
     },
 
     equipment_required: {
-      type: DataTypes.STRING, 
-      allowNull: true, 
+      type: DataTypes.STRING,
+      allowNull: true,
     },
 
     description: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
   },
   {
     freezeTableName: true,
     timestamps: false,
-  }
+  },
 );

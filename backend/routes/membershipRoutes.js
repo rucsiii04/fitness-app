@@ -34,7 +34,7 @@ router.put(
 router.post(
   "/issue",
   verifyToken,
-  requireRole("front_desk"),
+  requireRole("front_desk", "gym_admin"),
   controllers.membershipController.issueMembership,
 );
 

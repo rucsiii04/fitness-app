@@ -21,10 +21,7 @@ export const Class_Type = db.define(
       type: DataTypes.ENUM("beginner", "intermediate", "advanced"),
       allowNull: false,
     },
-    max_participants: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-    },
+  
     gym_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

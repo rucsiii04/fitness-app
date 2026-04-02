@@ -2,8 +2,10 @@ import {
   Class_Enrollment,
   Class_Session,
   Class_Type,
+  Gym,
   Membership,
   Membership_Type,
+  User,
 } from "../../models/index.js";
 import { getSessionStatus } from "../../utils/sessionStatus.js";
 import { db } from "../../config/db.js";
@@ -23,8 +25,8 @@ const promoteFromWaitingList = async (sessionId, transaction) => {
     },
     order: [["enrollment_date", "ASC"]],
     transaction,
+    lock: transaction.LOCK.UPDATE,
   });
-
   if (next) {
     next.status = "confirmed";
     await next.save({ transaction });
@@ -42,7 +44,6 @@ export const controller = {
       t = await db.transaction();
 
       const session = await Class_Session.findByPk(sessionId, {
-        include: [{ model: Class_Type }],
         transaction: t,
         lock: t.LOCK.UPDATE,
       });
@@ -150,17 +151,20 @@ export const controller = {
         return res.status(400).send("Overlapping class");
       }
 
-      const confirmedCount = await Class_Enrollment.count({
+      const confirmedEnrollments = await Class_Enrollment.findAll({
         where: {
           session_id: sessionId,
           status: "confirmed",
         },
         transaction: t,
+        lock: t.LOCK.UPDATE,
       });
+
+      const confirmedCount = confirmedEnrollments.length;
 
       let status = "confirmed";
 
-      if (confirmedCount >= session.Class_Type.max_participants) {
+      if (confirmedCount >= session.max_participants) {
         status = "waiting_list";
       }
 
@@ -296,6 +300,235 @@ export const controller = {
       await enrollment.save();
 
       res.json(enrollment);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  },
+  getClassTypesByGym: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+
+      const types = await Class_Type.findAll({
+        where: { gym_id: gymId },
+        order: [["name", "ASC"]],
+      });
+
+      res.json(types);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  },
+  createClassType: async (req, res) => {
+    try {
+      const { name, description, difficulty_level, max_participants, gym_id } =
+        req.body;
+
+      const hasAccess = await hasManagedGymAccess(req.user, gym_id);
+
+      if (!hasAccess) {
+        return res.status(403).send("Not authorized for this gym");
+      }
+
+      const type = await Class_Type.create({
+        name,
+        description,
+        difficulty_level,
+        max_participants,
+        gym_id,
+      });
+
+      res.status(201).json(type);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  },
+  getSessionsByGym: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+
+      const sessions = await Class_Session.findAll({
+        where: { gym_id: gymId },
+        include: [Class_Type],
+        order: [["start_datetime", "ASC"]],
+      });
+
+      res.json(sessions);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  },
+  createClassSession: async (req, res) => {
+    try {
+      const {
+        class_type_id,
+        gym_id,
+        trainer_id,
+        start_datetime,
+        end_datetime,
+        max_participants,
+      } = req.body;
+
+      if (new Date(start_datetime) >= new Date(end_datetime)) {
+        return res.status(400).send("Invalid time interval");
+      }
+
+      if (!max_participants || max_participants <= 0) {
+        return res.status(400).send("Invalid max_participants");
+      }
+      let finalTrainerId;
+
+      if (req.user.role === "trainer") {
+        finalTrainerId = req.user.user_id;
+      } else if (req.user.role === "gym_admin") {
+        if (!trainer_id) {
+          return res.status(400).send("trainer_id is required");
+        }
+        finalTrainerId = trainer_id;
+      } else {
+        return res.status(403).send("Not authorized");
+      }
+
+      if (req.user.role === "gym_admin") {
+        const hasAccess = await hasManagedGymAccess(req.user, gym_id);
+        if (!hasAccess) {
+          return res.status(403).send("Not authorized for this gym");
+        }
+      }
+
+      const gym = await Gym.findOne({ where: { gym_id } });
+      if (!gym) {
+        return res.status(400).send("Gym not found");
+      }
+
+      const classType = await Class_Type.findOne({ where: { class_type_id } });
+      if (!classType) {
+        return res.status(400).send("Invalid class type");
+      }
+
+      const trainer = await User.findOne({
+        where: {
+          user_id: finalTrainerId,
+          role: "trainer",
+          gym_id: gym_id,
+        },
+      });
+      if (!trainer) {
+        return res.status(400).send("Invalid trainer for this gym");
+      }
+
+      const overlappingSession = await Class_Session.findOne({
+        where: {
+          trainer_id: finalTrainerId,
+          status: {
+            [Op.in]: ["scheduled", "ongoing"],
+          },
+          start_datetime: { [Op.lt]: end_datetime },
+          end_datetime: { [Op.gt]: start_datetime },
+        },
+      });
+      if (overlappingSession) {
+        return res
+          .status(400)
+          .send("Trainer already has a session in this time interval");
+      }
+
+      const session = await Class_Session.create({
+        class_type_id,
+        gym_id,
+        trainer_id: finalTrainerId,
+        start_datetime,
+        end_datetime,
+        max_participants,
+      });
+
+      res.status(201).json(session);
+    } catch (err) {
+      console.error("createClassSession error:", err);
+      res
+        .status(500)
+        .send("An unexpected error occurred. Please try again later.");
+    }
+  },
+  getSessionEnrollments: async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+
+      const session = await Class_Session.findByPk(sessionId);
+
+      if (!session) {
+        return res.status(404).send("Session not found");
+      }
+
+      const isTrainer = req.user.user_id === session.trainer_id;
+      const isAdmin = await hasManagedGymAccess(req.user, session.gym_id);
+
+      if (!isTrainer && !isAdmin) {
+        return res.status(403).send("Not authorized");
+      }
+
+      const enrollments = await Class_Enrollment.findAll({
+        where: { session_id: sessionId },
+        order: [["enrollment_date", "ASC"]],
+      });
+
+      res.json(enrollments);
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  },
+  cancelSession: async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+
+      const session = await Class_Session.findByPk(sessionId);
+
+      if (!session) {
+        return res.status(404).send("Session not found");
+      }
+
+      const isTrainer = req.user.user_id === session.trainer_id;
+      const isAdmin = await hasManagedGymAccess(req.user, session.gym_id);
+
+      if (!isTrainer && !isAdmin) {
+        return res.status(403).send("Not authorized");
+      }
+
+      session.status = "cancelled";
+      await session.save();
+
+      await Class_Enrollment.update(
+        { status: "cancelled" },
+        {
+          where: {
+            session_id: sessionId,
+            status: {
+              [Op.in]: ["confirmed", "waiting_list"],
+            },
+          },
+        },
+      );
+
+      res.send("Session cancelled");
+    } catch (err) {
+      res.status(500).send(err.message);
+    }
+  },
+  getMyEnrollments: async (req, res) => {
+    try {
+      const clientId = req.user.user_id;
+
+      const enrollments = await Class_Enrollment.findAll({
+        where: { client_id: clientId },
+        include: [
+          {
+            model: Class_Session,
+            include: [Class_Type],
+          },
+        ],
+        order: [["enrollment_date", "DESC"]],
+      });
+
+      res.json(enrollments);
     } catch (err) {
       res.status(500).send(err.message);
     }

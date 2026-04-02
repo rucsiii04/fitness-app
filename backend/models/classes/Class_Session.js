@@ -34,6 +34,10 @@ export const Class_Session = db.define(
       allowNull: false,
       defaultValue: "scheduled",
     },
+    max_participants: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
   {
     freezeTableName: true,

@@ -93,14 +93,26 @@ User.belongsTo(Gym, { foreignKey: "gym_id", as: "Gym" });
 Gym.hasMany(Class_Session, { foreignKey: "gym_id" });
 Class_Session.belongsTo(Gym, { foreignKey: "gym_id" });
 
-User.hasMany(Class_Session, { foreignKey: "trainer_id" });
-Class_Session.belongsTo(User, { foreignKey: "trainer_id" });
+User.hasMany(Class_Session, {
+  foreignKey: "trainer_id",
+  as: "TrainerSessions",
+});
+Class_Session.belongsTo(User, {
+  foreignKey: "trainer_id",
+  as: "Trainer",
+});
 
 Class_Session.hasMany(Class_Enrollment, { foreignKey: "session_id" });
 Class_Enrollment.belongsTo(Class_Session, { foreignKey: "session_id" });
 
-User.hasMany(Class_Enrollment, { foreignKey: "client_id" });
-Class_Enrollment.belongsTo(User, { foreignKey: "client_id" });
+User.hasMany(Class_Enrollment, {
+  foreignKey: "client_id",
+  as: "Enrollments",
+});
+Class_Enrollment.belongsTo(User, {
+  foreignKey: "client_id",
+  as: "Client",
+});
 
 //ai
 User.hasMany(Conversation_AI, { foreignKey: "client_id" });

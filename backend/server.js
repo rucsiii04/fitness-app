@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import { initDatabase } from "./models/index.js";
-import { startSessionMaintenanceCron } from "./cron/sessionMaintenance.job.js";
+import { startSessionMaintenanceCron } from "./cron/sessionMaintenance.js";
 
 dotenv.config();
 import { router } from "./routes/index.js";

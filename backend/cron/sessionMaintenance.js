@@ -1,6 +1,6 @@
 import cron from "node-cron";
-import { syncExpiredNoShows } from "../utils/noShowUtils.js";
-import { updateSessionStatuses } from "../utils/sessionStatusUtils.js";
+import { syncExpiredNoShows } from "../utils/syncNoShow.js";
+import { updateSessionStatuses } from "../utils/sessionStatusUpdate.js";
 
 export const startSessionMaintenanceCron = () => {
   cron.schedule("*/5 * * * *", async () => {
