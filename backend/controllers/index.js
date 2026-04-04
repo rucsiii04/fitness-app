@@ -7,6 +7,7 @@ import { controller as trainerProfileController } from "./users/trainerProfileCo
 import { controller as membershipController } from "./membership/membershipController.js";
 import { controller as classController } from "./gym/ClassController.js";
 import {controller as exerciseController} from "./workouts/ExerciseController.js"
+import { controller as workoutController } from "./workouts/WorkoutController.js";
 export const controllers = {
   authController,
   profileController,
@@ -16,5 +17,6 @@ export const controllers = {
   trainerProfileController,
   membershipController,
   classController,
-  exerciseController
+  exerciseController,
+  workoutController
 };

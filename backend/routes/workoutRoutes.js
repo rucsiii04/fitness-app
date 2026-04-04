@@ -5,45 +5,49 @@ import { requireRole } from "../middleware/requireRole.js";
 
 export const router = express.Router();
 
+router.get(
+  "/",
+  verifyToken,
+  controllers.workoutController.getAll
+);
 
-router.get("/",verifyToken, controllers.exerciseController.getAll);
-router.get("/:id",verifyToken, controllers.exerciseController.getById);
+router.get(
+  "/:id",
+  verifyToken,
+  controllers.workoutController.getById
+);
 
 router.get(
   "/admin/all",
   verifyToken,
   requireRole("admin_global"),
-  controllers.exerciseController.getAll 
+  controllers.workoutController.getAllAdmin 
 );
+
 
 router.post(
   "/",
   verifyToken,
-  requireRole("admin_global"),
-  controllers.exerciseController.create,
+  controllers.workoutController.create
 );
+
 
 router.put(
   "/:id",
   verifyToken,
-  requireRole("admin_global"),
-  controllers.exerciseController.update,
+  controllers.workoutController.update
 );
-
 
 
 router.delete(
   "/:id",
   verifyToken,
-  requireRole("admin_global"),
-  controllers.exerciseController.delete,
+  controllers.workoutController.delete
 );
-
 
 
 router.post(
   "/:id/restore",
   verifyToken,
-  requireRole("admin_global"),
-  controllers.exerciseController.restore,
+  controllers.workoutController.restore
 );

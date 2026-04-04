@@ -52,6 +52,10 @@ export const Workout = db.define(
   },
   {
     freezeTableName: true,
-    timestamps: false,
+    timestamps: true,
+    paranoid: true,
+    deletedAt: "deleted_at",
+    createdAt: "created_at",
+    updatedAt: false,
   },
 );
