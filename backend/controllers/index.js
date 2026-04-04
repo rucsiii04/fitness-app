@@ -6,8 +6,11 @@ import { controller as globalAdminController } from "./admin/globalAdminControll
 import { controller as trainerProfileController } from "./users/trainerProfileController.js";
 import { controller as membershipController } from "./membership/membershipController.js";
 import { controller as classController } from "./gym/ClassController.js";
-import {controller as exerciseController} from "./workouts/ExerciseController.js"
+import { controller as exerciseController } from "./workouts/ExerciseController.js";
 import { controller as workoutController } from "./workouts/WorkoutController.js";
+import { controller as workoutExerciseController } from "./workouts/WorkoutExerciseController.js";
+import { controller as workoutSessionController } from "./workouts/WorkoutSessionController.js";
+
 export const controllers = {
   authController,
   profileController,
@@ -18,5 +21,7 @@ export const controllers = {
   membershipController,
   classController,
   exerciseController,
-  workoutController
+  workoutController,
+  workoutExerciseController,
+  workoutSessionController,
 };

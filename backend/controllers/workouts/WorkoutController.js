@@ -1,9 +1,22 @@
 import { Op } from "sequelize";
 import { Workout } from "../../models/index.js";
+import { Trainer_Assignment } from "../../models/index.js";
+const canAssignToClient = async (trainerId, clientId) => {
+  if (trainerId === clientId) return true;
+
+  const rel = await Trainer_Assignment.findOne({
+    where: {
+      trainer_id: trainerId,
+      client_id: clientId,
+    },
+  });
+
+  return !!rel;
+};
 export const controller = {
   getAll: async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.user.user_id;
 
       const workouts = await Workout.findAll({
         where: {
@@ -38,7 +51,7 @@ export const controller = {
   getById: async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.id;
+      const userId = req.user.user_id;
 
       const workout = await Workout.findByPk(id);
 
@@ -91,9 +104,16 @@ export const controller = {
             message: "Trainer must assign workout to a client",
           });
         }
+
+        if (!(await canAssignToClient(user.user_id, assigned_to_user_id))) {
+          return res.status(403).json({
+            message: "You can only assign workouts to your own clients",
+          });
+        }
+
         assignedUserId = assigned_to_user_id;
       } else {
-        assignedUserId = user.id;
+        assignedUserId = user.user_id;
       }
 
       const workout = await Workout.create({
@@ -127,7 +147,7 @@ export const controller = {
         return res.status(404).json({ message: "Workout not found" });
       }
 
-      const isOwner = workout.created_by_user_id === user.id;
+      const isOwner = workout.created_by_user_id === user.user_id;
       const isTrainer = user.role === "trainer";
 
       if (!isOwner && !isTrainer) {
@@ -153,9 +173,15 @@ export const controller = {
       if (is_public) {
         assignedUserId = null;
       } else if (isTrainer && assigned_to_user_id) {
+        if (!(await canAssignToClient(user.user_id, assigned_to_user_id))) {
+          return res.status(403).json({
+            message: "You can only assign workouts to your own clients",
+          });
+        }
+
         assignedUserId = assigned_to_user_id;
       } else if (!isTrainer) {
-        assignedUserId = user.id;
+        assignedUserId = user.user_id;
       }
 
       await workout.update({
@@ -183,10 +209,12 @@ export const controller = {
         return res.status(404).json({ message: "Workout not found" });
       }
 
-      const isOwner = workout.created_by_user_id === user.id;
+      const isOwner =
+        workout.created_by_user_id === (user.user_id || user.user_id);
       const isTrainer = user.role === "trainer";
+      const isAdmin = user.role === "admin_global";
 
-      if (!isOwner && !isTrainer) {
+      if (!isOwner && !isTrainer && !isAdmin) {
         return res.status(403).json({ message: "Forbidden" });
       }
 
@@ -211,7 +239,7 @@ export const controller = {
         return res.status(404).json({ message: "Workout not found" });
       }
 
-      const isOwner = workout.created_by_user_id === user.id;
+      const isOwner = workout.created_by_user_id === user.user_id;
       const isTrainer = user.role === "trainer";
 
       if (!isOwner && !isTrainer) {

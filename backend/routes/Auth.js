@@ -8,9 +8,9 @@ import {
   requestResetValidation,
   resetPasswordValidation,
   updatePasswordValidation,
-} from "../middleware/authValidators.js";
+} from "../validators/authValidators.js";
 
-import { handleValidation } from "../middleware/handleValidation.js";
+import { handleValidation } from "../validators/handleValidation.js";
 
 export const authRouter = express.Router();
 
@@ -18,14 +18,14 @@ authRouter.post(
   "/register",
   registerValidation,
   handleValidation,
-  controllers.authController.register
+  controllers.authController.register,
 );
 
 authRouter.post(
   "/login",
   loginValidation,
   handleValidation,
-  controllers.authController.login
+  controllers.authController.login,
 );
 
 authRouter.put(
@@ -33,19 +33,19 @@ authRouter.put(
   verifyToken,
   updatePasswordValidation,
   handleValidation,
-  controllers.authController.updatePassword
+  controllers.authController.updatePassword,
 );
 
 authRouter.post(
   "/request-reset-password",
   requestResetValidation,
   handleValidation,
-  controllers.authController.requestPasswordReset
+  controllers.authController.requestPasswordReset,
 );
 
 authRouter.post(
   "/reset-password",
   resetPasswordValidation,
   handleValidation,
-  controllers.authController.resetPassword
+  controllers.authController.resetPassword,
 );

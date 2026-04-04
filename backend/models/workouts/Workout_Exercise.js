@@ -24,6 +24,27 @@ export const Workout_Exercise = db.define(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+
+    sets: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+
+    reps: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+
+    rest_time: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: "seconds",
+    },
+
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     freezeTableName: true,
