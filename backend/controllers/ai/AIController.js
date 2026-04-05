@@ -199,7 +199,7 @@ export const controller = {
   generatePlan: async (req, res) => {
     try {
       const { conversationId } = req.params;
-
+      const { preferences } = req.body;
       const conversation = await verifyOwnership(
         conversationId,
         req.user.user_id,
@@ -212,6 +212,23 @@ export const controller = {
         req.user.user_id,
       );
 
+      // Fetch recent conversation history
+      const recentMessages = await Message.findAll({
+        where: { conversation_id: conversationId },
+        order: [["sent_at", "DESC"]],
+        limit: 10,
+      });
+
+      const conversationContext = recentMessages
+        .reverse()
+        .map(
+          (m) =>
+            `${m.sender === "user" ? "Client" : "Assistant"}: ${m.content}`,
+        )
+        .join("\n");
+      const preferencesSection = preferences?.trim()
+        ? `\nClient's additional preferences for this plan:\n${preferences}\n`
+        : "";
       const exercises = await Exercise.findAll({
         where: { is_active: true },
         attributes: [
@@ -235,7 +252,10 @@ export const controller = {
 
       const planPrompt = `${systemPrompt}
 
-You are now generating a personalized workout plan for this client.
+Recent conversation with the client:
+${conversationContext}
+${preferencesSection}
+You are now generating a personalized workout plan based on the above conversation and client profile.
 
 Available exercises (use ONLY these, and ONLY their exact IDs):
 ${JSON.stringify(exerciseLibrary, null, 2)}
@@ -255,7 +275,9 @@ Rules:
 - Only use exercise_id values from the list above.
 - reps is a string (e.g. "12", "8-10", "to failure").
 - rest_time is in seconds.
-- Respect any medical restrictions.`;
+- Respect any medical restrictions.
+- Respect any preferences or restrictions the client mentioned in the conversation above.
+- If the client provided additional preferences above, prioritize them.`;
 
       const result = await geminiModel.generateContent(planPrompt);
       const raw = result.response.text();
