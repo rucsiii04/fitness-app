@@ -21,9 +21,6 @@ export const Gym_Attendance = db.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    exit_time: {
-      type: DataTypes.DATE,
-    },
   },
   {
     freezeTableName: true,

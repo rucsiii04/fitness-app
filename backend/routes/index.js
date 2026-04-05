@@ -10,6 +10,8 @@ import { router as exerciseRouter } from "./exerciseRoutes.js";
 import { router as workoutRouter } from "./workoutRoutes.js";
 import { router as workoutExerciseRouter } from "./workoutExerciseRoutes.js";
 import { router as workoutSessionRouter } from "./workoutSessionRoutes.js";
+import { router as qrRouter } from "./qrRoutes.js";
+import { router as aiRouter } from "./aiRoutes.js";
 export const router = express.Router();
 
 router.use("/auth", authRouter);
@@ -22,4 +24,6 @@ router.use("/classes", classRouter);
 router.use("/exercises", exerciseRouter);
 router.use("/workouts", workoutRouter);
 router.use("/workouts", workoutExerciseRouter);
-router.use("/workout-sessions", workoutSessionRouter)
+router.use("/workout-sessions", workoutSessionRouter);
+router.use("/qr", qrRouter);
+router.use("/ai",aiRouter);

@@ -27,9 +27,9 @@ export const QR_Code = db.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    is_active: {
+    is_used: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true,
+      defaultValue: false,
     },
   },
   {

@@ -1,0 +1,113 @@
+
+import crypto from "crypto";
+import {
+  QR_Code,
+  Membership,
+  Membership_Type,
+  Gym_Attendance,
+  Client_Profile,
+  User,
+} from "../../models/index.js";
+
+export const controller = {
+  generateQR: async (req, res) => {
+    try {
+      const user_id = req.user.user_id;
+      await QR_Code.update(
+        { is_used: true },
+        { where: { user_id, is_used: false } }
+      );
+
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const token_hash = crypto
+        .createHash("sha256")
+        .update(rawToken)
+        .digest("hex");
+
+      await QR_Code.create({
+        user_id,
+        token_hash,
+        expires_at: new Date(Date.now() + 5 * 60 * 1000), 
+        is_used: false,
+      });
+
+      return res.status(201).json({ token: rawToken });
+    } catch (err) {
+      return res.status(500).send("Error generating QR code: " + err.message);
+    }
+  },
+
+  scanQR: async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).send("Token is required");
+      }
+
+      const token_hash = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+
+      const qrRecord = await QR_Code.findOne({ where: { token_hash } });
+
+      if (!qrRecord) {
+        return res.status(404).send("Invalid QR code");
+      }
+
+      if (qrRecord.is_used) {
+        return res.status(400).send("QR code already used");
+      }
+
+      if (qrRecord.expires_at < new Date()) {
+        return res.status(400).send("QR code expired");
+      }
+
+      const gym_id = req.user.gym_id;
+
+      const membership = await Membership.findOne({
+        where: {
+          client_id: qrRecord.user_id,
+          status: "active",
+        },
+        include: [
+          {
+            model: Membership_Type,
+            where: { gym_id },
+            attributes: ["name", "gym_id"],
+          },
+        ],
+      });
+
+      if (!membership) {
+        return res.status(403).send("No active membership for this gym");
+      }
+
+      await qrRecord.update({ is_used: true });
+
+  
+      await Gym_Attendance.create({
+        user_id: qrRecord.user_id,
+        gym_id,
+        entry_time: new Date(),
+      });
+
+
+      const client = await User.findByPk(qrRecord.user_id, {
+        include: [{ model: Client_Profile }],
+      });
+
+      return res.status(200).json({
+        message: "Access granted",
+        client: {
+          name: `${client.first_name} ${client.last_name}`,
+          membership_type: membership.Membership_Type.name,
+          expires_at: membership.end_date,
+        },
+      });
+    } catch (err) {
+      return res.status(500).send("Error scanning QR code: " + err.message);
+    }
+  },
+};
