@@ -22,7 +22,7 @@ export const updateSessionStatuses = async () => {
 
   
   await Class_Session.update(
-    { status: "finished" },
+    { status: "completed" },
     {
       where: {
         status: "ongoing",

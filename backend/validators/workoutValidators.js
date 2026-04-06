@@ -1,5 +1,40 @@
 import { body } from "express-validator";
 
+const DIFFICULTY_LEVELS = ["beginner", "intermediate", "advanced"];
+const SOURCES = ["trainer", "ai", "user"];
+
+export const createWorkoutValidation = [
+  body("name").notEmpty().withMessage("Workout name is required").trim(),
+
+  body("description").optional().isString().trim(),
+
+  body("difficulty_level")
+    .optional()
+    .isIn(DIFFICULTY_LEVELS)
+    .withMessage(`difficulty_level must be one of: ${DIFFICULTY_LEVELS.join(", ")}`),
+
+  body("source")
+    .optional()
+    .isIn(SOURCES)
+    .withMessage(`source must be one of: ${SOURCES.join(", ")}`),
+];
+
+export const updateWorkoutValidation = [
+  body("name").optional().notEmpty().withMessage("Workout name cannot be empty").trim(),
+
+  body("description").optional().isString().trim(),
+
+  body("difficulty_level")
+    .optional()
+    .isIn(DIFFICULTY_LEVELS)
+    .withMessage(`difficulty_level must be one of: ${DIFFICULTY_LEVELS.join(", ")}`),
+
+  body("source")
+    .optional()
+    .isIn(SOURCES)
+    .withMessage(`source must be one of: ${SOURCES.join(", ")}`),
+];
+
 export const setWorkoutExercisesValidation = [
   body("exercises")
     .isArray({ min: 1 })

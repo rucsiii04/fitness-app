@@ -7,6 +7,7 @@ export const router = express.Router();
 
 router.get(
   "/gyms/:gymId/types",
+  verifyToken,
   controllers.membershipController.getMembershipTypesByGym,
 );
 
@@ -46,9 +47,9 @@ router.post(
 );
 
 router.post(
-  "/gyns/:gymId/pause-memberships",
+  "/gyms/:gymId/pause-memberships",
   verifyToken,
-  requireRole("gym-admin"),
+  requireRole("gym_admin"),
   controllers.membershipController.pauseGymMemberships,
 );
 router.get(
@@ -67,4 +68,11 @@ router.post(
   verifyToken,
   requireRole("client"),
   controllers.membershipController.resumeMyMembership,
+);
+
+router.delete(
+  "/:membershipId",
+  verifyToken,
+  requireRole("front_desk", "gym_admin"),
+  controllers.membershipController.cancelMembership,
 );

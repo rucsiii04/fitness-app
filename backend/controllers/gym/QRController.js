@@ -1,5 +1,6 @@
 
 import crypto from "crypto";
+import { Op } from "sequelize";
 import {
   QR_Code,
   Membership,
@@ -13,6 +14,25 @@ export const controller = {
   generateQR: async (req, res) => {
     try {
       const user_id = req.user.user_id;
+      const gym_id = req.user.gym_id;
+
+      const membership = await Membership.findOne({
+        where: { client_id: user_id, status: "active" },
+        include: [
+          {
+            model: Membership_Type,
+            where: { gym_id },
+            attributes: ["name", "gym_id"],
+          },
+        ],
+      });
+
+      if (!membership) {
+        return res
+          .status(403)
+          .json({ message: "No active membership. Cannot generate QR code." });
+      }
+
       await QR_Code.update(
         { is_used: true },
         { where: { user_id, is_used: false } }
@@ -34,6 +54,47 @@ export const controller = {
       return res.status(201).json({ token: rawToken });
     } catch (err) {
       return res.status(500).send("Error generating QR code: " + err.message);
+    }
+  },
+
+  getMyQR: async (req, res) => {
+    try {
+      const user_id = req.user.user_id;
+      const qr = await QR_Code.findOne({
+        where: {
+          user_id,
+          is_used: false,
+          expires_at: { [Op.gt]: new Date() },
+        },
+        attributes: ["qr_id", "generated_at", "expires_at"],
+        order: [["generated_at", "DESC"]],
+      });
+
+      if (!qr) {
+        return res.status(404).json({ message: "No active QR code found" });
+      }
+
+      return res.status(200).json(qr);
+    } catch (err) {
+      return res.status(500).send("Error fetching QR code: " + err.message);
+    }
+  },
+
+  deleteMyQR: async (req, res) => {
+    try {
+      const user_id = req.user.user_id;
+      const [count] = await QR_Code.update(
+        { is_used: true },
+        { where: { user_id, is_used: false } }
+      );
+
+      if (!count) {
+        return res.status(404).json({ message: "No active QR code to invalidate" });
+      }
+
+      return res.status(200).json({ message: "QR code invalidated" });
+    } catch (err) {
+      return res.status(500).send("Error invalidating QR code: " + err.message);
     }
   },
 

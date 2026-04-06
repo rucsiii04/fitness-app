@@ -69,6 +69,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+expo-env.d.ts
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -137,3 +138,52 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+*.keystore
+*.jks
+
+# iOS
+ios/build/
+ios/Pods/
+*.xcworkspace
+
+# Metro bundler
+.metro-cache
+
+# React Native debug
+*.hprof
+
+# local env files (extra safe)
+.env.local
+.env.development
+.env.production
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Expo
+app.config.local.js
+app.config.local.ts
+
+# React Native logs
+react-native.log
+
+# temporary
+tmp/
+temp/

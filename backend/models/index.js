@@ -18,7 +18,7 @@ import { Workout_Exercise } from "./workouts/Workout_Exercise.js";
 import { Workout_Session } from "./workouts/Workout_Session.js";
 import { Trainer_Assignment } from "./users/Trainer_Assignment.js";
 import { Trainer_Profile } from "./users/Trainer_Profile.js";
-
+import { Session_Exercise_Log } from "./workouts/Session_Exercise_Log.js";
 //User
 
 User.hasOne(Client_Profile, { foreignKey: "user_id" });
@@ -172,6 +172,15 @@ Workout_Session.belongsTo(Workout, { foreignKey: "workout_id" });
 Gym.hasMany(Membership_Type, { foreignKey: "gym_id" });
 Membership_Type.belongsTo(Gym, { foreignKey: "gym_id" });
 
+Workout_Session.hasMany(Session_Exercise_Log, {
+  foreignKey: "session_id",
+  onDelete: "CASCADE",
+});
+Session_Exercise_Log.belongsTo(Workout_Session, { foreignKey: "session_id" });
+
+Exercise.hasMany(Session_Exercise_Log, { foreignKey: "exercise_id" });
+Session_Exercise_Log.belongsTo(Exercise, { foreignKey: "exercise_id" });
+
 export const initDatabase = async () => {
   try {
     await db.authenticate();
@@ -200,4 +209,5 @@ export {
   Exercise,
   Trainer_Assignment,
   Trainer_Profile,
+  Session_Exercise_Log,
 };

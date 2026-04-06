@@ -2,12 +2,15 @@ import express from "express";
 import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/requireRole.js";
+import { createClassSessionValidation } from "../validators/classValidators.js";
+import { handleValidation } from "../validators/handleValidation.js";
 
 export const router = express.Router();
 
 
 router.get(
   "/gyms/:gymId/class-types",
+  verifyToken,
   controllers.classController.getClassTypesByGym
 );
 
@@ -22,6 +25,7 @@ router.post(
 
 router.get(
   "/gyms/:gymId/class-sessions",
+  verifyToken,
   controllers.classController.getSessionsByGym
 );
 
@@ -29,6 +33,8 @@ router.post(
   "/class-sessions",
   verifyToken,
   requireRole("trainer", "gym_admin"),
+  createClassSessionValidation,
+  handleValidation,
   controllers.classController.createClassSession
 );
 

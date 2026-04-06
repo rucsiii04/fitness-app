@@ -2,7 +2,9 @@ import express from "express";
 import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/requireRole.js";
-import {upload} from "../config/multer.js";
+import { upload } from "../config/multer.js";
+import { createTrainerProfileValidation } from "../validators/trainerProfileValidators.js";
+import { handleValidation } from "../validators/handleValidation.js";
 export const router = express.Router();
 
 router.post(
@@ -73,7 +75,7 @@ router.get(
 router.get(
   "/gyms/:gymId/trainers",
   verifyToken,
-  // requireRole("client", "gym_admin"),
+  requireRole("client", "gym_admin"),
   controllers.userController.getTrainersByGym,
 );
 router.post(
@@ -81,6 +83,8 @@ router.post(
   verifyToken,
   requireRole("trainer"),
   upload.single("image"),
+  createTrainerProfileValidation,
+  handleValidation,
   controllers.trainerProfileController.createTrainerProfile,
 );
 
@@ -96,4 +100,11 @@ router.put(
   verifyToken,
   requireRole("trainer"),
   controllers.trainerProfileController.updateTrainerProfile,
+);
+
+router.delete(
+  "/profil",
+  verifyToken,
+  requireRole("trainer"),
+  controllers.trainerProfileController.deleteTrainerProfile,
 );

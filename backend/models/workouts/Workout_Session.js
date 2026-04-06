@@ -17,9 +17,8 @@ export const Workout_Session = db.define(
 
     workout_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-    },//nu mai lasam null->feature pe mai departe sa si poata adauga ex pe masura ce isi face antrenamente 
-
+      allowNull: true,
+    },
     started_at: {
       type: DataTypes.DATE,
       allowNull: false,

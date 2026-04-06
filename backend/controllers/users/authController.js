@@ -88,8 +88,7 @@ export const controller = {
 
   requestPasswordReset: async (req, res) => {
     try {
-      const users = await User.findAll();
-      console.log(users);
+      
       const { email } = req.body;
 
       const user = await User.findOne({ where: { email } });

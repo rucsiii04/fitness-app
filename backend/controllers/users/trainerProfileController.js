@@ -149,4 +149,24 @@ export const controller = {
       return res.status(500).send("Error while fetching trainer profile");
     }
   },
+
+  deleteTrainerProfile: async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+
+      const profile = await Trainer_Profile.findByPk(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      if (profile.image_public_id) {
+        await cloudinary.uploader.destroy(profile.image_public_id);
+      }
+
+      await profile.destroy();
+      return res.status(200).json({ message: "Profile deleted" });
+    } catch (err) {
+      return res.status(500).json({ message: "Error deleting trainer profile" });
+    }
+  },
 };

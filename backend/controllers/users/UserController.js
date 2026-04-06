@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import { db } from "../../config/db.js";
 import { User, Trainer_Assignment } from "../../models/index.js";
 
 export const controller = {
@@ -94,26 +95,40 @@ export const controller = {
       }
 
       if (action === "accept") {
-        const alreadyAccepted = await Trainer_Assignment.findOne({
-          where: {
-            client_id: request.client_id,
-            status: "accepted",
-            // id: { [Op.ne]: request.id },
-          },
-        });
+        const t = await db.transaction();
+        try {
+          const lockedRequest = await Trainer_Assignment.findByPk(requestId, {
+            transaction: t,
+            lock: t.LOCK.UPDATE,
+          });
 
-        if (alreadyAccepted) {
-          return res.status(400).send("Client already has an active trainer");
+          if (lockedRequest.status !== "pending") {
+            await t.rollback();
+            return res.status(400).send("Request already processed");
+          }
+
+          const alreadyAccepted = await Trainer_Assignment.findOne({
+            where: { client_id: request.client_id, status: "accepted" },
+            transaction: t,
+          });
+
+          if (alreadyAccepted) {
+            await t.rollback();
+            return res.status(400).send("Client already has an active trainer");
+          }
+
+          await lockedRequest.update({ status: "accepted" }, { transaction: t });
+          await t.commit();
+        } catch (err) {
+          await t.rollback();
+          return res.status(500).send("Error while processing request: " + err);
         }
-
-        request.status = "accepted";
       } else if (action === "reject") {
         request.status = "rejected";
+        await request.save();
       } else {
         return res.status(400).send("Invalid action");
       }
-
-      await request.save();
 
       return res.status(200).send(`Request ${action}ed`);
     } catch (err) {

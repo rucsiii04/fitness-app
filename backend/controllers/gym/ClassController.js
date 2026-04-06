@@ -333,7 +333,6 @@ export const controller = {
         name,
         description,
         difficulty_level,
-        max_participants,
         gym_id,
       });
 

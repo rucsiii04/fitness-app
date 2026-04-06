@@ -1,0 +1,17 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+, "hooks/useAppFonts.js", "constants/theme.js", "app/_layout.jsx", "app/index.jsx", "components/features/splash/KineticSplash.jsx", "app/(tabs)/_layout.jsx"  ]
+}

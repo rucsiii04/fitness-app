@@ -1,4 +1,5 @@
 import { Op } from "sequelize";
+import { db } from "../../config/db.js";
 import {
   Membership,
   Membership_Type,
@@ -255,29 +256,8 @@ export const controller = {
         return res.status(400).send("Invalid start date");
       }
 
+      // sync before transaction — idempotent, safe outside
       await syncMembershipStatuses(client_id);
-
-      const currentMembership = await Membership.findOne({
-        where: {
-          client_id,
-          status: {
-            [Op.in]: ACTIVE_MEMBERSHIP_STATUSES,
-          },
-        },
-        include: {
-          model: Membership_Type,
-          attributes: ["gym_id"],
-        },
-        order: [["start_date", "DESC"]],
-      });
-
-      if (currentMembership) {
-        await currentMembership.update({
-          status: "cancelled",
-          end_date: new Date(),
-          cancelled_reason: "Replaced by a new membership issued at reception",
-        });
-      }
 
       const startDate = start_date ? new Date(start_date) : new Date();
       const endDate = addDays(startDate, membershipType.duration_days);
@@ -285,41 +265,69 @@ export const controller = {
         client.gym_id &&
         Number(client.gym_id) !== Number(membershipType.gym_id);
 
-      const membership = await Membership.create({
-        client_id,
-        membership_type_id,
-        start_date: startDate,
-        end_date: endDate,
-        status: "active",
-        payment_method,
-        remaining_freeze_days: membershipType.freeze_days,
-      });
+      const t = await db.transaction();
+      try {
+        const currentMembership = await Membership.findOne({
+          where: {
+            client_id,
+            status: { [Op.in]: ACTIVE_MEMBERSHIP_STATUSES },
+          },
+          include: { model: Membership_Type, attributes: ["gym_id"] },
+          order: [["start_date", "DESC"]],
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
 
-      if (isChangingGym) {
-        await Trainer_Assignment.update(
-          { status: "ended" },
-          { where: { client_id, status: "accepted" } },
-        );
-      }
-
-      await User.update(
-        { gym_id: membershipType.gym_id },
-        { where: { user_id: client_id } },
-      );
-
-      const createdMembership = await Membership.findByPk(
-        membership.membership_id,
-        {
-          include: [
+        if (currentMembership) {
+          await currentMembership.update(
             {
-              model: Membership_Type,
-              include: [{ model: Gym }],
+              status: "cancelled",
+              end_date: new Date(),
+              cancelled_reason: "Replaced by a new membership issued at reception",
             },
-          ],
-        },
-      );
+            { transaction: t },
+          );
+        }
 
-      return res.status(201).json(createdMembership);
+        const membership = await Membership.create(
+          {
+            client_id,
+            membership_type_id,
+            start_date: startDate,
+            end_date: endDate,
+            status: "active",
+            payment_method,
+            remaining_freeze_days: membershipType.freeze_days,
+          },
+          { transaction: t },
+        );
+
+        if (isChangingGym) {
+          await Trainer_Assignment.update(
+            { status: "ended" },
+            { where: { client_id, status: "accepted" }, transaction: t },
+          );
+        }
+
+        await User.update(
+          { gym_id: membershipType.gym_id },
+          { where: { user_id: client_id }, transaction: t },
+        );
+
+        await t.commit();
+
+        const createdMembership = await Membership.findByPk(
+          membership.membership_id,
+          {
+            include: [{ model: Membership_Type, include: [{ model: Gym }] }],
+          },
+        );
+
+        return res.status(201).json(createdMembership);
+      } catch (err) {
+        await t.rollback();
+        throw err;
+      }
     } catch (err) {
       return res.status(500).send("Error issuing membership: " + err);
     }
@@ -489,6 +497,38 @@ export const controller = {
       return res.status(500).send("Error pausing gym memberships: " + err);
     }
   },
+ cancelMembership: async (req, res) => {
+  try {
+    const { membershipId } = req.params;
+    const membership = await Membership.findByPk(membershipId, {
+      include: [{ model: Membership_Type, attributes: ["gym_id"] }],
+    });
+
+    if (!membership) {
+      return res.status(404).send("Membership not found");
+    }
+
+    const canManage = await canManageGym(req.user, membership.Membership_Type.gym_id);
+    if (!canManage) {
+      return res.status(403).send("You cannot manage memberships for this gym");
+    }
+
+    if (!ACTIVE_MEMBERSHIP_STATUSES.includes(membership.status)) {
+      return res.status(400).send("Membership is already cancelled or expired");
+    }
+
+    await membership.update({
+      status: "cancelled",
+      end_date: new Date(),
+      cancelled_reason: req.body.reason || "Cancelled by gym staff",
+    });
+
+    return res.status(200).json(membership);
+  } catch (err) {
+    return res.status(500).send("Error cancelling membership: " + err);
+  }
+},
+
  resumeMyMembership: async (req, res) => {
   try {
 

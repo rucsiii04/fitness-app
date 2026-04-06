@@ -2,6 +2,8 @@ import express from "express";
 import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/requireRole.js";
+import { createExerciseValidation, updateExerciseValidation } from "../validators/exerciseValidators.js";
+import { handleValidation } from "../validators/handleValidation.js";
 
 export const router = express.Router();
 
@@ -20,6 +22,8 @@ router.post(
   "/",
   verifyToken,
   requireRole("admin_global"),
+  createExerciseValidation,
+  handleValidation,
   controllers.exerciseController.create,
 );
 
@@ -27,6 +31,8 @@ router.put(
   "/:id",
   verifyToken,
   requireRole("admin_global"),
+  updateExerciseValidation,
+  handleValidation,
   controllers.exerciseController.update,
 );
 

@@ -102,5 +102,98 @@ export const controller = {
     }catch(err){
       return res.status(500).send("Error: "+err);
     }
-  }
+  },
+
+  updateGym: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const gym = await Gym.findOne({ where: { gym_id: gymId, admin_user_id: req.user.user_id } });
+      if (!gym) {
+        return res.status(404).send("Gym not found or you do not manage it");
+      }
+
+      const updates = {};
+      const allowedFields = ["name", "address", "max_capacity", "opening_time", "closing_time"];
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      await gym.update(updates);
+      return res.status(200).json(gym);
+    } catch (err) {
+      return res.status(500).send("Error updating gym: " + err);
+    }
+  },
+
+  deleteGym: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const gym = await Gym.findOne({ where: { gym_id: gymId, admin_user_id: req.user.user_id } });
+      if (!gym) {
+        return res.status(404).send("Gym not found or you do not manage it");
+      }
+
+      await gym.destroy();
+      return res.status(200).send("Gym deleted");
+    } catch (err) {
+      return res.status(500).send("Error deleting gym: " + err);
+    }
+  },
+
+  updateTrainer: async (req, res) => {
+    try {
+      const { trainerId } = req.params;
+      const trainer = await User.findOne({ where: { user_id: trainerId, role: "trainer" } });
+      if (!trainer) {
+        return res.status(404).send("Trainer not found");
+      }
+
+      const gym = await Gym.findOne({ where: { gym_id: trainer.gym_id, admin_user_id: req.user.user_id } });
+      if (!gym) {
+        return res.status(403).send("You do not manage this trainer's gym");
+      }
+
+      const updates = {};
+      const allowedFields = ["first_name", "last_name", "phone", "is_active"];
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      if (updates.phone) {
+        const existing = await User.findOne({ where: { phone: updates.phone } });
+        if (existing && existing.user_id !== trainer.user_id) {
+          return res.status(409).send("Phone number already used");
+        }
+      }
+
+      await trainer.update(updates);
+      return res.status(200).json(trainer);
+    } catch (err) {
+      return res.status(500).send("Error updating trainer: " + err);
+    }
+  },
+
+  deleteTrainer: async (req, res) => {
+    try {
+      const { trainerId } = req.params;
+      const trainer = await User.findOne({ where: { user_id: trainerId, role: "trainer" } });
+      if (!trainer) {
+        return res.status(404).send("Trainer not found");
+      }
+
+      const gym = await Gym.findOne({ where: { gym_id: trainer.gym_id, admin_user_id: req.user.user_id } });
+      if (!gym) {
+        return res.status(403).send("You do not manage this trainer's gym");
+      }
+
+      await trainer.update({ is_active: false });
+      return res.status(200).send("Trainer deactivated");
+    } catch (err) {
+      return res.status(500).send("Error deactivating trainer: " + err);
+    }
+  },
 };
