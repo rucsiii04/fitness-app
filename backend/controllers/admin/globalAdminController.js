@@ -11,16 +11,16 @@ export const controller = {
       const { email, first_name, last_name, phone } = req.body;
 
       if (!email || !first_name || !last_name || !phone) {
-        return res.status(400).send("Missing required fields");
+        return res.status(400).json({ message: "Missing required fields" });
       }
       const existing = await User.findOne({
         where: { [Op.or]: [{ email }, { phone }] },
       });
       if (existing) {
         if (existing.email === email) {
-          return res.status(409).send("Email already used");
+          return res.status(409).json({ message: "Email already used" });
         } else {
-          return res.status(409).send("Phone already in used");
+          return res.status(409).json({ message: "Phone already in used" });
         }
       }
       const tempPassword = crypto.randomBytes(16).toString("hex");
@@ -56,9 +56,9 @@ export const controller = {
         <p>Link expires in 1 hour.</p>
         `
       });
-      return res.status(200).send("Gym admin created. Email sent.")
+      return res.status(200).json({ message: "Gym admin created. Email sent." })
     } catch (err) {
-      return res.status(500).send("Error: "+err);
+      return res.status(500).json({ message: "Error: "+err });
     }
   },
 };

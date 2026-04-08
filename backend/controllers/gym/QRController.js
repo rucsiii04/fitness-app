@@ -1,4 +1,3 @@
-
 import crypto from "crypto";
 import { Op } from "sequelize";
 import {
@@ -15,7 +14,11 @@ export const controller = {
     try {
       const user_id = req.user.user_id;
       const gym_id = req.user.gym_id;
-
+      if (!gym_id) {
+        return res
+          .status(403)
+          .json({ message: "You are not assigned to a gym." });
+      }
       const membership = await Membership.findOne({
         where: { client_id: user_id, status: "active" },
         include: [
@@ -35,7 +38,7 @@ export const controller = {
 
       await QR_Code.update(
         { is_used: true },
-        { where: { user_id, is_used: false } }
+        { where: { user_id, is_used: false } },
       );
 
       const rawToken = crypto.randomBytes(32).toString("hex");
@@ -47,13 +50,15 @@ export const controller = {
       await QR_Code.create({
         user_id,
         token_hash,
-        expires_at: new Date(Date.now() + 5 * 60 * 1000), 
+        expires_at: new Date(Date.now() + 5 * 60 * 1000),
         is_used: false,
       });
 
       return res.status(201).json({ token: rawToken });
     } catch (err) {
-      return res.status(500).send("Error generating QR code: " + err.message);
+      return res
+        .status(500)
+        .json({ message: "Error generating QR code: " + err.message });
     }
   },
 
@@ -76,7 +81,9 @@ export const controller = {
 
       return res.status(200).json(qr);
     } catch (err) {
-      return res.status(500).send("Error fetching QR code: " + err.message);
+      return res
+        .status(500)
+        .json({ message: "Error fetching QR code: " + err.message });
     }
   },
 
@@ -85,16 +92,20 @@ export const controller = {
       const user_id = req.user.user_id;
       const [count] = await QR_Code.update(
         { is_used: true },
-        { where: { user_id, is_used: false } }
+        { where: { user_id, is_used: false } },
       );
 
       if (!count) {
-        return res.status(404).json({ message: "No active QR code to invalidate" });
+        return res
+          .status(404)
+          .json({ message: "No active QR code to invalidate" });
       }
 
       return res.status(200).json({ message: "QR code invalidated" });
     } catch (err) {
-      return res.status(500).send("Error invalidating QR code: " + err.message);
+      return res
+        .status(500)
+        .json({ message: "Error invalidating QR code: " + err.message });
     }
   },
 
@@ -103,7 +114,7 @@ export const controller = {
       const { token } = req.body;
 
       if (!token) {
-        return res.status(400).send("Token is required");
+        return res.status(400).json({ message: "Token is required" });
       }
 
       const token_hash = crypto
@@ -114,15 +125,15 @@ export const controller = {
       const qrRecord = await QR_Code.findOne({ where: { token_hash } });
 
       if (!qrRecord) {
-        return res.status(404).send("Invalid QR code");
+        return res.status(404).json({ message: "Invalid QR code" });
       }
 
       if (qrRecord.is_used) {
-        return res.status(400).send("QR code already used");
+        return res.status(400).json({ message: "QR code already used" });
       }
 
       if (qrRecord.expires_at < new Date()) {
-        return res.status(400).send("QR code expired");
+        return res.status(400).json({ message: "QR code expired" });
       }
 
       const gym_id = req.user.gym_id;
@@ -142,18 +153,18 @@ export const controller = {
       });
 
       if (!membership) {
-        return res.status(403).send("No active membership for this gym");
+        return res
+          .status(403)
+          .json({ message: "No active membership for this gym" });
       }
 
       await qrRecord.update({ is_used: true });
 
-  
       await Gym_Attendance.create({
         user_id: qrRecord.user_id,
         gym_id,
         entry_time: new Date(),
       });
-
 
       const client = await User.findByPk(qrRecord.user_id, {
         include: [{ model: Client_Profile }],
@@ -168,7 +179,9 @@ export const controller = {
         },
       });
     } catch (err) {
-      return res.status(500).send("Error scanning QR code: " + err.message);
+      return res
+        .status(500)
+        .json({ message: "Error scanning QR code: " + err.message });
     }
   },
 };

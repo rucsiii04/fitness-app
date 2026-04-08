@@ -19,17 +19,17 @@ export const controller = {
         activity_level === undefined ||
         main_goal === undefined
       ) {
-        return res.status(400).send("All required fields must be provided");
+        return res.status(400).json({ message: "All required fields must be provided" });
       }
       if (
         isNaN(current_weight) ||
         current_weight <= 30 ||
         current_weight > 300
       ) {
-        return res.status(400).send("Invalid weight value");
+        return res.status(400).json({ message: "Invalid weight value" });
       }
       if (isNaN(height) || height < 100 || height > 250) {
-        return res.status(400).send("Height must be between 100 and 250 cm");
+        return res.status(400).json({ message: "Height must be between 100 and 250 cm" });
       }
       const validActivity = [
         "sedentary",
@@ -39,18 +39,18 @@ export const controller = {
         "very_active",
       ];
       if (!validActivity.includes(activity_level)) {
-        return res.status(400).send("Invalid activity level");
+        return res.status(400).json({ message: "Invalid activity level" });
       }
       const validGoals = ["lose_weight", "maintain", "gain_weight"];
       if (!validGoals.includes(main_goal)) {
-        return res.status(400).send("Invalid main goal");
+        return res.status(400).json({ message: "Invalid main goal" });
       }
       if (gender !== "female" && gender !== "male") {
-        return res.status(400).send("Invalid gender");
+        return res.status(400).json({ message: "Invalid gender" });
       }
       const existingProfile = await Client_Profile.findByPk(userId);
       if (existingProfile) {
-        return res.status(400).send("Profile already exists");
+        return res.status(400).json({ message: "Profile already exists" });
       }
       const profile = await Client_Profile.create({
         user_id: userId,
@@ -63,7 +63,7 @@ export const controller = {
       });
       res.status(201).json(profile);
     } catch (err) {
-      return res.status(500).send("Error while creating profile: " + err);
+      return res.status(500).json({ message: "Error while creating profile: " + err });
     }
   },
   getProfile: async (req, res) => {
@@ -71,11 +71,11 @@ export const controller = {
       const userId = req.user.user_id;
       const profile = await Client_Profile.findByPk(userId);
       if (!profile) {
-        return res.status(404).send("Profile not found");
+        return res.status(404).json({ message: "Profile not found" });
       }
       res.status(200).json(profile);
     } catch (err) {
-      return res.status(500).json("Error while fetching profile: " + err);
+      return res.status(500).json({ message: "Error while fetching profile: " + err });
     }
   },
   updateProfile: async (req, res) => {
@@ -83,7 +83,7 @@ export const controller = {
       const userId = req.user.user_id;
       const profile = await Client_Profile.findByPk(userId);
       if (!profile) {
-        return res.status(404).send("Profile not found");
+        return res.status(404).json({ message: "Profile not found" });
       }
       const updates = {};
       const {
@@ -100,13 +100,13 @@ export const controller = {
           current_weight <= 30 ||
           current_weight > 300
         ) {
-          return res.status(400).send("Invalid weight value");
+          return res.status(400).json({ message: "Invalid weight value" });
         }
         updates.current_weight = current_weight;
       }
       if (height !== undefined) {
         if (isNaN(height) || height < 100 || height > 250) {
-          return res.status(400).send("Height must be between 100 and 250 cm");
+          return res.status(400).json({ message: "Height must be between 100 and 250 cm" });
         }
         updates.height = height;
       }
@@ -119,14 +119,14 @@ export const controller = {
           "very_active",
         ];
         if (!validActivity.includes(activity_level)) {
-          return res.status(400).send("Invalid activity level");
+          return res.status(400).json({ message: "Invalid activity level" });
         }
         updates.activity_level = activity_level;
       }
       if (main_goal !== undefined) {
         const validGoals = ["lose_weight", "maintain", "gain_weight"];
         if (!validGoals.includes(main_goal)) {
-          return res.status(400).send("Invalid main goal");
+          return res.status(400).json({ message: "Invalid main goal" });
         }
         updates.main_goal = main_goal;
       }
@@ -135,17 +135,17 @@ export const controller = {
 
       if (gender !== undefined) {
         if (gender !== "female" && gender !== "male") {
-          return res.status(400).send("Invalid gender");
+          return res.status(400).json({ message: "Invalid gender" });
         }
         updates.gender = gender;
       }
       if (Object.keys(updates).length === 0) {
-        return res.status(400).send("No valid fields provided");
+        return res.status(400).json({ message: "No valid fields provided" });
       }
       await profile.update(updates);
       return res.status(200).json(profile);
     } catch (err) {
-      return res.status(500).send("Error while updating profile: " + err);
+      return res.status(500).json({ message: "Error while updating profile: " + err });
     }
   },
 };

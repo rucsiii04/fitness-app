@@ -14,4 +14,19 @@ export const startSessionMaintenanceCron = () => {
       console.error("Cron error:", error);
     }
   });
+  cron.schedule("0 */6 * * *", async () => {//la fiecare 6 ore
+    console.log("Running maintenance cron...");
+
+    await Membership.update(
+      { status: "expired" },
+      {
+        where: {
+          status: "active",
+          end_date: { [Op.lt]: new Date() },
+        },
+      },
+    );
+
+    console.log("Membership expiry check done.");
+  });
 };

@@ -56,3 +56,5 @@ router.delete(
   requireRole("gym_admin"),
   controllers.adminController.deleteTrainer
 )
+
+router.get("/gyms/all", verifyToken, controllers.adminController.getAllGyms)

@@ -2,7 +2,6 @@ import { Exercise, Workout, Workout_Exercise } from "../../models/index.js";
 import { db } from "../../config/db.js";
 
 export const controller = {
-  // GET exercises for a workout
   getByWorkout: async (req, res) => {
     try {
       const { workoutId } = req.params;

@@ -9,7 +9,7 @@ export const controller = {
       if (!specialization || !experience_years) {
         return res
           .status(400)
-          .send("Specialization and experience years are required");
+          .json({ message: "Specialization and experience years are required" });
       }
       if (
         isNaN(experience_years) ||
@@ -18,13 +18,11 @@ export const controller = {
       ) {
         return res
           .status(400)
-          .send(
-            "Invalid experience years value. Value must be between 1 and 40",
-          ); //dc are 60 de ani si a inceput f devreme? idk
+          .json({ message: "Invalid experience years value. Value must be between 1 and 40" }); //dc are 60 de ani si a inceput f devreme? idk
       }
       const existingProfile = await Trainer_Profile.findByPk(userId);
       if (existingProfile) {
-        return res.status(400).send("Profile already exists");
+        return res.status(400).json({ message: "Profile already exists" });
       }
       let imagePublicId = null;
 
@@ -69,7 +67,7 @@ export const controller = {
       const userId = req.user.user_id;
       const profile = await Trainer_Profile.findByPk(userId);
       if (!profile) {
-        return res.status(404).send("Profile not found");
+        return res.status(404).json({ message: "Profile not found" });
       }
       const { specialization, experience_years, bio } = req.body;
       const updates = {};
@@ -84,9 +82,7 @@ export const controller = {
         ) {
           return res
             .status(400)
-            .send(
-              "Invalid experience years value. Value must be between 1 and 40",
-            );
+            .json({ message: "Invalid experience years value. Value must be between 1 and 40" });
         }
         updates.experience_years = experience_years;
       }
@@ -146,7 +142,7 @@ export const controller = {
         image_url: imageUrl,
       });
     } catch (err) {
-      return res.status(500).send("Error while fetching trainer profile");
+      return res.status(500).json({ message: "Error while fetching trainer profile" });
     }
   },
 

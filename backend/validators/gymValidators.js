@@ -22,6 +22,9 @@ export const createGymValidation = [
     .withMessage("Closing time is required")
     .matches(/^\d{2}:\d{2}(:\d{2})?$/)
     .withMessage("Closing time must be in HH:MM or HH:MM:SS format"),
+
+  body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+  body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
 ];
 
 export const updateGymValidation = [
@@ -43,4 +46,7 @@ export const updateGymValidation = [
     .optional()
     .matches(/^\d{2}:\d{2}(:\d{2})?$/)
     .withMessage("Closing time must be in HH:MM or HH:MM:SS format"),
+
+  body("latitude").optional().isFloat({ min: -90, max: 90 }).withMessage("Invalid latitude"),
+  body("longitude").optional().isFloat({ min: -180, max: 180 }).withMessage("Invalid longitude"),
 ];

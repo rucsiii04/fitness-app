@@ -29,6 +29,14 @@ export const Gym = db.define(
       type: DataTypes.TIME,
       allowNull: false,
     },
+    latitude: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+    },
+    longitude: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+    },
     admin_user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

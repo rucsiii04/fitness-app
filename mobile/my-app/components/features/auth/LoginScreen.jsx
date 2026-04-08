@@ -3,13 +3,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   StyleSheet,
   StatusBar,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
@@ -57,16 +57,22 @@ export default function LoginScreen() {
       }
 
       await login(data.token, data.user);
-
-      switch (data.user.role) {
-        case "trainer":
-          router.replace("/(trainer)/home");
-          break;
-        case "gym_admin":
-          router.replace("/(admin)/home");
-          break;
-        default:
-          router.replace("/(tabs)/home");
+      const profileRes = await fetch(`${API_BASE}/profile`, {
+        headers: { Authorization: `Bearer ${data.token}` },
+      });
+      if (profileRes.status === 404) {
+        router.replace("/(auth)/setup-profile");
+      } else {
+        switch (data.user.role) {
+          case "trainer":
+            router.replace("/(trainer)/home");
+            break;
+          case "gym_admin":
+            router.replace("/(admin)/home");
+            break;
+          default:
+            router.replace("/(tabs)/home");
+        }
       }
     } catch (err) {
       setError("Something went wrong. Check your connection.");

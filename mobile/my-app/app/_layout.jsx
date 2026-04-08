@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { OnboardingProvider } from "@/context/OnboardingContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -18,7 +19,10 @@ function RootNavigator() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = segments[0] === "(onboarding)";
     const inSplash = segments[0] === undefined;
+    const inTabs = segments[0] === "(tabs)";
+    const inTrainer = segments[0] === "(trainer)";
 
     if (!token) {
       if (!inAuthGroup && !inSplash) {
@@ -41,13 +45,15 @@ function RootNavigator() {
     }
   }, [token, user, loading, segments]);
 
+  if (loading) return null;
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(trainer)" />
-      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(onboarding)" />
+      {token && <Stack.Screen name="(tabs)" />}
+      {token && <Stack.Screen name="(trainer)" />}
     </Stack>
   );
 }
@@ -55,10 +61,12 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <ThemeProvider value={DarkTheme}>
-        <RootNavigator />
-        <StatusBar style="light" />
-      </ThemeProvider>
+      <OnboardingProvider>
+        <ThemeProvider value={DarkTheme}>
+          <RootNavigator />
+          <StatusBar style="light" />
+        </ThemeProvider>
+      </OnboardingProvider>
     </AuthProvider>
   );
 }

@@ -83,7 +83,7 @@ export const controller = {
       const gym = await Gym.findByPk(gymId);
 
       if (!gym) {
-        return res.status(404).send("Gym not found");
+        return res.status(404).json({ message: "Gym not found" });
       }
 
       const types = await Membership_Type.findAll({
@@ -96,7 +96,7 @@ export const controller = {
 
       return res.status(200).json(types);
     } catch (err) {
-      return res.status(500).send("Error fetching membership types: " + err);
+      return res.status(500).json({ message: "Error fetching membership types: " + err });
     }
   },
 
@@ -108,7 +108,7 @@ export const controller = {
       if (!canManage) {
         return res
           .status(403)
-          .send("You cannot manage membership types for this gym");
+          .json({ message: "You cannot manage membership types for this gym" });
       }
 
       const types = await Membership_Type.findAll({
@@ -120,7 +120,7 @@ export const controller = {
     } catch (err) {
       return res
         .status(500)
-        .send("Error fetching managed membership types: " + err);
+        .json({ message: "Error fetching managed membership types: " + err });
     }
   },
 
@@ -138,7 +138,7 @@ export const controller = {
       } = req.body;
 
       if (!gym_id || !name || !duration_days || !price) {
-        return res.status(400).send("Missing required fields");
+        return res.status(400).json({ message: "Missing required fields" });
       }
 
       if (
@@ -146,14 +146,14 @@ export const controller = {
         Number(price) < 0 ||
         Number(freeze_days) < 0
       ) {
-        return res.status(400).send("Invalid membership type values");
+        return res.status(400).json({ message: "Invalid membership type values" });
       }
 
       const canManage = await canManageGym(req.user, gym_id);
       if (!canManage) {
         return res
           .status(403)
-          .send("You cannot create membership types for this gym");
+          .json({ message: "You cannot create membership types for this gym" });
       }
 
       const type = await Membership_Type.create({
@@ -169,7 +169,7 @@ export const controller = {
 
       return res.status(201).json(type);
     } catch (err) {
-      return res.status(500).send("Error creating membership type: " + err);
+      return res.status(500).json({ message: "Error creating membership type: " + err });
     }
   },
 
@@ -179,14 +179,14 @@ export const controller = {
       const type = await Membership_Type.findByPk(membershipTypeId);
 
       if (!type) {
-        return res.status(404).send("Membership type not found");
+        return res.status(404).json({ message: "Membership type not found" });
       }
 
       const canManage = await canManageGym(req.user, type.gym_id);
       if (!canManage) {
         return res
           .status(403)
-          .send("You cannot update membership types for this gym");
+          .json({ message: "You cannot update membership types for this gym" });
       }
 
       const updates = {};
@@ -212,14 +212,14 @@ export const controller = {
         (updates.price !== undefined && Number(updates.price) < 0) ||
         (updates.freeze_days !== undefined && Number(updates.freeze_days) < 0)
       ) {
-        return res.status(400).send("Invalid membership type values");
+        return res.status(400).json({ message: "Invalid membership type values" });
       }
 
       await type.update(updates);
 
       return res.status(200).json(type);
     } catch (err) {
-      return res.status(500).send("Error updating membership type: " + err);
+      return res.status(500).json({ message: "Error updating membership type: " + err });
     }
   },
 
@@ -229,7 +229,7 @@ export const controller = {
         req.body;
 
       if (!client_id || !membership_type_id || !payment_method) {
-        return res.status(400).send("Missing required fields");
+        return res.status(400).json({ message: "Missing required fields" });
       }
 
       const membershipType = await Membership_Type.findOne({
@@ -237,23 +237,23 @@ export const controller = {
       });
 
       if (!membershipType) {
-        return res.status(404).send("Membership type not found");
+        return res.status(404).json({ message: "Membership type not found" });
       }
 
       const canManage = await canManageGym(req.user, membershipType.gym_id);
       if (!canManage) {
         return res
           .status(403)
-          .send("You cannot issue memberships for this gym");
+          .json({ message: "You cannot issue memberships for this gym" });
       }
 
       const client = await User.findByPk(client_id);
       if (!client || client.role !== "client") {
-        return res.status(404).send("Client not found");
+        return res.status(404).json({ message: "Client not found" });
       }
 
       if (start_date && !isValidDate(start_date)) {
-        return res.status(400).send("Invalid start date");
+        return res.status(400).json({ message: "Invalid start date" });
       }
 
       // sync before transaction — idempotent, safe outside
@@ -329,7 +329,7 @@ export const controller = {
         throw err;
       }
     } catch (err) {
-      return res.status(500).send("Error issuing membership: " + err);
+      return res.status(500).json({ message: "Error issuing membership: " + err });
     }
   },
 
@@ -354,12 +354,12 @@ export const controller = {
       });
 
       if (!membership) {
-        return res.status(404).send("No current membership found");
+        return res.status(404).json({ message: "No current membership found" });
       }
 
       return res.status(200).json(membership);
     } catch (err) {
-      return res.status(500).send("Error fetching current membership: " + err);
+      return res.status(500).json({ message: "Error fetching current membership: " + err });
     }
   },
 
@@ -380,7 +380,7 @@ export const controller = {
 
       return res.status(200).json(memberships);
     } catch (err) {
-      return res.status(500).send("Error fetching membership history: " + err);
+      return res.status(500).json({ message: "Error fetching membership history: " + err });
     }
   },
 
@@ -389,7 +389,7 @@ export const controller = {
       const { pause_days } = req.body;
 
       if (!pause_days || Number(pause_days) <= 0) {
-        return res.status(400).send("pause_days must be a positive number");
+        return res.status(400).json({ message: "pause_days must be a positive number" });
       }
 
       await syncMembershipStatuses(req.user.user_id);
@@ -409,12 +409,12 @@ export const controller = {
       });
 
       if (!membership) {
-        return res.status(404).send("No active membership found");
+        return res.status(404).json({ message: "No active membership found" });
       }
 
       const pauseDays = Number(pause_days);
       if (pauseDays > membership.remaining_freeze_days) {
-        return res.status(400).send("Not enough remaining freeze days");
+        return res.status(400).json({ message: "Not enough remaining freeze days" });
       }
 
       const now = new Date();
@@ -443,7 +443,7 @@ export const controller = {
 
       return res.status(200).json(pausedMembership);
     } catch (err) {
-      return res.status(500).send("Error pausing membership: " + err);
+      return res.status(500).json({ message: "Error pausing membership: " + err });
     }
   },
 
@@ -453,16 +453,16 @@ export const controller = {
       const { pause_days, reason } = req.body;
 
       if (!pause_days || Number(pause_days) <= 0) {
-        return res.status(400).send("pause_days must be positive");
+        return res.status(400).json({ message: "pause_days must be positive" });
       }
 
       if (!reason) {
-        return res.status(400).send("Pause reason required");
+        return res.status(400).json({ message: "Pause reason required" });
       }
 
       const canManage = await canManageGym(req.user, gymId);
       if (!canManage) {
-        return res.status(403).send("You cannot manage this gym");
+        return res.status(403).json({ message: "You cannot manage this gym" });
       }
 
       const memberships = await Membership.findAll({
@@ -476,7 +476,7 @@ export const controller = {
       });
 
       if (!memberships.length) {
-        return res.status(404).send("No active memberships found");
+        return res.status(404).json({ message: "No active memberships found" });
       }
 
       const now = new Date();
@@ -492,9 +492,9 @@ export const controller = {
         });
       }
 
-      return res.status(200).send(`Paused ${memberships.length} memberships`);
+      return res.status(200).json({ message: `Paused ${memberships.length} memberships` });
     } catch (err) {
-      return res.status(500).send("Error pausing gym memberships: " + err);
+      return res.status(500).json({ message: "Error pausing gym memberships: " + err });
     }
   },
  cancelMembership: async (req, res) => {
@@ -505,16 +505,16 @@ export const controller = {
     });
 
     if (!membership) {
-      return res.status(404).send("Membership not found");
+      return res.status(404).json({ message: "Membership not found" });
     }
 
     const canManage = await canManageGym(req.user, membership.Membership_Type.gym_id);
     if (!canManage) {
-      return res.status(403).send("You cannot manage memberships for this gym");
+      return res.status(403).json({ message: "You cannot manage memberships for this gym" });
     }
 
     if (!ACTIVE_MEMBERSHIP_STATUSES.includes(membership.status)) {
-      return res.status(400).send("Membership is already cancelled or expired");
+      return res.status(400).json({ message: "Membership is already cancelled or expired" });
     }
 
     await membership.update({
@@ -525,7 +525,7 @@ export const controller = {
 
     return res.status(200).json(membership);
   } catch (err) {
-    return res.status(500).send("Error cancelling membership: " + err);
+    return res.status(500).json({ message: "Error cancelling membership: " + err });
   }
 },
 
@@ -549,7 +549,7 @@ export const controller = {
     });
 
     if (!membership) {
-      return res.status(404).send("No paused membership found");
+      return res.status(404).json({ message: "No paused membership found" });
     }
 
     const now = new Date();
@@ -588,7 +588,7 @@ export const controller = {
     return res.status(200).json(resumedMembership);
 
   } catch (err) {
-    return res.status(500).send("Error resuming membership: " + err);
+    return res.status(500).json({ message: "Error resuming membership: " + err });
   }
 }
 };

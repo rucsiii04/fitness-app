@@ -4,11 +4,11 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   TouchableOpacity,
   Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
@@ -19,42 +19,46 @@ import { WeeklyChart } from "@/components/features/home/WeeklyChart";
 import { MembershipCard } from "@/components/features/home/MembershipCard";
 import { WorkoutHeroCard } from "@/components/features/home/WorkoutHeroCard";
 
+import { useAuth } from "@/context/AuthContext";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 export default function HomeScreen() {
   const fontsLoaded = useAppFonts();
   const router = useRouter();
-
+  const { token, user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [membership, setMembership] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [latestWorkout, setLatestWorkout] = useState(null);
 
-  // TODO
-  const token = "toKEN";
-
   useEffect(() => {
+    if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
 
-    fetch(`${API_BASE}/profile`, { headers })
-      .then((r) => r.json())
-      .then(setProfile)
-      .catch(console.error);
+    const safeFetch = async (url, setter, transform) => {
+      try {
+        const res = await fetch(url, { headers });
+        const text = await res.text();
+        console.log(`${url} :`, res.status, text.substring(0, 200));
+        const data = JSON.parse(text);
+        setter(transform ? transform(data) : data);
+      } catch (err) {
+        console.error(`Failed ${url}:`, err.message);
+      }
+    };
 
-    fetch(`${API_BASE}/memberships`, { headers })
-      .then((r) => r.json())
-      .then((data) => setMembership(data?.[0] || null))
-      .catch(console.error);
-
-    fetch(`${API_BASE}/workout-sessions`, { headers })
-      .then((r) => r.json())
-      .then(setSessions)
-      .catch(console.error);
-
-    fetch(`${API_BASE}/workouts`, { headers })
-      .then((r) => r.json())
-      .then((data) => setLatestWorkout(data?.[0] || null))
-      .catch(console.error);
-  }, []);
+    safeFetch(`${API_BASE}/profile`, setProfile);
+    safeFetch(
+      `${API_BASE}/memberships/me/current`,
+      setMembership,
+      (data) => data?.[0] || null,
+    );
+    safeFetch(`${API_BASE}/workout-sessions`, setSessions, (data) =>
+      Array.isArray(data) ? data : [],
+    );
+    safeFetch(`${API_BASE}/workouts`, setLatestWorkout, (data) =>
+      Array.isArray(data) ? data?.[0] : null,
+    );
+  }, [token]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -93,9 +97,17 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.logoText}>KINETIC</Text>
           </View>
-          <TouchableOpacity style={styles.qrButton}>
-            <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => router.push("/(tabs)/gym")}
+            >
+              <Ionicons name="location-outline" size={22} color={Colors.onSurfaceVariant} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconBtn}>
+              <Ionicons name="qr-code-outline" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView
@@ -107,7 +119,7 @@ export default function HomeScreen() {
             <Text style={styles.greeting}>
               {getGreeting()},{"\n"}
               <Text style={styles.greetingName}>
-                {profile?.first_name || "Athlete"}.
+                {user?.first_name || "Athlete"}.
               </Text>
             </Text>
             <Text style={styles.greetingSub}>Ready to Push?</Text>
@@ -194,8 +206,13 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     letterSpacing: -1,
   },
-  qrButton: {
-    padding: 4,
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerIconBtn: {
+    padding: 6,
   },
   scroll: {
     paddingHorizontal: 20,

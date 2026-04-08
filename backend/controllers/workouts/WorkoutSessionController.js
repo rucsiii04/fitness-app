@@ -1,5 +1,11 @@
 import { db } from "../../config/db.js";
-import { Workout_Session, Workout, Workout_Exercise, Exercise, Session_Exercise_Log } from "../../models/index.js";
+import {
+  Workout_Session,
+  Workout,
+  Workout_Exercise,
+  Exercise,
+  Session_Exercise_Log,
+} from "../../models/index.js";
 
 export const controller = {
   start: async (req, res) => {
@@ -20,7 +26,6 @@ export const controller = {
         });
       }
 
-    
       if (workout_id) {
         const workout = await Workout.findByPk(workout_id);
 
@@ -110,22 +115,6 @@ export const controller = {
 
       const sessions = await Workout_Session.findAll({
         where: { user_id: userId },
-        include: [
-          {
-            model: Workout,
-            include: [
-              {
-                model: Workout_Exercise,
-                include: [{ model: Exercise, as: "exercise" }],
-                order: [["order_index", "ASC"]],
-              },
-            ],
-          },
-          {
-            model: Session_Exercise_Log,
-            include: [{ model: Exercise }],
-          },
-        ],
         order: [["started_at", "DESC"]],
       });
 
@@ -182,7 +171,9 @@ export const controller = {
       const { exercise_id, reps, weight } = req.body;
 
       if (!exercise_id || !reps) {
-        return res.status(400).json({ message: "exercise_id and reps are required" });
+        return res
+          .status(400)
+          .json({ message: "exercise_id and reps are required" });
       }
 
       const session = await Workout_Session.findByPk(id);
@@ -204,7 +195,6 @@ export const controller = {
         return res.status(404).json({ message: "Exercise not found" });
       }
 
-     
       const t = await db.transaction();
       try {
         const existingSets = await Session_Exercise_Log.count({

@@ -87,7 +87,7 @@ export const controller = {
     } catch (err) {
       return res
         .status(500)
-        .send("Error starting conversation: " + err.message);
+        .json({ message: "Error starting conversation: " + err.message });
     }
   },
 
@@ -102,7 +102,7 @@ export const controller = {
     } catch (err) {
       return res
         .status(500)
-        .send("Error fetching conversations: " + err.message);
+        .json({ message: "Error fetching conversations: " + err.message });
     }
   },
 
@@ -115,7 +115,7 @@ export const controller = {
         req.user.user_id,
       );
       if (!conversation) {
-        return res.status(404).send("Conversation not found");
+        return res.status(404).json({ message: "Conversation not found" });
       }
 
       const messages = await Message.findAll({
@@ -125,7 +125,7 @@ export const controller = {
 
       return res.status(200).json(messages);
     } catch (err) {
-      return res.status(500).send("Error fetching messages: " + err.message);
+      return res.status(500).json({ message: "Error fetching messages: " + err.message });
     }
   },
 
@@ -135,7 +135,7 @@ export const controller = {
       const { content } = req.body;
 
       if (!content?.trim()) {
-        return res.status(400).send("Message content is required");
+        return res.status(400).json({ message: "Message content is required" });
       }
 
       const conversation = await verifyOwnership(
@@ -143,7 +143,7 @@ export const controller = {
         req.user.user_id,
       );
       if (!conversation) {
-        return res.status(404).send("Conversation not found");
+        return res.status(404).json({ message: "Conversation not found" });
       }
 
       const now = new Date();
@@ -192,7 +192,7 @@ export const controller = {
 
       return res.status(200).json(aiMessage);
     } catch (err) {
-      return res.status(500).send("Error sending message: " + err.message);
+      return res.status(500).json({ message: "Error sending message: " + err.message });
     }
   },
 
@@ -205,7 +205,7 @@ export const controller = {
         req.user.user_id,
       );
       if (!conversation) {
-        return res.status(404).send("Conversation not found");
+        return res.status(404).json({ message: "Conversation not found" });
       }
 
       const { user, profile, recentSessions } = await getClientContext(
@@ -288,7 +288,7 @@ Rules:
       try {
         plan = JSON.parse(cleaned);
       } catch {
-        return res.status(500).send("AI returned invalid JSON. Try again.");
+        return res.status(500).json({ message: "AI returned invalid JSON. Try again." });
       }
 
       const validExercises = (plan.exercises ?? []).filter((e) =>
@@ -298,7 +298,7 @@ Rules:
       if (validExercises.length === 0) {
         return res
           .status(500)
-          .send("AI returned no valid exercises. Try again.");
+          .json({ message: "AI returned no valid exercises. Try again." });
       }
 
       const workout = await Workout.create({
@@ -339,7 +339,7 @@ Rules:
 
       return res.status(201).json(workout);
     } catch (err) {
-      return res.status(500).send("Error generating plan: " + err.message);
+      return res.status(500).json({ message: "Error generating plan: " + err.message });
     }
   },
 };

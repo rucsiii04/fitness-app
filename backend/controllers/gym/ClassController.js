@@ -50,24 +50,24 @@ export const controller = {
 
       if (!session) {
         await t.rollback();
-        return res.status(404).send("Session not found");
+        return res.status(404).json({ message: "Session not found" });
       }
 
       if (session.status === "cancelled") {
         await t.rollback();
-        return res.status(400).send("Session cancelled");
+        return res.status(400).json({ message: "Session cancelled" });
       }
 
       const computedStatus = getSessionStatus(session);
 
       if (computedStatus !== "scheduled") {
         await t.rollback();
-        return res.status(400).send("Session is not open for enrollment");
+        return res.status(400).json({ message: "Session is not open for enrollment" });
       }
 
       if (!hasGymMembershipAccess(req.user, session.gym_id)) {
         await t.rollback();
-        return res.status(403).send("Session belongs to another gym");
+        return res.status(403).json({ message: "Session belongs to another gym" });
       }
 
       const activeMembership = await Membership.findOne({
@@ -87,14 +87,14 @@ export const controller = {
 
       if (!activeMembership) {
         await t.rollback();
-        return res.status(403).send("No active membership");
+        return res.status(403).json({ message: "No active membership" });
       }
 
       if (!activeMembership.Membership_Type.includes_group_classes) {
         await t.rollback();
         return res
           .status(403)
-          .send("Your membership does not include group classes");
+          .json({ message: "Your membership does not include group classes" });
       }
 
       await syncExpiredNoShows({ clientId, transaction: t });
@@ -109,7 +109,7 @@ export const controller = {
 
       if (noShowCount >= 3) {
         await t.rollback();
-        return res.status(403).send("Booking blocked due to repeated no-shows");
+        return res.status(403).json({ message: "Booking blocked due to repeated no-shows" });
       }
 
       const existingEnrollment = await Class_Enrollment.findOne({
@@ -125,7 +125,7 @@ export const controller = {
 
       if (existingEnrollment) {
         await t.rollback();
-        return res.status(400).send("Already enrolled");
+        return res.status(400).json({ message: "Already enrolled" });
       }
 
       const overlapping = await Class_Enrollment.findOne({
@@ -148,7 +148,7 @@ export const controller = {
 
       if (overlapping) {
         await t.rollback();
-        return res.status(400).send("Overlapping class");
+        return res.status(400).json({ message: "Overlapping class" });
       }
 
       const confirmedEnrollments = await Class_Enrollment.findAll({
@@ -205,7 +205,7 @@ export const controller = {
       });
     } catch (err) {
       if (t) await t.rollback();
-      return res.status(500).send(err.message);
+      return res.status(500).json({ message: err.message });
     }
   },
 
@@ -228,7 +228,7 @@ export const controller = {
 
       if (!enrollment) {
         await t.rollback();
-        return res.status(404).send("Enrollment not found");
+        return res.status(404).json({ message: "Enrollment not found" });
       }
 
       const session = await Class_Session.findByPk(sessionId, {
@@ -236,7 +236,7 @@ export const controller = {
       });
       if (!session) {
         await t.rollback();
-        return res.status(404).send("Session not found");
+        return res.status(404).json({ message: "Session not found" });
       }
 
       const computedStatus = getSessionStatus(session);
@@ -244,7 +244,7 @@ export const controller = {
         await t.rollback();
         return res
           .status(400)
-          .send("You can only cancel before the session starts");
+          .json({ message: "You can only cancel before the session starts" });
       }
 
       const previousStatus = enrollment.status;
@@ -255,12 +255,12 @@ export const controller = {
       }
 
       await t.commit();
-      return res.status(200).send("Enrollment cancelled");
+      return res.status(200).json({ message: "Enrollment cancelled" });
     } catch (err) {
       if (t) await t.rollback();
       return res
         .status(500)
-        .send("Error cancelling enrollment: " + err.message);
+        .json({ message: "Error cancelling enrollment: " + err.message });
     }
   },
 
@@ -270,7 +270,7 @@ export const controller = {
       const { status } = req.body;
 
       if (!["attended", "no_show"].includes(status)) {
-        return res.status(400).send("Invalid attendance status");
+        return res.status(400).json({ message: "Invalid attendance status" });
       }
 
       const enrollment = await Class_Enrollment.findByPk(enrollmentId, {
@@ -278,7 +278,7 @@ export const controller = {
       });
 
       if (!enrollment) {
-        return res.status(404).send("Enrollment not found");
+        return res.status(404).json({ message: "Enrollment not found" });
       }
 
       const session = enrollment.Class_Session;
@@ -286,14 +286,14 @@ export const controller = {
       if (!isAttendanceWindowOpen(session)) {
         return res
           .status(400)
-          .send("Attendance can only be marked near the session time");
+          .json({ message: "Attendance can only be marked near the session time" });
       }
 
       const isTrainer = req.user.user_id === session.trainer_id;
       const isAdmin = await hasManagedGymAccess(req.user, session.gym_id);
 
       if (!isTrainer && !isAdmin) {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ message: "Not authorized" });
       }
 
       enrollment.status = status;
@@ -301,7 +301,7 @@ export const controller = {
 
       res.json(enrollment);
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
   getClassTypesByGym: async (req, res) => {
@@ -315,7 +315,7 @@ export const controller = {
 
       res.json(types);
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
   createClassType: async (req, res) => {
@@ -326,7 +326,7 @@ export const controller = {
       const hasAccess = await hasManagedGymAccess(req.user, gym_id);
 
       if (!hasAccess) {
-        return res.status(403).send("Not authorized for this gym");
+        return res.status(403).json({ message: "Not authorized for this gym" });
       }
 
       const type = await Class_Type.create({
@@ -338,7 +338,7 @@ export const controller = {
 
       res.status(201).json(type);
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
   getSessionsByGym: async (req, res) => {
@@ -353,7 +353,7 @@ export const controller = {
 
       res.json(sessions);
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
   createClassSession: async (req, res) => {
@@ -368,11 +368,11 @@ export const controller = {
       } = req.body;
 
       if (new Date(start_datetime) >= new Date(end_datetime)) {
-        return res.status(400).send("Invalid time interval");
+        return res.status(400).json({ message: "Invalid time interval" });
       }
 
       if (!max_participants || max_participants <= 0) {
-        return res.status(400).send("Invalid max_participants");
+        return res.status(400).json({ message: "Invalid max_participants" });
       }
       let finalTrainerId;
 
@@ -380,28 +380,28 @@ export const controller = {
         finalTrainerId = req.user.user_id;
       } else if (req.user.role === "gym_admin") {
         if (!trainer_id) {
-          return res.status(400).send("trainer_id is required");
+          return res.status(400).json({ message: "trainer_id is required" });
         }
         finalTrainerId = trainer_id;
       } else {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ message: "Not authorized" });
       }
 
       if (req.user.role === "gym_admin") {
         const hasAccess = await hasManagedGymAccess(req.user, gym_id);
         if (!hasAccess) {
-          return res.status(403).send("Not authorized for this gym");
+          return res.status(403).json({ message: "Not authorized for this gym" });
         }
       }
 
       const gym = await Gym.findOne({ where: { gym_id } });
       if (!gym) {
-        return res.status(400).send("Gym not found");
+        return res.status(400).json({ message: "Gym not found" });
       }
 
       const classType = await Class_Type.findOne({ where: { class_type_id } });
       if (!classType) {
-        return res.status(400).send("Invalid class type");
+        return res.status(400).json({ message: "Invalid class type" });
       }
 
       const trainer = await User.findOne({
@@ -412,7 +412,7 @@ export const controller = {
         },
       });
       if (!trainer) {
-        return res.status(400).send("Invalid trainer for this gym");
+        return res.status(400).json({ message: "Invalid trainer for this gym" });
       }
 
       const overlappingSession = await Class_Session.findOne({
@@ -428,7 +428,7 @@ export const controller = {
       if (overlappingSession) {
         return res
           .status(400)
-          .send("Trainer already has a session in this time interval");
+          .json({ message: "Trainer already has a session in this time interval" });
       }
 
       const session = await Class_Session.create({
@@ -445,7 +445,7 @@ export const controller = {
       console.error("createClassSession error:", err);
       res
         .status(500)
-        .send("An unexpected error occurred. Please try again later.");
+        .json({ message: "An unexpected error occurred. Please try again later." });
     }
   },
   getSessionEnrollments: async (req, res) => {
@@ -455,14 +455,14 @@ export const controller = {
       const session = await Class_Session.findByPk(sessionId);
 
       if (!session) {
-        return res.status(404).send("Session not found");
+        return res.status(404).json({ message: "Session not found" });
       }
 
       const isTrainer = req.user.user_id === session.trainer_id;
       const isAdmin = await hasManagedGymAccess(req.user, session.gym_id);
 
       if (!isTrainer && !isAdmin) {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ message: "Not authorized" });
       }
 
       const enrollments = await Class_Enrollment.findAll({
@@ -472,7 +472,7 @@ export const controller = {
 
       res.json(enrollments);
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
   cancelSession: async (req, res) => {
@@ -482,14 +482,14 @@ export const controller = {
       const session = await Class_Session.findByPk(sessionId);
 
       if (!session) {
-        return res.status(404).send("Session not found");
+        return res.status(404).json({ message: "Session not found" });
       }
 
       const isTrainer = req.user.user_id === session.trainer_id;
       const isAdmin = await hasManagedGymAccess(req.user, session.gym_id);
 
       if (!isTrainer && !isAdmin) {
-        return res.status(403).send("Not authorized");
+        return res.status(403).json({ message: "Not authorized" });
       }
 
       session.status = "cancelled";
@@ -507,9 +507,9 @@ export const controller = {
         },
       );
 
-      res.send("Session cancelled");
+      res.json({ message: "Session cancelled" });
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
   getMyEnrollments: async (req, res) => {
@@ -529,7 +529,7 @@ export const controller = {
 
       res.json(enrollments);
     } catch (err) {
-      res.status(500).send(err.message);
+      res.status(500).json({ message: err.message });
     }
   },
 };

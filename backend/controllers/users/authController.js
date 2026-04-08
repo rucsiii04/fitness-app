@@ -47,6 +47,8 @@ export const controller = {
           user_id: user.user_id,
           email: user.email,
           role: user.role,
+          first_name: user.first_name,
+          last_name: user.last_name,
         },
       });
     } catch (err) {
@@ -79,6 +81,8 @@ export const controller = {
           email: user.email,
           role: user.role,
           gym_id: user.gym_id,
+          first_name: user.first_name,
+          last_name: user.last_name,
         },
       });
     } catch (err) {
@@ -88,7 +92,6 @@ export const controller = {
 
   requestPasswordReset: async (req, res) => {
     try {
-      
       const { email } = req.body;
 
       const user = await User.findOne({ where: { email } });
