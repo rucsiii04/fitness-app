@@ -3,20 +3,29 @@ import bcrypt from "bcrypt";
 import { User, Reset_Token, Gym } from "../../models/index.js";
 import { transporter } from "../../config/mail.js";
 import { Op } from "sequelize";
+import { sourceMapsEnabled } from "process";
 
 const geocodeAddress = async (address) => {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   const encoded = encodeURIComponent(address);
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
   const res = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${encoded}&key=${apiKey}`,
+    `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`,
+    {
+      headers: {
+        "User-Agent": "KineticFitnessApp/1.0",
+        Accept: "application/json",
+      },
+    },
   );
   const data = await res.json();
-  console.log("Geocode status:", data.status);
-  console.log("Geocode error:", data.error_message);
-  if (data.status === "OK") {
-    const { lat, lng } = data.results[0].geometry.location;
-    return { latitude: lat, longitude: lng };
+
+  if (data.length > 0) {
+    return {
+      latitude: parseFloat(data[0].lat),
+      longitude: parseFloat(data[0].lon),
+    };
   }
   return null;
 };
@@ -175,7 +184,6 @@ export const controller = {
           updates.longitude = coords.longitude;
         }
       }
-
       await gym.update(updates);
       return res.status(200).json(gym);
     } catch (err) {
