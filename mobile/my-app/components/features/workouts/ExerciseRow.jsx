@@ -4,6 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 export function ExerciseRow({ item, onChangeSets, onChangeReps, onRemove }) {
+  const isFailure = item.reps === "failure";
+
+  const toggleFailure = () => {
+    onChangeReps(isFailure ? "10" : "failure");
+  };
+
   return (
     <View style={styles.row}>
       <View style={styles.dragHandle}>
@@ -17,6 +23,7 @@ export function ExerciseRow({ item, onChangeSets, onChangeReps, onRemove }) {
         <Text style={styles.muscle}>{item.exercise.muscle_group}</Text>
 
         <View style={styles.inputs}>
+          {/* SETS */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>SETS</Text>
             <TextInput
@@ -27,16 +34,40 @@ export function ExerciseRow({ item, onChangeSets, onChangeReps, onRemove }) {
               maxLength={2}
             />
           </View>
+
           <View style={styles.divider} />
+
+          {/* REPS or failure toggle */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>REPS</Text>
-            <TextInput
-              style={styles.input}
-              value={String(item.reps)}
-              onChangeText={onChangeReps}
-              maxLength={8}
-            />
+            {isFailure ? (
+              <TouchableOpacity style={styles.failurePill} onPress={toggleFailure} activeOpacity={0.8}>
+                <Ionicons name="flame" size={11} color={Colors.background} />
+                <Text style={styles.failurePillText}>FAILURE</Text>
+              </TouchableOpacity>
+            ) : (
+              <TextInput
+                style={styles.input}
+                value={String(item.reps)}
+                onChangeText={onChangeReps}
+                keyboardType="numeric"
+                maxLength={4}
+              />
+            )}
           </View>
+
+          {/* Until failure toggle button */}
+          <TouchableOpacity
+            style={[styles.failureToggle, isFailure && styles.failureToggleActive]}
+            onPress={toggleFailure}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="flame-outline"
+              size={14}
+              color={isFailure ? Colors.background : Colors.onSurfaceVariant}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -90,7 +121,7 @@ const styles = StyleSheet.create({
   inputs: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     marginTop: 4,
   },
   inputGroup: {
@@ -121,5 +152,35 @@ const styles = StyleSheet.create({
     width: 1,
     height: 16,
     backgroundColor: Colors.borderSubtle,
+  },
+  failurePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FF4D4D",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  failurePillText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+    fontFamily: Fonts.label,
+    color: Colors.background,
+  },
+  failureToggle: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.surfaceContainerHighest,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  failureToggleActive: {
+    backgroundColor: "#FF4D4D",
+    borderColor: "#FF4D4D",
   },
 });

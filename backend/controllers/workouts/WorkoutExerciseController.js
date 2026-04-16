@@ -24,12 +24,7 @@ export const controller = {
 
       const items = await Workout_Exercise.findAll({
         where: { workout_id: workoutId },
-        include: [
-          {
-            model: Exercise,
-            as: "exercise",
-          },
-        ],
+        include: [{ model: Exercise }],
         order: [["order_index", "ASC"]],
       });
 

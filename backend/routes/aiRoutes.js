@@ -13,4 +13,6 @@ router.get("/conversations/:conversationId/messages", verifyToken, requireRole("
 
 router.post("/conversations/:conversationId/messages", verifyToken, requireRole("client"), controllers.aiController.sendMessage);
 
+router.delete("/conversations/:conversationId", verifyToken, requireRole("client"), controllers.aiController.deleteConversation);
+
 router.post("/conversations/:conversationId/generate-plan", verifyToken, requireRole("client"), controllers.aiController.generatePlan);

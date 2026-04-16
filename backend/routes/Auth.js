@@ -28,6 +28,12 @@ authRouter.post(
   controllers.authController.login,
 );
 
+authRouter.get(
+  "/me",
+  verifyToken,
+  controllers.authController.me,
+);
+
 authRouter.put(
   "/update-password",
   verifyToken,

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
+import { ActiveSessionProvider } from "@/context/ActiveSessionContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -54,6 +55,9 @@ function RootNavigator() {
       <Stack.Screen name="(onboarding)" />
       {token && <Stack.Screen name="(tabs)" />}
       {token && <Stack.Screen name="(trainer)" />}
+      {token && <Stack.Screen name="(workout)" />}
+      {token && <Stack.Screen name="coach" />}
+      {token && <Stack.Screen name="membership" />}
     </Stack>
   );
 }
@@ -61,12 +65,14 @@ function RootNavigator() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <OnboardingProvider>
-        <ThemeProvider value={DarkTheme}>
-          <RootNavigator />
-          <StatusBar style="light" />
-        </ThemeProvider>
-      </OnboardingProvider>
+      <ActiveSessionProvider>
+        <OnboardingProvider>
+          <ThemeProvider value={DarkTheme}>
+            <RootNavigator />
+            <StatusBar style="light" />
+          </ThemeProvider>
+        </OnboardingProvider>
+      </ActiveSessionProvider>
     </AuthProvider>
   );
 }

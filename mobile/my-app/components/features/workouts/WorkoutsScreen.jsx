@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
+import { useActiveSession } from "@/context/ActiveSessionContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { WorkoutCard } from "./WorkoutCard";
 
@@ -73,7 +74,12 @@ function DifficultyFilter({ active, onChange }) {
             size={13}
             color={isFiltered ? Colors.primary : Colors.onSurfaceVariant}
           />
-          <Text style={[styles.filterBtnText, isFiltered && styles.filterBtnTextActive]}>
+          <Text
+            style={[
+              styles.filterBtnText,
+              isFiltered && styles.filterBtnTextActive,
+            ]}
+          >
             {isFiltered ? selected.label : "Difficulty"}
           </Text>
           <Ionicons
@@ -84,8 +90,17 @@ function DifficultyFilter({ active, onChange }) {
         </TouchableOpacity>
       </View>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOpen(false)}
+        >
           <View style={styles.dropdown}>
             <Text style={styles.dropdownTitle}>DIFFICULTY</Text>
             {DIFFICULTIES.map((d) => {
@@ -93,14 +108,31 @@ function DifficultyFilter({ active, onChange }) {
               return (
                 <TouchableOpacity
                   key={d.key}
-                  style={[styles.dropdownItem, isActive && styles.dropdownItemActive]}
-                  onPress={() => { onChange(d.key); setOpen(false); }}
+                  style={[
+                    styles.dropdownItem,
+                    isActive && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => {
+                    onChange(d.key);
+                    setOpen(false);
+                  }}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.dropdownItemText, isActive && styles.dropdownItemTextActive]}>
+                  <Text
+                    style={[
+                      styles.dropdownItemText,
+                      isActive && styles.dropdownItemTextActive,
+                    ]}
+                  >
                     {d.label}
                   </Text>
-                  {isActive && <Ionicons name="checkmark" size={16} color={Colors.primary} />}
+                  {isActive && (
+                    <Ionicons
+                      name="checkmark"
+                      size={16}
+                      color={Colors.primary}
+                    />
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -112,28 +144,10 @@ function DifficultyFilter({ active, onChange }) {
 }
 
 function FreestyleButton({ token, router }) {
-  const [activeSession, setActiveSession] = useState(null);
   const [starting, setStarting] = useState(false);
-
-  useEffect(() => {
-    fetch(`${API_BASE}/workout-sessions`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const open = data.find((s) => !s.finished_at);
-          setActiveSession(open ?? null);
-        }
-      })
-      .catch(() => {});
-  }, [token]);
+  const { setActiveSession } = useActiveSession();
 
   const handlePress = async () => {
-    if (activeSession) {
-      router.push(`/session/${activeSession.session_id}`);
-      return;
-    }
     setStarting(true);
     try {
       const res = await fetch(`${API_BASE}/workout-sessions`, {
@@ -156,27 +170,23 @@ function FreestyleButton({ token, router }) {
     }
   };
 
-  const isResume = !!activeSession;
-
   return (
     <TouchableOpacity
-      style={[styles.freestyleBtn, isResume && styles.freestyleBtnResume]}
+      style={styles.freestyleBtn}
       onPress={handlePress}
       disabled={starting}
       activeOpacity={0.85}
     >
       {starting ? (
-        <ActivityIndicator size="small" color={Colors.background} />
+        <ActivityIndicator size="small" color={Colors.primary} />
       ) : (
         <>
           <Ionicons
-            name={isResume ? "radio-button-on" : "play-circle-outline"}
+            name="play-circle-outline"
             size={18}
-            color={isResume ? Colors.background : Colors.primary}
+            color={Colors.primary}
           />
-          <Text style={[styles.freestyleBtnText, isResume && styles.freestyleBtnTextResume]}>
-            {isResume ? "RESUME SESSION" : "START FREESTYLE"}
-          </Text>
+          <Text style={styles.freestyleBtnText}>START FREESTYLE</Text>
         </>
       )}
     </TouchableOpacity>
@@ -187,14 +197,22 @@ function EmptyState({ onCreatePress }) {
   return (
     <View style={styles.emptyState}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="barbell-outline" size={28} color={Colors.outlineVariant} />
+        <Ionicons
+          name="barbell-outline"
+          size={28}
+          color={Colors.outlineVariant}
+        />
       </View>
       <Text style={styles.emptyTitle}>No workouts yet</Text>
       <Text style={styles.emptySubtitle}>
         Create your first workout to get started
       </Text>
       {onCreatePress && (
-        <TouchableOpacity style={styles.emptyBtn} onPress={onCreatePress} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={styles.emptyBtn}
+          onPress={onCreatePress}
+          activeOpacity={0.85}
+        >
           <Text style={styles.emptyBtnText}>CREATE WORKOUT</Text>
         </TouchableOpacity>
       )}
@@ -203,7 +221,7 @@ function EmptyState({ onCreatePress }) {
 }
 
 export default function WorkoutsScreen() {
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
   const router = useRouter();
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -229,13 +247,8 @@ export default function WorkoutsScreen() {
   }, [fetchWorkouts]);
 
   const filtered = workouts.filter((w) => {
-    const tabMatch =
-      activeTab === "explore"
-        ? w.is_public
-        : w.assigned_to_user_id === user?.user_id ||
-          w.created_by_user_id === user?.user_id;
-
-    const diffMatch = difficulty === "all" || w.difficulty_level === difficulty; // keys still match db values
+    const tabMatch = activeTab === "explore" ? w.is_public : !w.is_public;
+    const diffMatch = difficulty === "all" || w.difficulty_level === difficulty;
     return tabMatch && diffMatch;
   });
 
@@ -250,7 +263,11 @@ export default function WorkoutsScreen() {
             style={styles.headerIconBtn}
             onPress={() => router.push("/(tabs)/workouts/history")}
           >
-            <Ionicons name="time-outline" size={22} color={Colors.onSurfaceVariant} />
+            <Ionicons
+              name="time-outline"
+              size={22}
+              color={Colors.onSurfaceVariant}
+            />
           </TouchableOpacity>
         </View>
 
@@ -260,9 +277,19 @@ export default function WorkoutsScreen() {
         {/* Difficulty filter */}
         <DifficultyFilter active={difficulty} onChange={setDifficulty} />
 
-        {/* Freestyle session */}
+        {/* Freestyle session + Create workout */}
         <View style={styles.freestyleRow}>
           <FreestyleButton token={token} router={router} />
+          {activeTab === "mine" && (
+            <TouchableOpacity
+              style={styles.createBtn}
+              onPress={() => router.push("/workout/create")}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add" size={16} color={Colors.onSurfaceVariant} />
+              <Text style={styles.createBtnText}>CREATE A NEW WORKOUT</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {loading ? (
@@ -292,16 +319,6 @@ export default function WorkoutsScreen() {
               />
             }
           />
-        )}
-
-        {activeTab === "mine" && (
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => router.push("/workout/create")}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="add" size={26} color={Colors.background} />
-          </TouchableOpacity>
         )}
       </SafeAreaView>
     </ScreenBackground>
@@ -439,6 +456,7 @@ const styles = StyleSheet.create({
   freestyleRow: {
     paddingHorizontal: 20,
     paddingBottom: 4,
+    gap: 10,
   },
   freestyleBtn: {
     flexDirection: "row",
@@ -451,10 +469,6 @@ const styles = StyleSheet.create({
     borderColor: "rgba(209,255,0,0.3)",
     backgroundColor: "rgba(209,255,0,0.06)",
   },
-  freestyleBtnResume: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
   freestyleBtnText: {
     fontSize: 12,
     fontWeight: "700",
@@ -462,8 +476,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     color: Colors.primary,
   },
-  freestyleBtnTextResume: {
-    color: Colors.background,
+  createBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceContainerHigh,
+  },
+  createBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 2,
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
   },
 
   list: {
@@ -520,22 +549,5 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: Colors.background,
     fontFamily: Fonts.label,
-  },
-
-  fab: {
-    position: "absolute",
-    bottom: 100,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
   },
 });

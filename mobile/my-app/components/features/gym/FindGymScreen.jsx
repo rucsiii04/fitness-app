@@ -24,22 +24,86 @@ const DARK_MAP_STYLE = [
   { elementType: "geometry", stylers: [{ color: "#131313" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#adaaaa" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#0e0e0e" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#262626" }] },
-  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#adaaaa" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1a1a1a" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#484847" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#20201f" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#131313" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#767575" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#262626" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1a1a1a" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#adaaaa" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#1a1a1a" }] },
-  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e0e0e" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#262626" }] },
+  {
+    featureType: "administrative",
+    elementType: "geometry",
+    stylers: [{ color: "#262626" }],
+  },
+  {
+    featureType: "administrative.country",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#adaaaa" }],
+  },
+  {
+    featureType: "administrative.locality",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "geometry",
+    stylers: [{ color: "#1a1a1a" }],
+  },
+  {
+    featureType: "poi.park",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#484847" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#20201f" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#131313" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#767575" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry",
+    stylers: [{ color: "#262626" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#1a1a1a" }],
+  },
+  {
+    featureType: "road.highway",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#adaaaa" }],
+  },
+  {
+    featureType: "transit",
+    elementType: "geometry",
+    stylers: [{ color: "#1a1a1a" }],
+  },
+  {
+    featureType: "transit.station",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#d59563" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#0e0e0e" }],
+  },
+  {
+    featureType: "water",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#262626" }],
+  },
 ];
 
 const DEFAULT_REGION = {
@@ -67,7 +131,6 @@ export default function FindGymScreen() {
   const [region, setRegion] = useState(DEFAULT_REGION);
   const [locationGranted, setLocationGranted] = useState(false);
 
-  // Request location and center map on user
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -103,7 +166,7 @@ export default function FindGymScreen() {
         setLoading(false);
       }
     },
-    [token]
+    [token],
   );
 
   useEffect(() => {
@@ -124,7 +187,7 @@ export default function FindGymScreen() {
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       },
-      600
+      600,
     );
   };
 
@@ -134,7 +197,6 @@ export default function FindGymScreen() {
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>FIND A GYM</Text>
           <View style={styles.countBadge}>
@@ -142,10 +204,13 @@ export default function FindGymScreen() {
           </View>
         </View>
 
-        {/* Search */}
         <View style={styles.searchRow}>
           <View style={styles.searchBox}>
-            <Ionicons name="search-outline" size={18} color={Colors.onSurfaceVariant} />
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={Colors.onSurfaceVariant}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search by name or address..."
@@ -155,13 +220,16 @@ export default function FindGymScreen() {
             />
             {search.length > 0 && (
               <TouchableOpacity onPress={() => setSearch("")}>
-                <Ionicons name="close-circle" size={16} color={Colors.onSurfaceVariant} />
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={Colors.onSurfaceVariant}
+                />
               </TouchableOpacity>
             )}
           </View>
         </View>
 
-        {/* Map */}
         <View style={styles.mapContainer}>
           <MapView
             ref={mapRef}
@@ -179,17 +247,34 @@ export default function FindGymScreen() {
               return (
                 <Marker
                   key={gym.gym_id}
-                  coordinate={{ latitude: gym.latitude, longitude: gym.longitude }}
+                  coordinate={{
+                    latitude: gym.latitude,
+                    longitude: gym.longitude,
+                  }}
                   pinColor={open ? Colors.primary : Colors.error}
                 >
                   <View style={styles.markerPin}>
-                    <View style={[styles.markerDot, { backgroundColor: open ? Colors.primary : Colors.error }]} />
+                    <View
+                      style={[
+                        styles.markerDot,
+                        {
+                          backgroundColor: open ? Colors.primary : Colors.error,
+                        },
+                      ]}
+                    />
                   </View>
                   <Callout tooltip>
                     <View style={styles.callout}>
                       <Text style={styles.calloutName}>{gym.name}</Text>
-                      <Text style={styles.calloutAddress} numberOfLines={1}>{gym.address}</Text>
-                      <Text style={[styles.calloutStatus, { color: open ? Colors.primary : Colors.error }]}>
+                      <Text style={styles.calloutAddress} numberOfLines={1}>
+                        {gym.address}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.calloutStatus,
+                          { color: open ? Colors.primary : Colors.error },
+                        ]}
+                      >
                         {open ? "● OPEN" : "● CLOSED"}
                       </Text>
                     </View>
@@ -199,7 +284,6 @@ export default function FindGymScreen() {
             })}
           </MapView>
 
-          {/* Re-center button */}
           {locationGranted && (
             <TouchableOpacity
               style={styles.myLocationBtn}
@@ -212,25 +296,35 @@ export default function FindGymScreen() {
                     latitudeDelta: 0.05,
                     longitudeDelta: 0.05,
                   },
-                  600
+                  600,
                 );
               }}
             >
-              <Ionicons name="locate-outline" size={20} color={Colors.primary} />
+              <Ionicons
+                name="locate-outline"
+                size={20}
+                color={Colors.primary}
+              />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Drawer */}
         <View style={styles.drawer}>
           <View style={styles.drawerHandle} />
           <Text style={styles.drawerTitle}>NEARBY LOCATIONS</Text>
 
           {loading ? (
-            <ActivityIndicator color={Colors.primary} style={{ marginTop: 32 }} />
+            <ActivityIndicator
+              color={Colors.primary}
+              style={{ marginTop: 32 }}
+            />
           ) : gyms.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="location-outline" size={36} color={Colors.outlineVariant} />
+              <Ionicons
+                name="location-outline"
+                size={36}
+                color={Colors.outlineVariant}
+              />
               <Text style={styles.emptyText}>No gyms found</Text>
             </View>
           ) : (
@@ -238,10 +332,7 @@ export default function FindGymScreen() {
               data={gyms}
               keyExtractor={(g) => String(g.gym_id)}
               renderItem={({ item }) => (
-                <GymCard
-                  gym={item}
-                  onPress={() => focusGym(item)}
-                />
+                <GymCard gym={item} onPress={() => focusGym(item)} />
               )}
               contentContainerStyle={styles.list}
               showsVerticalScrollIndicator={false}

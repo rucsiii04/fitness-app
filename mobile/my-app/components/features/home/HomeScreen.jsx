@@ -24,7 +24,7 @@ const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 export default function HomeScreen() {
   const fontsLoaded = useAppFonts();
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [membership, setMembership] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -38,8 +38,25 @@ export default function HomeScreen() {
       try {
         const res = await fetch(url, { headers });
         const text = await res.text();
+
         console.log(`${url} :`, res.status, text.substring(0, 200));
-        const data = JSON.parse(text);
+
+        if (res.status === 401) {
+          console.log("Token expirat → logout");
+
+          await logout();
+          router.replace("/login");
+
+          return;
+        }
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(text);
+        }
+
         setter(transform ? transform(data) : data);
       } catch (err) {
         console.error(`Failed ${url}:`, err.message);
@@ -100,12 +117,23 @@ export default function HomeScreen() {
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={styles.headerIconBtn}
+              onPress={() => router.push("/(tabs)/classes")}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIconBtn}
               onPress={() => router.push("/(tabs)/gym")}
             >
-              <Ionicons name="location-outline" size={22} color={Colors.onSurfaceVariant} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIconBtn}>
-              <Ionicons name="qr-code-outline" size={22} color={Colors.primary} />
+              <Ionicons
+                name="location-outline"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
             </TouchableOpacity>
           </View>
         </View>

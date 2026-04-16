@@ -1,9 +1,10 @@
 import { Tabs, useRouter } from "expo-router";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { ActiveSessionBanner } from "@/components/ui/ActiveSessionBanner";
 function TabBarButton({ onPress, accessibilityState, icon, label }) {
   const focused = accessibilityState?.selected;
 
@@ -50,52 +51,56 @@ export default function TabsLayout() {
 
   if (!token) return null;
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
-      }}
-    >
-      <Tabs.Screen
-        name="home"
-        options={{
-          tabBarButton: (props) => <TabBarButton {...props} icon="home" />,
-        }}
-      />
-      <Tabs.Screen
-        name="classes"
-        options={{
-          tabBarButton: (props) => (
-            <TabBarButton {...props} icon="calendar-outline" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="qr"
-        options={{
-          tabBarButton: (props) => <QRButton onPress={props.onPress} />,
-        }}
-      />
-      <Tabs.Screen
-        name="workouts"
-        options={{
-          tabBarButton: (props) => (
-            <TabBarButton {...props} icon="barbell-outline" />
-          ),
-        }}
-      />
-      <Tabs.Screen name="gym" options={{ href: null }} />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarButton: (props) => (
-            <TabBarButton {...props} icon="person-outline" />
-          ),
-        }}
-      />
-      <Tabs.Screen name="community" options={{ href: null }} />
-    </Tabs>
+    <View style={{ flex: 1 }}>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: styles.tabBar,
+            tabBarShowLabel: false,
+          }}
+        >
+          <Tabs.Screen
+            name="home"
+            options={{
+              tabBarButton: (props) => <TabBarButton {...props} icon="home" />,
+            }}
+          />
+          <Tabs.Screen name="classes" options={{ href: null }} />
+          <Tabs.Screen
+            name="coach"
+            options={{
+              tabBarButton: (props) => (
+                <TabBarButton {...props} icon="sparkles-outline" />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="qr"
+            options={{
+              tabBarButton: (props) => <QRButton onPress={props.onPress} />,
+            }}
+          />
+          <Tabs.Screen
+            name="workouts"
+            options={{
+              tabBarButton: (props) => (
+                <TabBarButton {...props} icon="barbell-outline" />
+              ),
+            }}
+          />
+          <Tabs.Screen name="gym" options={{ href: null }} />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              tabBarButton: (props) => (
+                <TabBarButton {...props} icon="person-outline" />
+              ),
+            }}
+          />
+          <Tabs.Screen name="community" options={{ href: null }} />
+        </Tabs>
+        <ActiveSessionBanner />
+      </View>
   );
 }
 

@@ -9,10 +9,7 @@ import {
 } from "../../models/index.js";
 import { getSessionStatus } from "../../utils/sessionStatus.js";
 import { db } from "../../config/db.js";
-import {
-  hasManagedGymAccess,
-  hasGymMembershipAccess,
-} from "../../utils/access.js";
+import { hasManagedGymAccess } from "../../utils/access.js";
 import { isAttendanceWindowOpen } from "../../utils/dateUtils.js";
 import { syncExpiredNoShows } from "../../utils/syncNoShow.js";
 import { Op } from "sequelize";
@@ -63,11 +60,6 @@ export const controller = {
       if (computedStatus !== "scheduled") {
         await t.rollback();
         return res.status(400).json({ message: "Session is not open for enrollment" });
-      }
-
-      if (!hasGymMembershipAccess(req.user, session.gym_id)) {
-        await t.rollback();
-        return res.status(403).json({ message: "Session belongs to another gym" });
       }
 
       const activeMembership = await Membership.findOne({
@@ -345,13 +337,39 @@ export const controller = {
     try {
       const { gymId } = req.params;
 
+      // Trainers/admins can always fetch; clients must have an active membership at this gym
+      if (req.user.role === "client") {
+        const membership = await Membership.findOne({
+          where: { client_id: req.user.user_id, status: "active" },
+          include: [{ model: Membership_Type, where: { gym_id: gymId }, attributes: [] }],
+        });
+        if (!membership) {
+          return res.status(403).json({ message: "No active membership at this gym" });
+        }
+      }
+
       const sessions = await Class_Session.findAll({
         where: { gym_id: gymId },
-        include: [Class_Type],
+        include: [
+          Class_Type,
+          { model: User, as: "Trainer", attributes: ["first_name", "last_name"] },
+          {
+            model: Class_Enrollment,
+            where: { status: "confirmed" },
+            required: false,
+            attributes: ["enrollment_id"],
+          },
+        ],
         order: [["start_datetime", "ASC"]],
       });
 
-      res.json(sessions);
+      const result = sessions.map((s) => ({
+        ...s.toJSON(),
+        confirmed_count: s.Class_Enrollments?.length ?? 0,
+        Class_Enrollments: undefined,
+      }));
+
+      res.json(result);
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
@@ -521,7 +539,10 @@ export const controller = {
         include: [
           {
             model: Class_Session,
-            include: [Class_Type],
+            include: [
+              Class_Type,
+              { model: User, as: "Trainer", attributes: ["first_name", "last_name"] },
+            ],
           },
         ],
         order: [["enrollment_date", "DESC"]],

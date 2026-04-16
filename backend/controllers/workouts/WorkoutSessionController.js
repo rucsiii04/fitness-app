@@ -170,7 +170,7 @@ export const controller = {
       const userId = req.user.user_id;
       const { exercise_id, reps, weight } = req.body;
 
-      if (!exercise_id || !reps) {
+      if (exercise_id == null || reps == null) {
         return res
           .status(400)
           .json({ message: "exercise_id and reps are required" });

@@ -98,7 +98,31 @@ export const controller = {
         order: [["last_activity_at", "DESC"]],
       });
 
-      return res.status(200).json(conversations);
+      if (conversations.length === 0) return res.status(200).json([]);
+
+      const ids = conversations.map((c) => c.conversation_id);
+
+      // Fetch all user messages for these conversations in one query,
+      // then pick the earliest one per conversation as the title preview.
+      const userMessages = await Message.findAll({
+        where: { conversation_id: ids, sender: "user" },
+        order: [["sent_at", "ASC"]],
+        attributes: ["conversation_id", "content"],
+      });
+
+      const firstMessageMap = {};
+      for (const msg of userMessages) {
+        if (!firstMessageMap[msg.conversation_id]) {
+          firstMessageMap[msg.conversation_id] = msg.content;
+        }
+      }
+
+      const result = conversations.map((c) => ({
+        ...c.toJSON(),
+        preview: firstMessageMap[c.conversation_id] ?? null,
+      }));
+
+      return res.status(200).json(result);
     } catch (err) {
       return res
         .status(500)
@@ -193,6 +217,26 @@ export const controller = {
       return res.status(200).json(aiMessage);
     } catch (err) {
       return res.status(500).json({ message: "Error sending message: " + err.message });
+    }
+  },
+
+  deleteConversation: async (req, res) => {
+    try {
+      const { conversationId } = req.params;
+
+      const conversation = await verifyOwnership(conversationId, req.user.user_id);
+      if (!conversation) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      // Delete messages first, then the conversation.
+      // The linked workout (linked_plan_id) is intentionally left intact.
+      await Message.destroy({ where: { conversation_id: conversationId } });
+      await conversation.destroy();
+
+      return res.status(200).json({ message: "Conversation deleted" });
+    } catch (err) {
+      return res.status(500).json({ message: "Error deleting conversation: " + err.message });
     }
   },
 

@@ -4,7 +4,9 @@ export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).send("No token provided");
+    return res.status(401).json({
+      message: "No token provided",
+    });
   }
 
   const token = authHeader.split(" ")[1];
@@ -13,6 +15,8 @@ export const verifyToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(401).send("Invalid or expired token");
+    return res.status(401).json({
+      message: "Invalid or expired token",
+    });
   }
 };

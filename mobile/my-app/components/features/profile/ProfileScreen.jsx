@@ -217,6 +217,12 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.settingsCard}>
             <SettingsRow
+              icon="card-outline"
+              label="Membership"
+              onPress={() => router.push("/membership")}
+            />
+            <View style={styles.settingsDivider} />
+            <SettingsRow
               icon="person-outline"
               label="Account Details"
               onPress={() => {}}
