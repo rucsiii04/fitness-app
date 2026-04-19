@@ -20,6 +20,7 @@ import { chatService } from "@/services/chatService";
 import { ChatBubble } from "./ChatBubble";
 import { ChatInput } from "./ChatInput";
 import { TypingIndicator } from "./TypingIndicator";
+import { PlanFormModal } from "./PlanFormModal";
 
 const WELCOME_MESSAGE = {
   message_id: "__welcome__",
@@ -54,7 +55,6 @@ function PlanGeneratedCard({ item, onView }) {
   );
 }
 
-// conversationId is passed as a prop from the route screen
 export default function CoachScreen({ conversationId }) {
   const { token } = useAuth();
   const router = useRouter();
@@ -65,8 +65,9 @@ export default function CoachScreen({ conversationId }) {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [linkedPlanId, setLinkedPlanId] = useState(null);
+  const [showFormModal, setShowFormModal] = useState(false);
 
-  // ─── Load messages for this conversation ────────────────────────────────────
   useEffect(() => {
     if (!token || !conversationId) return;
     loadMessages();
@@ -75,8 +76,10 @@ export default function CoachScreen({ conversationId }) {
   const loadMessages = async () => {
     setLoading(true);
     try {
-      const msgs = await chatService.getMessages(token, conversationId);
-      if (Array.isArray(msgs) && msgs.length > 0) {
+      const { messages: msgs, linked_plan_id } =
+        await chatService.getMessagesWithMeta(token, conversationId);
+      setLinkedPlanId(linked_plan_id);
+      if (msgs.length > 0) {
         setMessages(msgs);
         setShowWelcome(false);
       } else {
@@ -90,7 +93,6 @@ export default function CoachScreen({ conversationId }) {
     }
   };
 
-  // ─── Send a message ──────────────────────────────────────────────────────────
   const handleSend = useCallback(
     async (text) => {
       if (!conversationId || sending) return;
@@ -121,42 +123,44 @@ export default function CoachScreen({ conversationId }) {
     [conversationId, token, sending]
   );
 
-  // ─── Generate plan ───────────────────────────────────────────────────────────
-  const handleGeneratePlan = useCallback(async () => {
-    if (!conversationId || generatingPlan || sending) return;
-    setGeneratingPlan(true);
+  const handleGeneratePlan = useCallback(
+    async (preferences = "") => {
+      if (!conversationId || generatingPlan || sending) return;
+      setShowFormModal(false);
+      setGeneratingPlan(true);
 
-    try {
-      const workout = await chatService.generatePlan(token, conversationId);
-      const msgs = await chatService.getMessages(token, conversationId);
-      setMessages([
-        ...(Array.isArray(msgs) ? msgs : []),
-        {
-          message_id: `plan_${workout.workout_id}`,
-          sender: "__plan__",
-          workoutName: workout.name,
-          workoutDescription: workout.description,
-          workoutId: workout.workout_id,
-          sent_at: new Date().toISOString(),
-        },
-      ]);
-    } catch (err) {
-      console.error("Generate plan error:", err.message);
-      Alert.alert(
-        "Could Not Generate Plan",
-        "Please chat with the coach a bit more so I can understand your goals, then try again."
-      );
-    } finally {
-      setGeneratingPlan(false);
-    }
-  }, [conversationId, token, generatingPlan, sending]);
+      try {
+        const workout = await chatService.generatePlan(token, conversationId, preferences);
+        const { messages: msgs } = await chatService.getMessagesWithMeta(token, conversationId);
+        setLinkedPlanId(workout.workout_id);
+        setMessages([
+          ...(Array.isArray(msgs) ? msgs : []),
+          {
+            message_id: `plan_${workout.workout_id}`,
+            sender: "__plan__",
+            workoutName: workout.name,
+            workoutDescription: workout.description,
+            workoutId: workout.workout_id,
+            sent_at: new Date().toISOString(),
+          },
+        ]);
+      } catch (err) {
+        console.error("Generate plan error:", err.message);
+        Alert.alert(
+          "Could Not Generate Plan",
+          "Please chat with the coach a bit more so I can understand your goals, then try again."
+        );
+      } finally {
+        setGeneratingPlan(false);
+      }
+    },
+    [conversationId, token, generatingPlan, sending]
+  );
 
-  // ─── Auto-scroll to bottom ───────────────────────────────────────────────────
   const scrollToBottom = () => {
     flatListRef.current?.scrollToEnd({ animated: true });
   };
 
-  // ─── Build display list ──────────────────────────────────────────────────────
   const displayMessages = showWelcome
     ? [WELCOME_MESSAGE, ...messages]
     : messages;
@@ -186,7 +190,6 @@ export default function CoachScreen({ conversationId }) {
   return (
     <ScreenBackground>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* ── Header ─────────────────────────────────────────────────────── */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backBtn}
@@ -200,26 +203,36 @@ export default function CoachScreen({ conversationId }) {
             <View style={styles.headerIcon}>
               <Ionicons name="sparkles" size={12} color={Colors.background} />
             </View>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {messages.find((m) => m.sender === "user")?.content ?? "New conversation"}
+            <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+              {messages.find((m) => m.sender === "user")?.content ?? "Conversație nouă"}
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.generateBtn, (generatingPlan || sending) && styles.generateBtnDisabled]}
-            onPress={handleGeneratePlan}
-            disabled={generatingPlan || sending}
-            activeOpacity={0.85}
-          >
-            {generatingPlan ? (
-              <ActivityIndicator size="small" color={Colors.background} />
-            ) : (
-              <Ionicons name="sparkles" size={16} color={Colors.background} />
-            )}
-          </TouchableOpacity>
+          {linkedPlanId ? (
+            <TouchableOpacity
+              style={styles.viewPlanBtn}
+              onPress={() => router.replace("/(tabs)/workouts")}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="barbell-outline" size={14} color={Colors.primary} />
+              <Text style={styles.viewPlanBtnText}>Vezi planul</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.generateBtn, (generatingPlan || sending) && styles.generateBtnDisabled]}
+              onPress={() => setShowFormModal(true)}
+              disabled={generatingPlan || sending}
+              activeOpacity={0.85}
+            >
+              {generatingPlan ? (
+                <ActivityIndicator size="small" color={Colors.background} />
+              ) : (
+                <Ionicons name="sparkles" size={16} color={Colors.background} />
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* ── Messages ───────────────────────────────────────────────────── */}
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -238,36 +251,23 @@ export default function CoachScreen({ conversationId }) {
             ListFooterComponent={
               <>
                 {sending && <TypingIndicator />}
-                {messages.length >= 2 && !showWelcome && !sending && (
-                  <TouchableOpacity
-                    style={styles.generatePlanCTA}
-                    onPress={handleGeneratePlan}
-                    activeOpacity={0.85}
-                    disabled={generatingPlan}
-                  >
-                    {generatingPlan ? (
-                      <ActivityIndicator size="small" color={Colors.background} />
-                    ) : (
-                      <>
-                        <Text style={styles.generatePlanCTAText}>
-                          Generate Workout Plan
-                        </Text>
-                        <Ionicons name="sparkles" size={14} color={Colors.background} />
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
                 <View style={{ height: 16 }} />
               </>
             }
           />
 
-          {/* ── Input bar ──────────────────────────────────────────────────── */}
           <View style={styles.inputBar}>
             <ChatInput onSend={handleSend} disabled={sending || generatingPlan} />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <PlanFormModal
+        visible={showFormModal}
+        onClose={() => setShowFormModal(false)}
+        onGenerate={handleGeneratePlan}
+        loading={generatingPlan}
+      />
     </ScreenBackground>
   );
 }
@@ -277,7 +277,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   centeredFlex: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -299,9 +298,11 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    overflow: "hidden",
   },
   headerIcon: {
     width: 28,
@@ -317,6 +318,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
+    flex: 1,
     fontSize: 16,
     fontFamily: Fonts.headline,
     fontWeight: "700",
@@ -339,8 +341,24 @@ const styles = StyleSheet.create({
   generateBtnDisabled: {
     opacity: 0.5,
   },
-
-  // Message list
+  viewPlanBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.primaryDimAlpha,
+    backgroundColor: "rgba(209,255,0,0.06)",
+  },
+  viewPlanBtnText: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: 0.5,
+  },
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 20,
@@ -348,33 +366,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
-  // Generate Plan CTA
-  generatePlanCTA: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 20,
-    marginHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  generatePlanCTAText: {
-    fontSize: 12,
-    fontFamily: Fonts.label,
-    fontWeight: "700",
-    color: Colors.background,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-  },
-
-  // Plan Generated card
   planCard: {
     backgroundColor: Colors.surfaceContainerHigh,
     borderRadius: 16,
@@ -441,7 +432,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
 
-  // Input
   inputBar: {
     paddingHorizontal: 16,
     paddingBottom: Platform.OS === "ios" ? 24 : 100,

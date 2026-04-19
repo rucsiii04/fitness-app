@@ -29,10 +29,24 @@ export const chatService = {
       headers: authHeaders(token),
     }).then(parseResponse),
 
-  getMessages: (token, conversationId) =>
-    fetch(`${API_BASE}/ai/conversations/${conversationId}/messages`, {
-      headers: authHeaders(token),
-    }).then(parseResponse),
+  getMessagesWithMeta: async (token, conversationId) => {
+    const data = await fetch(
+      `${API_BASE}/ai/conversations/${conversationId}/messages`,
+      { headers: authHeaders(token) }
+    ).then(parseResponse);
+    return {
+      messages: Array.isArray(data.messages) ? data.messages : [],
+      linked_plan_id: data.linked_plan_id ?? null,
+    };
+  },
+
+  getMessages: async (token, conversationId) => {
+    const data = await fetch(
+      `${API_BASE}/ai/conversations/${conversationId}/messages`,
+      { headers: authHeaders(token) }
+    ).then(parseResponse);
+    return Array.isArray(data.messages) ? data.messages : [];
+  },
 
   sendMessage: (token, conversationId, content) =>
     fetch(`${API_BASE}/ai/conversations/${conversationId}/messages`, {

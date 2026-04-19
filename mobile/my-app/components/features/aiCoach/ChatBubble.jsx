@@ -11,7 +11,6 @@ const formatTime = (dateString) => {
   });
 };
 
-// Render plain text with **bold** segments parsed inline
 function RichText({ text, style }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
@@ -63,7 +62,6 @@ export function ChatBubble({ message }) {
 }
 
 const styles = StyleSheet.create({
-  // AI bubble
   aiWrapper: {
     alignSelf: "flex-start",
     maxWidth: "85%",
@@ -113,7 +111,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
 
-  // User bubble
   userWrapper: {
     alignSelf: "flex-end",
     maxWidth: "80%",

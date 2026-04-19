@@ -91,7 +91,6 @@ export default function ConversationListScreen() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  // Refresh the list every time this screen comes into focus
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
@@ -152,7 +151,6 @@ export default function ConversationListScreen() {
   return (
     <ScreenBackground>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
@@ -181,7 +179,6 @@ export default function ConversationListScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* List */}
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={Colors.primary} />
@@ -214,7 +211,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -284,7 +280,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // List
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -297,7 +292,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
 
-  // Conversation item
   item: {
     flexDirection: "row",
     alignItems: "center",
@@ -355,7 +349,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 
-  // Empty state
   emptyState: {
     flex: 1,
     alignItems: "center",

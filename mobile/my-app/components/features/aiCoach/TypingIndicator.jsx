@@ -37,7 +37,6 @@ export function TypingIndicator() {
   return (
     <View style={styles.wrapper}>
       <View style={styles.aiIconContainer}>
-        {/* small spacer to align with ChatBubble AI icon */}
       </View>
       <View style={styles.bubble}>
         {dots.map((dot, i) => (

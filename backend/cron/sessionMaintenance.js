@@ -1,21 +1,13 @@
 import cron from "node-cron";
 import { syncExpiredNoShows } from "../utils/syncNoShow.js";
 import { updateSessionStatuses } from "../utils/sessionStatusUpdate.js";
+import { Membership } from "../models/index.js";
+import { Op } from "sequelize";
 
-export const startSessionMaintenanceCron = () => {
-  cron.schedule("*/5 * * * *", async () => {
-    try {
-      await updateSessionStatuses();
-
-      await syncExpiredNoShows();
-
-      console.log("Session maintenance cron executed");
-    } catch (error) {
-      console.error("Cron error:", error);
-    }
-  });
-  cron.schedule("0 */6 * * *", async () => {//la fiecare 6 ore
-    console.log("Running maintenance cron...");
+export const runSessionMaintenance = async () => {
+  try {
+    await updateSessionStatuses();
+    await syncExpiredNoShows();
 
     await Membership.update(
       { status: "expired" },
@@ -24,9 +16,15 @@ export const startSessionMaintenanceCron = () => {
           status: "active",
           end_date: { [Op.lt]: new Date() },
         },
-      },
+      }
     );
 
-    console.log("Membership expiry check done.");
-  });
+    console.log("Maintenance executed");
+  } catch (error) {
+    console.error("Maintenance error:", error);
+  }
+};
+
+export const startSessionMaintenanceCron = () => {
+  cron.schedule("*/5 * * * *", runSessionMaintenance);
 };

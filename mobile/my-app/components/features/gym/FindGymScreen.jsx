@@ -161,7 +161,6 @@ export default function FindGymScreen() {
         const data = await res.json();
         if (res.ok) setGyms(Array.isArray(data) ? data : []);
       } catch {
-        // silently fail
       } finally {
         setLoading(false);
       }

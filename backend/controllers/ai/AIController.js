@@ -10,6 +10,35 @@ import {
 } from "../../models/index.js";
 import { geminiModel } from "../../config/gemini.js";
 
+const GENERATION_VERBS = [
+  "genereaz", "creeaz", "creaz", "fă-mi", "fa-mi", "fă mi", "fa mi",
+  "vreau un plan", "vreau sa", "vreau să", "fă-mi", "make me", "generate",
+  "create", "build me", "give me a", "pot avea", "poți face", "poti face",
+];
+const GENERATION_NOUNS = [
+  "antrenament", "workout", "plan de antrenament", "training plan",
+  "program de antrenament", "plan de fitness", "rutina", "rutină",
+];
+
+const isWorkoutGenerationRequest = (message) => {
+  const lower = message.toLowerCase();
+  const hasVerb = GENERATION_VERBS.some((v) => lower.includes(v));
+  const hasNoun = GENERATION_NOUNS.some((n) => lower.includes(n));
+  return hasVerb && hasNoun;
+};
+
+const isFitnessRelated = async (message) => {
+  const result = await geminiModel.generateContent(`
+Answer ONLY "yes" or "no".
+Is this message related to: fitness, workouts, gym training,healthy diet for fitness goals, weight loss or muscle gain?
+
+Message: "${message}"
+`);
+
+  const text = result.response.text().toLowerCase();
+  return text.includes("yes");
+};
+
 const buildSystemPrompt = (profile, user, recentSessions) => {
   const name = `${user.first_name} ${user.last_name}`;
   const weight = profile?.current_weight
@@ -49,7 +78,16 @@ Guidelines:
 - Be specific and practical. Tailor every answer to this client's profile.
 - If medical restrictions are listed, always respect them.
 - Keep responses concise and friendly.
-- Do not recommend exercises that conflict with medical restrictions.`;
+- Do not recommend exercises that conflict with medical restrictions.
+
+STRICT RULES:
+- Only answer questions related to fitness, workouts, health, or fitness-related nutrition.
+- If the user asks something unrelated (e.g. general recipes, desserts, non-fitness topics), DO NOT answer it.
+- Instead, politely refuse and redirect the conversation to fitness topics.
+- Never invent information outside the fitness domain.
+- If you are unsure, say you are not sure instead of guessing.
+- Always respond in the same language as the user's message.
+`;
 };
 
 const getClientContext = async (userId) => {
@@ -102,8 +140,6 @@ export const controller = {
 
       const ids = conversations.map((c) => c.conversation_id);
 
-      // Fetch all user messages for these conversations in one query,
-      // then pick the earliest one per conversation as the title preview.
       const userMessages = await Message.findAll({
         where: { conversation_id: ids, sender: "user" },
         order: [["sent_at", "ASC"]],
@@ -147,9 +183,14 @@ export const controller = {
         order: [["sent_at", "ASC"]],
       });
 
-      return res.status(200).json(messages);
+      return res.status(200).json({
+        messages,
+        linked_plan_id: conversation.linked_plan_id ?? null,
+      });
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching messages: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error fetching messages: " + err.message });
     }
   },
 
@@ -161,15 +202,36 @@ export const controller = {
       if (!content?.trim()) {
         return res.status(400).json({ message: "Message content is required" });
       }
-
       const conversation = await verifyOwnership(
         conversationId,
         req.user.user_id,
       );
+
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
+      const fitnessKeywords = [
+        "gym",
+        "workout",
+        "fitness",
+        "exercise",
+        "training",
+        "diet",
+        "protein",
+        "muscle",
+        "cardio",
+      ];
 
+      const isLikelyFitness = fitnessKeywords.some((k) =>
+        content.toLowerCase().includes(k),
+      );
+      let isValid;
+
+      if (isLikelyFitness) {
+        isValid = true;
+      } else {
+        isValid = await isFitnessRelated(content);
+      }
       const now = new Date();
 
       await Message.create({
@@ -178,6 +240,33 @@ export const controller = {
         content,
         sent_at: now,
       });
+
+      if (isWorkoutGenerationRequest(content)) {
+        const redirect =
+          "Folosește butonul ✦ din colțul din dreapta sus pentru a genera un antrenament personalizat. Îți pot răspunde la orice întrebări despre antrenamentele tale după ce le generezi.";
+        const aiMessage = await Message.create({
+          conversation_id: conversationId,
+          sender: "AI",
+          content: redirect,
+          sent_at: new Date(),
+        });
+        await conversation.update({ last_activity_at: new Date() });
+        return res.status(200).json(aiMessage);
+      }
+
+      if (!isValid) {
+        const warning =
+          "Mă ocup doar de subiecte legate de fitness. Te pot ajuta cu antrenamente, nutriție sportivă sau sfaturi de sănătate.";
+
+        const aiMessage = await Message.create({
+          conversation_id: conversationId,
+          sender: "AI",
+          content: warning,
+          sent_at: new Date(),
+        });
+
+        return res.status(200).json(aiMessage);
+      }
 
       const { user, profile, recentSessions } = await getClientContext(
         req.user.user_id,
@@ -216,7 +305,9 @@ export const controller = {
 
       return res.status(200).json(aiMessage);
     } catch (err) {
-      return res.status(500).json({ message: "Error sending message: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error sending message: " + err.message });
     }
   },
 
@@ -224,7 +315,10 @@ export const controller = {
     try {
       const { conversationId } = req.params;
 
-      const conversation = await verifyOwnership(conversationId, req.user.user_id);
+      const conversation = await verifyOwnership(
+        conversationId,
+        req.user.user_id,
+      );
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
@@ -236,7 +330,9 @@ export const controller = {
 
       return res.status(200).json({ message: "Conversation deleted" });
     } catch (err) {
-      return res.status(500).json({ message: "Error deleting conversation: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error deleting conversation: " + err.message });
     }
   },
 
@@ -332,7 +428,9 @@ Rules:
       try {
         plan = JSON.parse(cleaned);
       } catch {
-        return res.status(500).json({ message: "AI returned invalid JSON. Try again." });
+        return res
+          .status(500)
+          .json({ message: "AI returned invalid JSON. Try again." });
       }
 
       const validExercises = (plan.exercises ?? []).filter((e) =>
@@ -383,7 +481,9 @@ Rules:
 
       return res.status(201).json(workout);
     } catch (err) {
-      return res.status(500).json({ message: "Error generating plan: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error generating plan: " + err.message });
     }
   },
 };

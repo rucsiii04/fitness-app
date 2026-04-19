@@ -9,7 +9,6 @@ import { Colors, Fonts } from "@/constants/theme";
 
 const DAY_NAMES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
-// Build an array of Date objects: today and the next 13 days
 const buildWeek = () => {
   const days = [];
   const today = new Date();

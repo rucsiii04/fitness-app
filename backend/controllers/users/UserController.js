@@ -16,7 +16,9 @@ export const controller = {
         });
 
         if (hasTrainer) {
-          return res.status(400).json({ message: "You already have an active trainer" });
+          return res
+            .status(400)
+            .json({ message: "You already have an active trainer" });
         }
       }
       const { targetUserId } = req.body;
@@ -33,21 +35,28 @@ export const controller = {
           .json({ message: "You cannot assign yourself to be your trainer" });
       }
       if (targetUser.gym_id !== requester.gym_id) {
-        return res.status(400).json({ message: "Users must belong to the same gym" });
+        return res
+          .status(400)
+          .json({ message: "Users must belong to the same gym" });
       }
       if (!targetUser.is_active) {
         return res.status(400).json({ message: "Target user is not active" });
       }
-      let trainerId, clientId;
-      if (requester.role === "trainer" && targetUser.role == "client") {
-        trainerId = requester.user_id;
-        clientId = targetUser.user_id;
-      } else if (requester.role === "client" && targetUser.role === "trainer") {
-        trainerId = targetUser.user_id;
-        clientId = requester.user_id;
-      } else {
-        return res.status(400).json({ message: "Invalid trainer client combination" });
+
+      if (requester.role !== "client") {
+        return res
+          .status(403)
+          .json({ message: "Only clients can send requests" });
       }
+
+      if (targetUser.role !== "trainer") {
+        return res
+          .status(400)
+          .json({ message: "You can only request trainers" });
+      }
+
+      const trainerId = targetUser.user_id;
+      const clientId = requester.user_id;
 
       const existing = await Trainer_Assignment.findOne({
         where: {
@@ -67,7 +76,9 @@ export const controller = {
       });
       return res.status(201).json(request);
     } catch (err) {
-      return res.status(500).json({ message: "Error while sending request: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error while sending request: " + err });
     }
   },
   respondToRequest: async (req, res) => {
@@ -84,7 +95,9 @@ export const controller = {
       }
 
       if (request.requested_by === requester.user_id) {
-        return res.status(403).json({ message: "You cannot respond to your own request" });
+        return res
+          .status(403)
+          .json({ message: "You cannot respond to your own request" });
       }
       //nu poti accepta decat cererile care au treaba cu tine->fie ca client fie ca trainer
       if (
@@ -104,7 +117,9 @@ export const controller = {
 
           if (lockedRequest.status !== "pending") {
             await t.rollback();
-            return res.status(400).json({ message: "Request already processed" });
+            return res
+              .status(400)
+              .json({ message: "Request already processed" });
           }
 
           const alreadyAccepted = await Trainer_Assignment.findOne({
@@ -114,14 +129,21 @@ export const controller = {
 
           if (alreadyAccepted) {
             await t.rollback();
-            return res.status(400).json({ message: "Client already has an active trainer" });
+            return res
+              .status(400)
+              .json({ message: "Client already has an active trainer" });
           }
 
-          await lockedRequest.update({ status: "accepted" }, { transaction: t });
+          await lockedRequest.update(
+            { status: "accepted" },
+            { transaction: t },
+          );
           await t.commit();
         } catch (err) {
           await t.rollback();
-          return res.status(500).json({ message: "Error while processing request: " + err });
+          return res
+            .status(500)
+            .json({ message: "Error while processing request: " + err });
         }
       } else if (action === "reject") {
         request.status = "rejected";
@@ -132,7 +154,9 @@ export const controller = {
 
       return res.status(200).json({ message: `Request ${action}ed` });
     } catch (err) {
-      return res.status(500).json({ message: "Error while processing request: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error while processing request: " + err });
     }
   },
   getTrainersByGym: async (req, res) => {
@@ -148,7 +172,9 @@ export const controller = {
       });
       return res.status(200).json(trainers);
     } catch (err) {
-      return res.status(500).json({ message: "Error while fetching trainers: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error while fetching trainers: " + err });
     }
   },
   getClientsByGym: async (req, res) => {
@@ -164,7 +190,9 @@ export const controller = {
       });
       return res.status(200).json(clients);
     } catch (err) {
-      return res.status(500).json({ message: "Error while fetching clients: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error while fetching clients: " + err });
     }
   },
   getAcceptedClients: async (req, res) => {
@@ -191,7 +219,9 @@ export const controller = {
       });
       return res.status(200).json(assignments);
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching accepted clients: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error fetching accepted clients: " + err });
     }
   },
   getMyTrainer: async (req, res) => {
@@ -221,7 +251,9 @@ export const controller = {
       }
       return res.status(200).json(assignment.Trainer);
     } catch (err) {
-      return res.status(500).json({ message: "Error while fetching trainer: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error while fetching trainer: " + err });
     }
   },
   endTraining: async (req, res) => {
@@ -234,7 +266,9 @@ export const controller = {
         },
       });
       if (!relationship) {
-        return res.status(404).json({ message: "No active trainer relationship found" });
+        return res
+          .status(404)
+          .json({ message: "No active trainer relationship found" });
       }
       relationship.status = "ended";
       await relationship.save();
@@ -257,7 +291,9 @@ export const controller = {
       });
 
       if (!relationship) {
-        return res.status(404).json({ message: "No active relationship found" });
+        return res
+          .status(404)
+          .json({ message: "No active relationship found" });
       }
 
       relationship.status = "ended";

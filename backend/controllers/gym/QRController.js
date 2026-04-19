@@ -13,21 +13,9 @@ export const controller = {
   generateQR: async (req, res) => {
     try {
       const user_id = req.user.user_id;
-      const gym_id = req.user.gym_id;
-      if (!gym_id) {
-        return res
-          .status(403)
-          .json({ message: "You are not assigned to a gym." });
-      }
       const membership = await Membership.findOne({
         where: { client_id: user_id, status: "active" },
-        include: [
-          {
-            model: Membership_Type,
-            where: { gym_id },
-            attributes: ["name", "gym_id"],
-          },
-        ],
+        include: [{ model: Membership_Type, attributes: ["name", "gym_id"] }],
       });
 
       if (!membership) {

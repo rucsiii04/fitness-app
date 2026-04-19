@@ -137,7 +137,7 @@ export const controller = {
             include: [
               {
                 model: Workout_Exercise,
-                include: [{ model: Exercise, as: "exercise" }],
+                include: [{ model: Exercise }],
                 order: [["order_index", "ASC"]],
               },
             ],

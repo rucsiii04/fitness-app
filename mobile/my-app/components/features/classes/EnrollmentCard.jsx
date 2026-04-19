@@ -24,7 +24,7 @@ const formatDateTime = (dateString) => {
     d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 };
 
-export function EnrollmentCard({ enrollment, onCancel, busy }) {
+export function EnrollmentCard({ enrollment, onCancel, busy, dimmed }) {
   const session = enrollment.Class_Session;
   const type = session?.Class_Type;
   const trainer = session?.Trainer;
@@ -38,7 +38,7 @@ export function EnrollmentCard({ enrollment, onCancel, busy }) {
   ].filter(Boolean).join(" · ");
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, dimmed && styles.cardDimmed]}>
       <View style={styles.topRow}>
         <Text style={styles.className} numberOfLines={1}>
           {title || "Class"}
@@ -139,5 +139,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.error,
     letterSpacing: 0.5,
+  },
+  cardDimmed: {
+    opacity: 0.55,
   },
 });

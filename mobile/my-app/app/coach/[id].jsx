@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import CoachScreen from "@/components/features/coach/CoachScreen";
+import CoachScreen from "@/components/features/aiCoach/CoachScreen";
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams();

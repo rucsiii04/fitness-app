@@ -1,2 +1,2 @@
-import ConversationListScreen from "@/components/features/coach/ConversationListScreen";
+import ConversationListScreen from "@/components/features/aiCoach/ConversationListScreen";
 export default ConversationListScreen;

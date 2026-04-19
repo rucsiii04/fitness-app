@@ -64,11 +64,14 @@ export default function HomeScreen() {
     };
 
     safeFetch(`${API_BASE}/profile`, setProfile);
-    safeFetch(
-      `${API_BASE}/memberships/me/current`,
-      setMembership,
-      (data) => data?.[0] || null,
-    );
+    safeFetch(`${API_BASE}/memberships/me/current`, setMembership, (data) => {
+      if (!data || !data.membership_id) return null;
+      return {
+        ...data,
+        type_name: data.Membership_Type?.name,
+        gym_name: data.Membership_Type?.Gym?.name,
+      };
+    });
     safeFetch(`${API_BASE}/workout-sessions`, setSessions, (data) =>
       Array.isArray(data) ? data : [],
     );

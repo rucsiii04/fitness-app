@@ -23,7 +23,6 @@ const formatTime = (dateString) => {
   });
 };
 
-// enrollment: null | { status: "confirmed" | "waiting_list" | "cancelled" | ... }
 export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
   const type = session.Class_Type;
   const trainer = session.Trainer;
@@ -34,11 +33,16 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
   const isEnrolled = enrollment?.status === "confirmed";
   const isWaiting = enrollment?.status === "waiting_list";
 
+  const now = new Date();
+  const startTime = new Date(session.start_datetime);
+  const endTime = new Date(session.end_datetime);
+  const isOver = now > endTime;
+  const isOngoing = now >= startTime && now <= endTime;
+
   const spotsColor = spotsLeft <= 3 ? Colors.error : Colors.primary;
 
   return (
-    <View style={[styles.card, isCancelled && styles.cardCancelled]}>
-      {/* Top row: badges + spots */}
+    <View style={[styles.card, (isCancelled || isOver) && styles.cardCancelled]}>
       <View style={styles.topRow}>
         <View style={styles.badges}>
           <View style={[styles.badge, { backgroundColor: diff.bg }]}>
@@ -49,6 +53,16 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
               <Text style={[styles.badgeText, { color: Colors.error }]}>Cancelled</Text>
             </View>
           )}
+          {!isCancelled && isOver && (
+            <View style={[styles.badge, { backgroundColor: "rgba(150,150,150,0.15)" }]}>
+              <Text style={[styles.badgeText, { color: Colors.onSurfaceVariant }]}>Over</Text>
+            </View>
+          )}
+          {!isCancelled && isOngoing && (
+            <View style={[styles.badge, { backgroundColor: "rgba(209,255,0,0.12)" }]}>
+              <Text style={[styles.badgeText, { color: Colors.primary }]}>Ongoing</Text>
+            </View>
+          )}
         </View>
         {!isCancelled && (
           <Text style={[styles.spotsText, { color: spotsColor }]}>
@@ -57,12 +71,10 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
         )}
       </View>
 
-      {/* Class name */}
       <Text style={[styles.className, isCancelled && styles.textDim]} numberOfLines={1}>
         {type?.name ?? "Class"}
       </Text>
 
-      {/* Meta row */}
       <View style={styles.metaRow}>
         <View style={styles.metaItem}>
           <Ionicons name="time-outline" size={13} color={Colors.onSurfaceVariant} />
@@ -80,8 +92,7 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
         )}
       </View>
 
-      {/* Action button */}
-      {!isCancelled && (
+      {!isCancelled && !isOver && !isOngoing && (
         <>
           {isEnrolled ? (
             <View style={styles.enrolledRow}>
@@ -213,7 +224,6 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
   },
 
-  // Enroll button
   enrollBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -244,8 +254,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-
-  // Already enrolled row
   enrolledRow: {
     flexDirection: "row",
     alignItems: "center",

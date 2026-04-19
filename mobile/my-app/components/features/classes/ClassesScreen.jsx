@@ -83,9 +83,7 @@ export default function ClassesScreen() {
   const [sessions, setSessions] = useState([]);
   const [myEnrollments, setMyEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Map of sessionId → enrollment object for O(1) lookup
   const [enrollmentMap, setEnrollmentMap] = useState({});
-  // sessionId → true while action is in flight
   const [busyMap, setBusyMap] = useState({});
 
   const authHeader = { Authorization: `Bearer ${token}` };
@@ -119,7 +117,6 @@ export default function ClassesScreen() {
         const data = await enrollmentsRes.json();
         const list = Array.isArray(data) ? data : [];
         setMyEnrollments(list);
-        // Build lookup: sessionId → enrollment (only active ones)
         const map = {};
         for (const e of list) {
           if (["confirmed", "waiting_list"].includes(e.status)) {
@@ -148,7 +145,6 @@ export default function ClassesScreen() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.message);
 
-      // Backend returns { enrollment, waiting_position, message }
       const enrollment = body.enrollment ?? body;
       const waitingPosition = body.waiting_position ?? null;
 
@@ -162,7 +158,6 @@ export default function ClassesScreen() {
           )
         );
       }
-      // Attach session data so EnrollmentCard can render name/time immediately
       const fullEnrollment = { ...enrollment, Class_Session: session };
       setMyEnrollments((prev) => [...prev, fullEnrollment]);
 
@@ -197,13 +192,11 @@ export default function ClassesScreen() {
               throw new Error(data.message);
             }
             const wasConfirmed = enrollmentMap[session.session_id]?.status === "confirmed";
-            // Remove from map
             setEnrollmentMap((prev) => {
               const next = { ...prev };
               delete next[session.session_id];
               return next;
             });
-            // Decrement count if was confirmed
             if (wasConfirmed) {
               setSessions((prev) =>
                 prev.map((s) =>
@@ -267,9 +260,12 @@ export default function ClassesScreen() {
     isSameDay(new Date(s.start_datetime), selectedDate)
   );
 
-  // Active enrollments (confirmed + waiting)
-  const activeEnrollments = myEnrollments.filter((e) =>
-    ["confirmed", "waiting_list", "attended"].includes(e.status)
+  const upcomingEnrollments = myEnrollments.filter((e) =>
+    ["confirmed", "waiting_list"].includes(e.status)
+  );
+
+  const historyEnrollments = myEnrollments.filter((e) =>
+    ["attended", "no_show", "cancelled"].includes(e.status)
   );
 
   if (!user?.gym_id && !loading) {
@@ -294,7 +290,6 @@ export default function ClassesScreen() {
   return (
     <ScreenBackground>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.headerTitle}>Classes</Text>
@@ -309,10 +304,8 @@ export default function ClassesScreen() {
           </View>
         ) : activeTab === "schedule" ? (
           <>
-            {/* Date picker */}
             <DateSelector selected={selectedDate} onChange={setSelectedDate} />
 
-            {/* Sessions list */}
             <FlatList
               data={sessionsForDay}
               keyExtractor={(item) => String(item.session_id)}
@@ -332,27 +325,48 @@ export default function ClassesScreen() {
             />
           </>
         ) : (
-          /* My Bookings tab */
-          <FlatList
-            data={activeEnrollments}
-            keyExtractor={(item) => String(item.enrollment_id)}
+          <ScrollView
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            ListEmptyComponent={<EmptyEnrollments />}
-            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-            ListHeaderComponent={
-              activeEnrollments.length > 0 ? (
-                <Text style={styles.sectionLabel}>UPCOMING BOOKINGS</Text>
-              ) : null
-            }
-            renderItem={({ item }) => (
-              <EnrollmentCard
-                enrollment={item}
-                onCancel={() => handleCancelFromEnrollments(item)}
-                busy={!!busyMap[item.session_id]}
-              />
+          >
+            {upcomingEnrollments.length === 0 && historyEnrollments.length === 0 ? (
+              <EmptyEnrollments />
+            ) : (
+              <>
+                {upcomingEnrollments.length > 0 && (
+                  <>
+                    <Text style={styles.sectionLabel}>Upcoming</Text>
+                    {upcomingEnrollments.map((item, i) => (
+                      <View key={String(item.enrollment_id)} style={i > 0 && { marginTop: 10 }}>
+                        <EnrollmentCard
+                          enrollment={item}
+                          onCancel={() => handleCancelFromEnrollments(item)}
+                          busy={!!busyMap[item.session_id]}
+                        />
+                      </View>
+                    ))}
+                  </>
+                )}
+                {historyEnrollments.length > 0 && (
+                  <>
+                    <Text style={[styles.sectionLabel, upcomingEnrollments.length > 0 && { marginTop: 28 }]}>
+                      History
+                    </Text>
+                    {historyEnrollments.map((item, i) => (
+                      <View key={String(item.enrollment_id)} style={i > 0 && { marginTop: 10 }}>
+                        <EnrollmentCard
+                          enrollment={item}
+                          onCancel={() => handleCancelFromEnrollments(item)}
+                          busy={!!busyMap[item.session_id]}
+                          dimmed
+                        />
+                      </View>
+                    ))}
+                  </>
+                )}
+              </>
             )}
-          />
+          </ScrollView>
         )}
       </SafeAreaView>
     </ScreenBackground>
@@ -363,7 +377,6 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
 
-  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -389,7 +402,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Tab toggle
   tabToggle: {
     flexDirection: "row",
     backgroundColor: Colors.surfaceContainerLow,
@@ -416,7 +428,6 @@ const styles = StyleSheet.create({
   },
   tabBtnTextActive: { color: Colors.primary },
 
-  // List
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
@@ -424,16 +435,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   sectionLabel: {
-    fontSize: 9,
+    fontSize: 11,
     fontFamily: Fonts.label,
     fontWeight: "700",
     color: Colors.onSurfaceVariant,
-    letterSpacing: 2.5,
+    letterSpacing: 1.5,
     textTransform: "uppercase",
     marginBottom: 12,
   },
 
-  // Empty states
   emptyState: {
     flex: 1,
     alignItems: "center",

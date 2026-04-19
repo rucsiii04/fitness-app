@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useReducer } from "react";
 import {
   View,
   Text,
@@ -27,10 +27,75 @@ function makeSet(weight = 0, reps = 8) {
   return { weight: String(weight), reps: String(reps), status: "pending" };
 }
 
+function formatElapsed(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function buildSetsMapFromLogs(exerciseList, logs) {
+  const logsByExId = {};
+  for (const log of logs) {
+    if (!logsByExId[log.exercise_id]) logsByExId[log.exercise_id] = [];
+    logsByExId[log.exercise_id].push(log);
+  }
+
+  const map = {};
+
+  exerciseList.forEach((ex, i) => {
+    const exId = ex.Exercise?.exercise_id;
+    const exLogs = logsByExId[exId] || [];
+    const lastLog = exLogs[exLogs.length - 1];
+
+    const sets = exLogs.map((l) => ({
+      weight: String(l.weight ?? 0),
+      reps: String(l.reps ?? 0),
+      status: "completed",
+    }));
+
+    const needed = Math.max(3 - sets.length, 0);
+    for (let j = 0; j < needed; j++) {
+      sets.push(makeSet(lastLog?.weight ?? 0, lastLog?.reps ?? 8));
+    }
+
+    map[i] = sets;
+  });
+
+  let resumeIndex = exerciseList.length > 0 ? exerciseList.length - 1 : 0;
+  for (let i = 0; i < exerciseList.length; i++) {
+    if (!map[i].every((s) => s.status === "completed")) {
+      resumeIndex = i;
+      break;
+    }
+  }
+
+  const resumeSets = map[resumeIndex] || [];
+  const firstPending = resumeSets.findIndex((s) => s.status === "pending");
+  if (firstPending !== -1) {
+    resumeSets[firstPending] = { ...resumeSets[firstPending], status: "active" };
+    map[resumeIndex] = resumeSets;
+  }
+
+  return { map, resumeIndex };
+}
+
+function buildFreshSetsMap(exerciseList) {
+  const map = {};
+  exerciseList.forEach((_, i) => {
+    map[i] = [makeSet(0, 8), makeSet(0, 8), makeSet(0, 8)];
+    if (i === 0) map[i][0].status = "active";
+  });
+  return map;
+}
+
 export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId } = {}) {
   const fontsLoaded = useAppFonts();
   const { token } = useAuth();
-  const { setActiveSession } = useActiveSession();
+  const { setActiveSession, activeSession } = useActiveSession();
   const router = useRouter();
   const { id: workoutId } = useLocalSearchParams();
 
@@ -39,64 +104,98 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
   const [sessionId, setSessionId] = useState(null);
   const [showRest, setShowRest] = useState(false);
   const [restKey, setRestKey] = useState(0);
-
   const [setsMap, setSetsMap] = useState({});
 
-  const initExercises = (exs) => {
-    const exerciseList = Array.isArray(exs) ? exs : [];
-    setExercises(exerciseList);
-    const initial = {};
-    exerciseList.forEach((_, i) => {
-      initial[i] = [makeSet(0, 8), makeSet(0, 8), makeSet(0, 8)];
-      if (i === 0) initial[i][0].status = "active";
-    });
-    setSetsMap(initial);
-  };
+  const startedAtRef = useRef(
+    activeSession?.started_at
+      ? new Date(activeSession.started_at).getTime()
+      : null
+  );
+  const [, forceUpdate] = useReducer((n) => n + 1, 0);
+
+  useEffect(() => {
+    const id = setInterval(forceUpdate, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const elapsed = startedAtRef.current
+    ? Math.floor((Date.now() - startedAtRef.current) / 1000)
+    : 0;
 
   useEffect(() => {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
 
-    const loadExercisesForWorkout = (wId) => {
-      if (!wId) return;
-      fetch(`${API_BASE}/workouts/${wId}/exercises`, { headers })
-        .then((r) => r.json())
-        .then(initExercises)
-        .catch(console.error);
-    };
-
     if (resumeSessionId) {
       setSessionId(resumeSessionId);
-      if (resumeWorkoutId) {
-        loadExercisesForWorkout(resumeWorkoutId);
-      } else {
-        // workoutId not in URL — fetch session to discover it
-        fetch(`${API_BASE}/workout-sessions/${resumeSessionId}`, { headers })
-          .then((r) => r.json())
-          .then((session) => loadExercisesForWorkout(session.workout_id))
-          .catch(console.error);
-      }
+
+      (async () => {
+        try {
+          const sessionRes = await fetch(
+            `${API_BASE}/workout-sessions/${resumeSessionId}`,
+            { headers }
+          );
+          if (!sessionRes.ok) return;
+          const sessionData = await sessionRes.json();
+          if (sessionData.started_at) {
+            startedAtRef.current = new Date(sessionData.started_at).getTime();
+          }
+          setActiveSession(sessionData);
+
+          const wId = resumeWorkoutId || sessionData.workout_id;
+
+          const [exercisesRes, logsRes] = await Promise.all([
+            fetch(`${API_BASE}/workouts/${wId}/exercises`, { headers }),
+            fetch(`${API_BASE}/workout-sessions/${resumeSessionId}/logs`, { headers }),
+          ]);
+
+          const exerciseList = await exercisesRes.json();
+          const logList = await logsRes.json();
+
+          const exArr = Array.isArray(exerciseList) ? exerciseList : [];
+          const logArr = Array.isArray(logList) ? logList : [];
+
+          setExercises(exArr);
+
+          const { map, resumeIndex } = buildSetsMapFromLogs(exArr, logArr);
+          setSetsMap(map);
+          setCurrentIndex(resumeIndex);
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+
       return;
     }
 
-    // New session from a workout
-    loadExercisesForWorkout(workoutId);
+    (async () => {
+      try {
+        const [exercisesRes, sessionRes] = await Promise.all([
+          fetch(`${API_BASE}/workouts/${workoutId}/exercises`, { headers }),
+          fetch(`${API_BASE}/workout-sessions`, {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ workout_id: workoutId }),
+          }),
+        ]);
 
-    fetch(`${API_BASE}/workout-sessions`, {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ workout_id: workoutId }),
-    })
-      .then((r) => {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        setSessionId(data.session_id);
-        setActiveSession(data);
-      })
-      .catch(console.error);
+        const exerciseList = await exercisesRes.json();
+        const exArr = Array.isArray(exerciseList) ? exerciseList : [];
+        setExercises(exArr);
+        setSetsMap(buildFreshSetsMap(exArr));
+
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          setSessionId(sessionData.session_id);
+          if (sessionData.started_at) {
+            startedAtRef.current = new Date(sessionData.started_at).getTime();
+          }
+          setActiveSession(sessionData);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
   }, [token, workoutId, resumeSessionId, resumeWorkoutId]);
 
   const currentExercise = exercises[currentIndex]?.Exercise;
@@ -109,21 +208,19 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
     }));
   };
 
-  const handleWeightChange = (i, v) => {
+  const handleWeightChange = (i, v) =>
     updateSets((sets) => {
       const updated = [...sets];
       updated[i] = { ...updated[i], weight: v };
       return updated;
     });
-  };
 
-  const handleRepsChange = (i, v) => {
+  const handleRepsChange = (i, v) =>
     updateSets((sets) => {
       const updated = [...sets];
       updated[i] = { ...updated[i], reps: v };
       return updated;
     });
-  };
 
   const handleCompleteSet = async (setIndex) => {
     const set = currentSets[setIndex];
@@ -158,33 +255,25 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
     });
 
     const allDone = currentSets.every((s, i) =>
-      i === setIndex ? true : s.status === "completed",
+      i === setIndex ? true : s.status === "completed"
     );
 
-    if (allDone) {
-      if (currentIndex + 1 < exercises.length) {
-        setShowRest(true);
-        setRestKey((k) => k + 1);
-      }
-    } else {
+    if (allDone && currentIndex + 1 < exercises.length) {
+      setShowRest(true);
+      setRestKey((k) => k + 1);
+    } else if (!allDone) {
       setShowRest(true);
       setRestKey((k) => k + 1);
     }
   };
 
-  const handleAddSet = () => {
+  const handleAddSet = () =>
     updateSets((sets) => {
       const last = sets[sets.length - 1];
       const newSet = makeSet(last?.weight || 0, last?.reps || 8);
-      const allCompleted = sets.every((s) => s.status === "completed");
-      if (allCompleted) newSet.status = "active";
+      if (sets.every((s) => s.status === "completed")) newSet.status = "active";
       return [...sets, newSet];
     });
-  };
-
-  const handleSkipRest = () => {
-    setShowRest(false);
-  };
 
   const handleNextExercise = () => {
     setShowRest(false);
@@ -202,10 +291,10 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
   };
 
   const handleFinish = () => {
-    Alert.alert("Finish Workout", "Are you sure you want to finish?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert("Termină antrenamentul", "Ești sigur că vrei să termini?", [
+      { text: "Anulează", style: "cancel" },
       {
-        text: "Finish",
+        text: "Termină",
         style: "destructive",
         onPress: async () => {
           if (sessionId) {
@@ -231,7 +320,13 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color={Colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>WORKOUT SESSION</Text>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>WORKOUT</Text>
+            <View style={styles.timerBadge}>
+              <Ionicons name="timer-outline" size={12} color={Colors.onSurfaceVariant} />
+              <Text style={styles.timerText}>{formatElapsed(elapsed)}</Text>
+            </View>
+          </View>
           <TouchableOpacity onPress={handleFinish}>
             <Text style={styles.finishText}>Finish</Text>
           </TouchableOpacity>
@@ -242,24 +337,36 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.pills}
+            style={styles.pillsScroll}
           >
-            {exercises.map((ex, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[styles.pill, i === currentIndex && styles.pillActive]}
-                onPress={() => setCurrentIndex(i)}
-                activeOpacity={0.8}
-              >
-                <Text
+            {exercises.map((ex, i) => {
+              const done = setsMap[i]?.every((s) => s.status === "completed");
+              return (
+                <TouchableOpacity
+                  key={i}
                   style={[
-                    styles.pillText,
-                    i === currentIndex && styles.pillTextActive,
+                    styles.pill,
+                    i === currentIndex && styles.pillActive,
+                    done && i !== currentIndex && styles.pillDone,
                   ]}
+                  onPress={() => setCurrentIndex(i)}
+                  activeOpacity={0.8}
                 >
-                  {ex.Exercise?.name || `Exercise ${i + 1}`}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  {done && i !== currentIndex && (
+                    <Ionicons name="checkmark" size={10} color={Colors.primary} />
+                  )}
+                  <Text
+                    style={[
+                      styles.pillText,
+                      i === currentIndex && styles.pillTextActive,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {ex.Exercise?.name || `Exercise ${i + 1}`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         )}
 
@@ -268,7 +375,6 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
           showsVerticalScrollIndicator={false}
         >
           <ExerciseHeader exercise={currentExercise} />
-
           <SetTable
             sets={currentSets}
             onWeightChange={handleWeightChange}
@@ -276,20 +382,18 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
             onCompleteSet={handleCompleteSet}
             onAddSet={handleAddSet}
           />
-
           <View style={{ height: 120 }} />
         </ScrollView>
 
         {showRest && (
-          <RestTimer key={restKey} onSkip={handleSkipRest} onFinish={handleSkipRest} />
+          <RestTimer key={restKey} onSkip={handleNextExercise} onFinish={handleNextExercise} />
         )}
+
         <View style={styles.bottomBar}>
           <PrimaryButton
             label="Log Set"
             onPress={() => {
-              const activeIndex = currentSets.findIndex(
-                (s) => s.status === "active",
-              );
+              const activeIndex = currentSets.findIndex((s) => s.status === "active");
               if (activeIndex !== -1) handleCompleteSet(activeIndex);
             }}
             style={styles.logBtn}
@@ -315,11 +419,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.borderSubtle,
   },
+  headerCenter: {
+    alignItems: "center",
+    gap: 4,
+  },
   headerTitle: {
     fontSize: 14,
     fontWeight: "700",
     fontFamily: Fonts.headline,
     color: Colors.textPrimary,
+    letterSpacing: 1,
+  },
+  timerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  timerText: {
+    fontSize: 13,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
     letterSpacing: 1,
   },
   finishText: {
@@ -328,29 +448,41 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     color: Colors.error,
   },
+  pillsScroll: {
+    flexShrink: 0,
+  },
   pills: {
-    paddingHorizontal: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    gap: 8,
   },
   pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderRadius: 24,
     backgroundColor: Colors.surfaceContainerHighest,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
-    marginRight: 8,
+    marginRight: 10,
   },
   pillActive: {
     backgroundColor: Colors.primaryDim,
     borderColor: Colors.primaryDim,
   },
+  pillDone: {
+    borderColor: Colors.primary,
+  },
   pillText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "700",
     fontFamily: Fonts.label,
     color: Colors.onSurfaceVariant,
+    lineHeight: 18,
   },
   pillTextActive: {
     color: Colors.background,
@@ -366,9 +498,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderSubtle,
     backgroundColor: Colors.background,
   },
-  logBtn: {
-    flex: 1,
-  },
+  logBtn: { flex: 1 },
   nextBtn: {
     flexDirection: "row",
     alignItems: "center",
