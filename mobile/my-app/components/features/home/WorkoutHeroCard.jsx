@@ -21,7 +21,10 @@ export function WorkoutHeroCard({ workout }) {
   return (
     <TouchableOpacity
       activeOpacity={0.92}
-      onPress={() => router.push(`/(workout)/${workout?.workout_id}`)}
+      onPress={() => {
+        if (!workout?.workout_id) return;
+        router.push(`/workout/${workout.workout_id}`);
+      }}
       style={styles.card}
     >
       <ImageBackground
@@ -34,7 +37,7 @@ export function WorkoutHeroCard({ workout }) {
         <View style={styles.content}>
           <View style={styles.activePill}>
             <View style={styles.dot} />
-            <Text style={styles.pillText}>Today's Workout</Text>
+            <Text style={styles.pillText}>Latest Workout</Text>
           </View>
           <Text style={styles.workoutName}>{name}</Text>
           <View style={styles.meta}>
@@ -49,10 +52,7 @@ export function WorkoutHeroCard({ workout }) {
                 Ready
               </Text>
             </View>
-            <TouchableOpacity
-              style={styles.playButton}
-              onPress={() => router.push(`/(workout)/${workout?.workout_id}`)}
-            >
+            <TouchableOpacity style={styles.playButton}>
               <Ionicons name="play" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>

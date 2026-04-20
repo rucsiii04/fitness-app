@@ -52,55 +52,57 @@ export default function TabsLayout() {
   if (!token) return null;
   return (
     <View style={{ flex: 1 }}>
-        <Tabs
-          screenOptions={{
-            headerShown: false,
-            tabBarStyle: styles.tabBar,
-            tabBarShowLabel: false,
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.tabBar,
+          tabBarShowLabel: false,
+        }}
+      >
+        <Tabs.Screen
+          name="home"
+          options={{
+            tabBarButton: (props) => <TabBarButton {...props} icon="home" />,
           }}
-        >
-          <Tabs.Screen
-            name="home"
-            options={{
-              tabBarButton: (props) => <TabBarButton {...props} icon="home" />,
-            }}
-          />
-          <Tabs.Screen name="classes" options={{ href: null }} />
-          <Tabs.Screen
-            name="coach"
-            options={{
-              tabBarButton: (props) => (
-                <TabBarButton {...props} icon="sparkles-outline" />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="qr"
-            options={{
-              tabBarButton: (props) => <QRButton onPress={props.onPress} />,
-            }}
-          />
-          <Tabs.Screen
-            name="workouts"
-            options={{
-              tabBarButton: (props) => (
-                <TabBarButton {...props} icon="barbell-outline" />
-              ),
-            }}
-          />
-          <Tabs.Screen name="gym" options={{ href: null }} />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              tabBarButton: (props) => (
-                <TabBarButton {...props} icon="person-outline" />
-              ),
-            }}
-          />
-          <Tabs.Screen name="community" options={{ href: null }} />
-        </Tabs>
-        <ActiveSessionBanner />
-      </View>
+        />
+        <Tabs.Screen name="classes" options={{ href: null }} />
+        <Tabs.Screen
+          name="coach"
+          options={{
+            tabBarButton: (props) => (
+              <TabBarButton {...props} icon="sparkles-outline" />
+            ),
+          }}
+        />
+
+        <Tabs.Screen
+          name="qr"
+          options={{
+            tabBarButton: (props) => <QRButton onPress={props.onPress} />,
+          }}
+        />
+        <Tabs.Screen
+          name="workouts"
+          options={{
+            tabBarButton: (props) => (
+              <TabBarButton {...props} icon="barbell-outline" />
+            ),
+          }}
+        />
+        <Tabs.Screen name="gym" options={{ href: null }} />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            tabBarButton: (props) => (
+              <TabBarButton {...props} icon="person-outline" />
+            ),
+          }}
+        />
+        <Tabs.Screen name="community" options={{ href: null }} />
+        <Tabs.Screen name="discover" options={{ href: null }} />
+      </Tabs>
+      <ActiveSessionBanner />
+    </View>
   );
 }
 

@@ -69,8 +69,22 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const freshUser = await res.json();
+        await AsyncStorage.setItem("user", JSON.stringify(freshUser));
+        setUser(freshUser);
+      }
+    } catch {}
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -15,6 +15,9 @@ import { useAppFonts } from "@/hooks/useAppFonts";
 import { useAuth } from "@/context/AuthContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import EditProfileModal from "./EditProfileModal";
+import AccountDetailsModal from "./AccountDetailsModal";
+import ChangePasswordModal from "./ChangePasswordModal";
+import GymAlertModal from "./GymAlertModal";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -70,11 +73,13 @@ function SettingsRow({ icon, label, onPress, danger }) {
 
 export default function ProfileScreen() {
   const fontsLoaded = useAppFonts();
-  const { token, user, logout } = useAuth();
+  const { token, user, logout, refreshUser } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [editVisible, setEditVisible] = useState(false);
-
+  const [accountVisible, setAccountVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [gymAlertVisible, setGymAlertVisible] = useState(false);
   useEffect(() => {
     if (!token) return;
     fetch(`${API_BASE}/profile`, {
@@ -224,27 +229,25 @@ export default function ProfileScreen() {
             <View style={styles.settingsDivider} />
             <SettingsRow
               icon="person-outline"
-              label="Account Details"
-              onPress={() => {}}
-            />
-            <View style={styles.settingsDivider} />
-            <SettingsRow
-              icon="notifications-outline"
-              label="Notification Preferences"
-              onPress={() => {}}
+              label="Detalii cont"
+              onPress={() => setAccountVisible(true)}
             />
             <View style={styles.settingsDivider} />
             <SettingsRow
               icon="lock-closed-outline"
-              label="Privacy Policy"
-              onPress={() => {}}
+              label="Schimbă parola"
+              onPress={() => setPasswordVisible(true)}
             />
-            <View style={styles.settingsDivider} />
-            <SettingsRow
-              icon="time-outline"
-              label="Session History"
-              onPress={() => {}}
-            />
+            {user?.role === "gym_admin" && (
+              <>
+                <View style={styles.settingsDivider} />
+                <SettingsRow
+                  icon="warning-outline"
+                  label="Alertă sală"
+                  onPress={() => setGymAlertVisible(true)}
+                />
+              </>
+            )}
           </View>
 
           {/* Logout */}
@@ -271,6 +274,26 @@ export default function ProfileScreen() {
           onClose={() => setEditVisible(false)}
           onSaved={(updated) => setProfile(updated)}
         />
+        <AccountDetailsModal
+          visible={accountVisible}
+          user={user}
+          token={token}
+          onClose={() => setAccountVisible(false)}
+          onSaved={async () => { await refreshUser(); setAccountVisible(false); }}
+        />
+        <ChangePasswordModal
+          visible={passwordVisible}
+          token={token}
+          onClose={() => setPasswordVisible(false)}
+        />
+        {user?.role === "gym_admin" && (
+          <GymAlertModal
+            visible={gymAlertVisible}
+            token={token}
+            gymId={user.gym_id}
+            onClose={() => setGymAlertVisible(false)}
+          />
+        )}
       </SafeAreaView>
     </ScreenBackground>
   );

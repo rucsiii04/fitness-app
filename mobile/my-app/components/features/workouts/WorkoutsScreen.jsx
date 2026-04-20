@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   Modal,
+  Alert,
   StyleSheet,
   StatusBar,
   ActivityIndicator,
@@ -17,6 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useActiveSession } from "@/context/ActiveSessionContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { WorkoutCard } from "./WorkoutCard";
+import EditWorkoutModal from "./EditWorkoutModal";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -145,9 +147,15 @@ function DifficultyFilter({ active, onChange }) {
 
 function FreestyleButton({ token, router }) {
   const [starting, setStarting] = useState(false);
-  const { setActiveSession } = useActiveSession();
+  const { activeSession, setActiveSession } = useActiveSession();
 
   const handlePress = async () => {
+    // Resume existing open session instead of trying to create a new one
+    if (activeSession?.session_id) {
+      router.push(`/session/${activeSession.session_id}`);
+      return;
+    }
+
     setStarting(true);
     try {
       const res = await fetch(`${API_BASE}/workout-sessions`, {
@@ -227,6 +235,8 @@ export default function WorkoutsScreen() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("mine");
   const [difficulty, setDifficulty] = useState("all");
+  const [selectedWorkout, setSelectedWorkout] = useState(null);
+  const [editWorkout, setEditWorkout] = useState(null);
 
   const fetchWorkouts = useCallback(async () => {
     setLoading(true);
@@ -246,6 +256,33 @@ export default function WorkoutsScreen() {
     fetchWorkouts();
   }, [fetchWorkouts]);
 
+  const handleDeleteConfirm = () => {
+    Alert.alert(
+      "Delete Workout",
+      `Are you sure you want to delete "${selectedWorkout.name}"?`,
+      [
+        { text: "No", style: "cancel", onPress: () => setSelectedWorkout(null) },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            const id = selectedWorkout.workout_id;
+            setSelectedWorkout(null);
+            try {
+              await fetch(`${API_BASE}/workouts/${id}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              setWorkouts((prev) => prev.filter((w) => w.workout_id !== id));
+            } catch {
+              // silent
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const filtered = workouts.filter((w) => {
     const tabMatch = activeTab === "explore" ? w.is_public : !w.is_public;
     const diffMatch = difficulty === "all" || w.difficulty_level === difficulty;
@@ -261,7 +298,7 @@ export default function WorkoutsScreen() {
           <Text style={styles.headerTitle}>WORKOUTS</Text>
           <TouchableOpacity
             style={styles.headerIconBtn}
-            onPress={() => router.push("/(tabs)/workouts/history")}
+            onPress={() => router.push("/workout/history")}
           >
             <Ionicons
               name="time-outline"
@@ -305,6 +342,7 @@ export default function WorkoutsScreen() {
                 workout={item}
                 onPress={() => router.push(`/workout/${item.workout_id}`)}
                 onStart={() => router.push(`/workout/${item.workout_id}`)}
+                onLongPress={() => setSelectedWorkout(item)}
               />
             )}
             contentContainerStyle={styles.list}
@@ -321,6 +359,63 @@ export default function WorkoutsScreen() {
           />
         )}
       </SafeAreaView>
+
+      {/* Action sheet */}
+      <Modal
+        visible={!!selectedWorkout}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedWorkout(null)}
+      >
+        <TouchableOpacity
+          style={styles.actionOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedWorkout(null)}
+        >
+          <View style={styles.actionSheet}>
+            <View style={styles.actionHandle} />
+            <Text style={styles.actionTitle} numberOfLines={1}>
+              {selectedWorkout?.name}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.actionRow}
+              activeOpacity={0.7}
+              onPress={() => {
+                const w = selectedWorkout;
+                setSelectedWorkout(null);
+                setEditWorkout(w);
+              }}
+            >
+              <Ionicons name="create-outline" size={20} color={Colors.textPrimary} />
+              <Text style={styles.actionLabel}>Edit</Text>
+            </TouchableOpacity>
+
+            <View style={styles.actionDivider} />
+
+            <TouchableOpacity
+              style={styles.actionRow}
+              activeOpacity={0.7}
+              onPress={handleDeleteConfirm}
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.error} />
+              <Text style={[styles.actionLabel, { color: Colors.error }]}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      <EditWorkoutModal
+        visible={!!editWorkout}
+        workout={editWorkout}
+        token={token}
+        onClose={() => setEditWorkout(null)}
+        onSaved={(updated) => {
+          setWorkouts((prev) =>
+            prev.map((w) => (w.workout_id === updated.workout_id ? updated : w))
+          );
+          setEditWorkout(null);
+        }}
+      />
     </ScreenBackground>
   );
 }
@@ -549,5 +644,56 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: Colors.background,
     fontFamily: Fonts.label,
+  },
+
+  actionOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.55)",
+  },
+  actionSheet: {
+    backgroundColor: Colors.surfaceContainerLow,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    paddingBottom: 36,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  actionHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.outlineVariant,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  actionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: Colors.onSurfaceVariant,
+    fontFamily: Fonts.label,
+    textTransform: "uppercase",
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 4,
+  },
+  actionLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    fontFamily: Fonts.body,
+    color: Colors.textPrimary,
+  },
+  actionDivider: {
+    height: 1,
+    backgroundColor: Colors.borderSubtle,
   },
 });

@@ -16,18 +16,15 @@ import { Op } from "sequelize";
 
 const promoteFromWaitingList = async (sessionId, transaction) => {
   const next = await Class_Enrollment.findOne({
-    where: {
-      session_id: sessionId,
-      status: "waiting_list",
-    },
+    where: { session_id: sessionId, status: "waiting_list" },
     order: [["enrollment_date", "ASC"]],
     transaction,
     lock: transaction.LOCK.UPDATE,
   });
-  if (next) {
-    next.status = "confirmed";
-    await next.save({ transaction });
-  }
+  if (!next) return;
+
+  next.status = "confirmed";
+  await next.save({ transaction });
 };
 
 export const controller = {

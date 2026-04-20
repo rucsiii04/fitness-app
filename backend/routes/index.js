@@ -12,6 +12,7 @@ import { router as workoutExerciseRouter } from "./workoutExerciseRoutes.js";
 import { router as workoutSessionRouter } from "./workoutSessionRoutes.js";
 import { router as qrRouter } from "./qrRoutes.js";
 import { router as aiRouter } from "./aiRoutes.js";
+import { router as gymRouter } from "./gymRoutes.js";
 export const router = express.Router();
 
 router.use("/auth", authRouter);
@@ -26,4 +27,5 @@ router.use("/workouts", workoutRouter);
 router.use("/workouts", workoutExerciseRouter);
 router.use("/workout-sessions", workoutSessionRouter);
 router.use("/qr", qrRouter);
-router.use("/ai",aiRouter);
+router.use("/ai", aiRouter);
+router.use("/gyms", gymRouter);

@@ -15,12 +15,12 @@ const SOURCE_ICON = {
   user: { icon: "create-outline", color: Colors.onSurfaceVariant },
 };
 
-export function WorkoutCard({ workout, onPress, onStart }) {
+export function WorkoutCard({ workout, onPress, onLongPress, onStart }) {
   const diff = DIFFICULTY[workout.difficulty_level] ?? DIFFICULTY.beginner;
   const src = SOURCE_ICON[workout.source] ?? SOURCE_ICON.user;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.8} delayLongPress={350}>
       <View style={[styles.accent, { backgroundColor: diff.color }]} />
 
       <View style={styles.body}>

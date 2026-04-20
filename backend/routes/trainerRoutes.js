@@ -14,13 +14,6 @@ router.post(
   controllers.userController.sendRequest,
 );
 
-router.patch(
-  "/trainer-assignments/:requestId",
-  verifyToken,
-  requireRole("trainer", "client"),
-  controllers.userController.respondToRequest,
-);
-
 router.get(
   "/trainer-assignments/inbox",
   verifyToken,
@@ -35,7 +28,6 @@ router.get(
   controllers.userController.getClientInbox,
 );
 
-// incheie colaborarea cu trainerul
 router.patch(
   "/trainer-assignments/end",
   verifyToken,
@@ -43,12 +35,18 @@ router.patch(
   controllers.userController.endTraining,
 );
 
-//incheie colaborarea cu clientul
 router.patch(
   "/trainer-assignments/end/:clientId",
   verifyToken,
   requireRole("trainer"),
   controllers.userController.endClientTraining,
+);
+
+router.patch(
+  "/trainer-assignments/:requestId",
+  verifyToken,
+  requireRole("trainer", "client"),
+  controllers.userController.respondToRequest,
 );
 
 router.get(

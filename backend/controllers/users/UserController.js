@@ -5,7 +5,7 @@ import { User, Trainer_Assignment } from "../../models/index.js";
 export const controller = {
   sendRequest: async (req, res) => {
     try {
-      const requester = req.user;
+      const requester = await User.findByPk(req.user.user_id);
 
       if (requester.role === "client") {
         const hasTrainer = await Trainer_Assignment.findOne({
@@ -22,6 +22,7 @@ export const controller = {
         }
       }
       const { targetUserId } = req.body;
+
       if (!targetUserId) {
         return res.status(400).json({ message: "Target user required" });
       }
@@ -29,6 +30,7 @@ export const controller = {
       if (!targetUser) {
         return res.status(404).json({ message: "User not found" });
       }
+
       if (targetUser.user_id === requester.user_id) {
         return res
           .status(400)
@@ -59,15 +61,19 @@ export const controller = {
       const clientId = requester.user_id;
 
       const existing = await Trainer_Assignment.findOne({
-        where: {
-          trainer_id: trainerId,
-          client_id: clientId,
-          status: { [Op.in]: ["pending", "accepted"] },
-        },
+        where: { trainer_id: trainerId, client_id: clientId },
       });
+
       if (existing) {
-        return res.status(400).json({ message: "Request already exists" });
+        if (["pending", "accepted"].includes(existing.status)) {
+          return res.status(400).json({ message: "Request already exists" });
+        }
+        existing.status = "pending";
+        existing.requested_by = requester.user_id;
+        await existing.save();
+        return res.status(201).json(existing);
       }
+
       const request = await Trainer_Assignment.create({
         trainer_id: trainerId,
         client_id: clientId,
@@ -344,7 +350,7 @@ export const controller = {
       const requests = await Trainer_Assignment.findAll({
         where: {
           client_id: user.user_id,
-          status: "pending",
+          status: { [Op.in]: ["pending", "accepted"] },
         },
         include: [
           {

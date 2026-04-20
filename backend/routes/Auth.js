@@ -42,6 +42,12 @@ authRouter.put(
   controllers.authController.updatePassword,
 );
 
+authRouter.put(
+  "/update-account",
+  verifyToken,
+  controllers.authController.updateAccount,
+);
+
 authRouter.post(
   "/request-reset-password",
   requestResetValidation,

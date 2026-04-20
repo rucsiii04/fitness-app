@@ -58,3 +58,10 @@ router.delete(
 )
 
 router.get("/gyms/all", verifyToken, controllers.adminController.getAllGyms)
+
+router.put(
+  "/gym/:gymId/alert",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.gymController.setAlert
+)

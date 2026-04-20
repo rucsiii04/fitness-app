@@ -37,6 +37,14 @@ export const Gym = db.define(
       type: DataTypes.FLOAT,
       allowNull: true,
     },
+    alert_message: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    alert_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
     admin_user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

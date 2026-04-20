@@ -115,6 +115,7 @@ export const controller = {
 
       const sessions = await Workout_Session.findAll({
         where: { user_id: userId },
+        include: [{ model: Workout, attributes: ["workout_id", "name"] }],
         order: [["started_at", "DESC"]],
       });
 

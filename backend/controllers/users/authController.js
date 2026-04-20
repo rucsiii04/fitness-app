@@ -176,12 +176,56 @@ export const controller = {
   me: async (req, res) => {
     try {
       const user = await User.findByPk(req.user.user_id, {
-        attributes: ["user_id", "email", "role", "gym_id", "first_name", "last_name"],
+        attributes: ["user_id", "email", "role", "gym_id", "first_name", "last_name", "phone"],
       });
       if (!user) return res.status(404).json({ message: "User not found" });
       res.json(user);
     } catch (err) {
       res.status(500).json({ message: err.message });
+    }
+  },
+
+  updateAccount: async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+      const { first_name, last_name, email, phone } = req.body;
+
+      if (!first_name && !last_name && !email && !phone) {
+        return res.status(400).json({ message: "No fields provided" });
+      }
+
+      if (email || phone) {
+        const conflict = await User.findOne({
+          where: {
+            [Op.or]: [
+              ...(email ? [{ email }] : []),
+              ...(phone ? [{ phone }] : []),
+            ],
+            user_id: { [Op.ne]: userId },
+          },
+        });
+        if (conflict) {
+          if (email && conflict.email === email)
+            return res.status(409).json({ message: "Email-ul este deja folosit" });
+          if (phone && conflict.phone === phone)
+            return res.status(409).json({ message: "Numărul de telefon este deja folosit" });
+        }
+      }
+
+      const updates = {};
+      if (first_name) updates.first_name = first_name;
+      if (last_name) updates.last_name = last_name;
+      if (email) updates.email = email;
+      if (phone) updates.phone = phone;
+
+      await User.update(updates, { where: { user_id: userId } });
+
+      const updated = await User.findByPk(userId, {
+        attributes: ["user_id", "email", "role", "gym_id", "first_name", "last_name", "phone"],
+      });
+      return res.status(200).json(updated);
+    } catch (err) {
+      return res.status(500).json({ message: "Eroare: " + err.message });
     }
   },
 

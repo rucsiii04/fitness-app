@@ -15,9 +15,9 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { StatCard } from "@/components/ui/StatCard";
-import { WeeklyChart } from "@/components/features/home/WeeklyChart";
 import { MembershipCard } from "@/components/features/home/MembershipCard";
 import { WorkoutHeroCard } from "@/components/features/home/WorkoutHeroCard";
+import { GymAlertBanner } from "@/components/ui/GymAlertBanner";
 
 import { useAuth } from "@/context/AuthContext";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const [membership, setMembership] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [latestWorkout, setLatestWorkout] = useState(null);
-
+  const [alert, setAlert] = useState(null);
   useEffect(() => {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
@@ -78,6 +78,8 @@ export default function HomeScreen() {
     safeFetch(`${API_BASE}/workouts`, setLatestWorkout, (data) =>
       Array.isArray(data) ? data?.[0] : null,
     );
+
+    safeFetch(`${API_BASE}/gyms/${user.gym_id}/alerts`, setAlert);
   }, [token]);
 
   const getGreeting = () => {
@@ -101,11 +103,15 @@ export default function HomeScreen() {
     : null;
 
   if (!fontsLoaded) return null;
-
+  const heroWorkout =
+    sessions.length > 0 && sessions[0]?.Workout
+      ? sessions[0].Workout
+      : latestWorkout;
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea}>
+        <GymAlertBanner message={alert?.message} />
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.avatar}>
@@ -118,6 +124,16 @@ export default function HomeScreen() {
             <Text style={styles.logoText}>KINETIC</Text>
           </View>
           <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() => router.push("/(tabs)/discover")}
+            >
+              <Ionicons
+                name="compass-outline"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={() => router.push("/(tabs)/classes")}
@@ -156,13 +172,11 @@ export default function HomeScreen() {
             <Text style={styles.greetingSub}>Ready to Push?</Text>
           </View>
 
-          <WorkoutHeroCard workout={latestWorkout} />
+          <WorkoutHeroCard workout={heroWorkout} />
 
           <MembershipCard membership={membership} />
 
-          <WeeklyChart sessions={sessions} />
-
-          <View style={styles.statsGrid}>
+<View style={styles.statsGrid}>
             <View style={styles.statsRow}>
               <StatCard
                 label="Workouts"
