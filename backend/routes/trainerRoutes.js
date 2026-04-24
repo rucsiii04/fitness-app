@@ -64,6 +64,20 @@ router.get(
 );
 
 router.get(
+  "/dashboard-stats",
+  verifyToken,
+  requireRole("trainer"),
+  controllers.userController.getTrainerDashboardStats,
+);
+
+router.get(
+  "/me/clients-details",
+  verifyToken,
+  requireRole("trainer"),
+  controllers.userController.getClientsWithDetails,
+);
+
+router.get(
   "/gyms/:gymId/clients",
   verifyToken,
   requireRole("trainer", "gym_admin"),

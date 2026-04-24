@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { db } from "../../config/db.js";
-import { User, Trainer_Assignment } from "../../models/index.js";
+import { User, Trainer_Assignment, Class_Session, Client_Profile, Workout_Session } from "../../models/index.js";
 
 export const controller = {
   sendRequest: async (req, res) => {
@@ -343,6 +343,80 @@ export const controller = {
       return res.status(500).json({ message: "Error:" + err });
     }
   },
+  getTrainerDashboardStats: async (req, res) => {
+    try {
+      const trainerId = req.user.user_id;
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 86400000);
+      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+      const weekStart = new Date(todayStart.getTime() - dayOfWeek * 86400000);
+
+      const [activeClients, pendingRequests, classesToday, assignments] = await Promise.all([
+        Trainer_Assignment.count({ where: { trainer_id: trainerId, status: "accepted" } }),
+        Trainer_Assignment.count({ where: { trainer_id: trainerId, status: "pending" } }),
+        Class_Session.count({ where: { trainer_id: trainerId, start_datetime: { [Op.gte]: todayStart, [Op.lt]: todayEnd } } }),
+        Trainer_Assignment.findAll({ where: { trainer_id: trainerId, status: "accepted" }, attributes: ["client_id"] }),
+      ]);
+
+      const clientIds = assignments.map((a) => a.client_id);
+      const weeklyData = Array(7).fill(0);
+      if (clientIds.length > 0) {
+        const sessions = await Workout_Session.findAll({
+          where: { user_id: { [Op.in]: clientIds }, started_at: { [Op.gte]: weekStart } },
+          attributes: ["started_at"],
+        });
+        sessions.forEach((s) => {
+          const day = new Date(s.started_at).getDay();
+          weeklyData[day === 0 ? 6 : day - 1]++;
+        });
+      }
+
+      return res.status(200).json({ activeClients, pendingRequests, classesToday, weeklyData });
+    } catch (err) {
+      return res.status(500).json({ message: "Error fetching dashboard stats: " + err.message });
+    }
+  },
+
+  getClientsWithDetails: async (req, res) => {
+    try {
+      const trainerId = req.user.user_id;
+      const assignments = await Trainer_Assignment.findAll({
+        where: { trainer_id: trainerId, status: "accepted" },
+        include: [{
+          model: User,
+          as: "Client",
+          attributes: ["user_id", "first_name", "last_name", "email", "phone"],
+          include: [{ model: Client_Profile }],
+        }],
+      });
+
+      const clientIds = assignments.map((a) => a.client_id);
+      const lastSessions = clientIds.length > 0
+        ? await Workout_Session.findAll({
+            where: { user_id: { [Op.in]: clientIds } },
+            attributes: ["user_id", "started_at"],
+            order: [["started_at", "DESC"]],
+          })
+        : [];
+
+      const lastSessionMap = {};
+      lastSessions.forEach((s) => {
+        if (!lastSessionMap[s.user_id]) lastSessionMap[s.user_id] = s.started_at;
+      });
+
+      return res.status(200).json(
+        assignments.map((a) => ({
+          assignment_id: a.id,
+          client: { ...a.Client.toJSON(), profile: a.Client.Client_Profile },
+          last_session: lastSessionMap[a.client_id] || null,
+        }))
+      );
+    } catch (err) {
+      return res.status(500).json({ message: "Error fetching clients: " + err.message });
+    }
+  },
+
   getClientInbox: async (req, res) => {
     try {
       const user = req.user;

@@ -6,7 +6,7 @@ import "react-native-reanimated";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { ActiveSessionProvider } from "@/context/ActiveSessionContext";
-
+import * as Linking from "expo-linking";
 export const unstable_settings = {
   anchor: "(tabs)",
 };
@@ -19,14 +19,14 @@ function RootNavigator() {
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const isResetPassword = segments[0] === "reset-password";
     const inOnboarding = segments[0] === "(onboarding)";
     const inSplash = segments[0] === undefined;
     const inTabs = segments[0] === "(tabs)";
     const inTrainer = segments[0] === "(trainer)";
-
+    const inAuthGroup = segments[0] === "(auth)";
     if (!token) {
-      if (!inAuthGroup && !inSplash) {
+      if (!inAuthGroup && !inSplash && !isResetPassword) {
         router.replace("/");
       }
       return;
@@ -46,6 +46,25 @@ function RootNavigator() {
     }
   }, [token, user, loading, segments]);
 
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", (event) => {
+      const data = Linking.parse(event.url);
+
+      console.log("DEEPLINK:", data);
+
+      if (data.path === "reset-password") {
+        router.push({
+          pathname: "/reset-password",
+          params: {
+            token: data.queryParams?.token,
+            userId: data.queryParams?.userId,
+          },
+        });
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
   if (loading) return null;
 
   return (

@@ -7,6 +7,8 @@ import {
   loginValidation,
   requestResetValidation,
   resetPasswordValidation,
+  verifyOtpValidation,
+  resetPasswordOtpValidation,
   updatePasswordValidation,
 } from "../validators/authValidators.js";
 
@@ -60,4 +62,18 @@ authRouter.post(
   resetPasswordValidation,
   handleValidation,
   controllers.authController.resetPassword,
+);
+
+authRouter.post(
+  "/verify-otp",
+  verifyOtpValidation,
+  handleValidation,
+  controllers.authController.verifyOtp,
+);
+
+authRouter.post(
+  "/reset-password-otp",
+  resetPasswordOtpValidation,
+  handleValidation,
+  controllers.authController.resetPasswordOtp,
 );

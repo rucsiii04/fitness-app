@@ -65,3 +65,17 @@ router.put(
   requireRole("gym_admin"),
   controllers.gymController.setAlert
 )
+
+router.get(
+  "/gyms/:gymId/attendance/stats",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.getAttendanceStats
+)
+
+router.get(
+  "/gyms/:gymId/revenue/stats",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.getRevenueStats
+)

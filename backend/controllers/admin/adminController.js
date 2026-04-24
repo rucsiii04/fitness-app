@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import { User, Reset_Token, Gym } from "../../models/index.js";
+import { User, Reset_Token, Gym, Gym_Attendance, Membership, Membership_Type } from "../../models/index.js";
 import { transporter } from "../../config/mail.js";
-import { Op } from "sequelize";
+import { Op, fn, col, literal } from "sequelize";
 import { sourceMapsEnabled } from "process";
 
 const geocodeAddress = async (address) => {
@@ -309,6 +309,110 @@ export const controller = {
       return res
         .status(500)
         .json({ message: "Error deactivating trainer: " + err });
+    }
+  },
+
+  getAttendanceStats: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const gym = await Gym.findOne({ where: { gym_id: gymId, admin_user_id: req.user.user_id } });
+      if (!gym) return res.status(403).json({ message: "You do not manage this gym" });
+
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+      const weekStart = new Date(todayStart.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      const [todayRows, weekRows, recentRows] = await Promise.all([
+        Gym_Attendance.findAll({ where: { gym_id: gymId, entry_time: { [Op.gte]: todayStart, [Op.lt]: todayEnd } } }),
+        Gym_Attendance.findAll({
+          where: { gym_id: gymId, entry_time: { [Op.gte]: weekStart, [Op.lt]: weekEnd } },
+          include: [{ model: User, attributes: ["user_id", "first_name", "last_name", "email"] }],
+        }),
+        Gym_Attendance.findAll({
+          where: { gym_id: gymId },
+          include: [{ model: User, attributes: ["user_id", "first_name", "last_name", "email"] }],
+          order: [["entry_time", "DESC"]],
+          limit: 20,
+        }),
+      ]);
+
+      const hourly = Array(24).fill(0);
+      for (const row of todayRows) {
+        hourly[new Date(row.entry_time).getHours()]++;
+      }
+
+      const daily = Array(7).fill(0);
+      for (const row of weekRows) {
+        const d = new Date(row.entry_time).getDay();
+        daily[d === 0 ? 6 : d - 1]++;
+      }
+
+      const uniqueThisWeek = new Set(weekRows.map((r) => r.user_id)).size;
+      const daysElapsed = Math.max(1, dayOfWeek + 1);
+      const avgPerDay = Math.round(weekRows.length / daysElapsed);
+
+      return res.status(200).json({
+        today: todayRows.length,
+        thisWeek: weekRows.length,
+        uniqueThisWeek,
+        avgPerDay,
+        hourly,
+        daily,
+        recent: recentRows.map((r) => ({
+          user_id: r.user_id,
+          name: r.User ? `${r.User.first_name} ${r.User.last_name}` : "Unknown",
+          email: r.User?.email || "",
+          entry_time: r.entry_time,
+        })),
+      });
+    } catch (err) {
+      return res.status(500).json({ message: "Error fetching attendance stats: " + err });
+    }
+  },
+
+  getRevenueStats: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const gym = await Gym.findOne({ where: { gym_id: gymId, admin_user_id: req.user.user_id } });
+      if (!gym) return res.status(403).json({ message: "You do not manage this gym" });
+
+      const now = new Date();
+
+      const activeMemberships = await Membership.findAll({
+        where: { status: "active" },
+        include: [{ model: Membership_Type, where: { gym_id: gymId }, attributes: ["price", "name", "duration_days"] }],
+      });
+
+      const mrr = activeMemberships.reduce((sum, m) => {
+        const dailyRate = (m.Membership_Type?.price || 0) / (m.Membership_Type?.duration_days || 30);
+        return sum + dailyRate * 30;
+      }, 0);
+
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      const allRecent = await Membership.findAll({
+        where: { start_date: { [Op.gte]: sixMonthsAgo } },
+        include: [{ model: Membership_Type, where: { gym_id: gymId }, attributes: ["price"] }],
+      });
+
+      const monthly = Array(6).fill(0);
+      for (const m of allRecent) {
+        const d = new Date(m.start_date);
+        const diffMonths = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+        const idx = 5 - diffMonths;
+        if (idx >= 0 && idx < 6) monthly[idx] += m.Membership_Type?.price || 0;
+      }
+
+      return res.status(200).json({
+        mrr: Math.round(mrr),
+        activeMemberships: activeMemberships.length,
+        monthly,
+      });
+    } catch (err) {
+      return res.status(500).json({ message: "Error fetching revenue stats: " + err });
     }
   },
 };

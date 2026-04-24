@@ -67,6 +67,46 @@ export const resetPasswordValidation = [
     .withMessage("Password not strong enough"),
 ];
 
+export const verifyOtpValidation = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email format"),
+
+  body("otp")
+    .notEmpty()
+    .withMessage("Code is required")
+    .isLength({ min: 6, max: 6 })
+    .withMessage("Code must be 6 digits")
+    .isNumeric()
+    .withMessage("Code must be numeric"),
+];
+
+export const resetPasswordOtpValidation = [
+  body("userId").notEmpty().withMessage("User id is required"),
+
+  body("otp")
+    .notEmpty()
+    .withMessage("Code is required")
+    .isLength({ min: 6, max: 6 })
+    .withMessage("Code must be 6 digits")
+    .isNumeric()
+    .withMessage("Code must be numeric"),
+
+  body("newPassword")
+    .notEmpty()
+    .withMessage("New password is required")
+    .isStrongPassword({
+      minLength: 8,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+      minLowercase: 1,
+    })
+    .withMessage("Password not strong enough"),
+];
+
 export const updatePasswordValidation = [
   body("oldPassword").notEmpty().withMessage("Old password is required"),
 

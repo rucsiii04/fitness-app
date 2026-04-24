@@ -65,9 +65,14 @@ export const controller = {
   updateTrainerProfile: async (req, res) => {
     try {
       const userId = req.user.user_id;
-      const profile = await Trainer_Profile.findByPk(userId);
+      let profile = await Trainer_Profile.findByPk(userId);
       if (!profile) {
-        return res.status(404).json({ message: "Profile not found" });
+        const { specialization, experience_years, bio } = req.body;
+        if (!specialization || !experience_years) {
+          return res.status(400).json({ message: "Specialization and experience years are required" });
+        }
+        profile = await Trainer_Profile.create({ user_id: userId, specialization, experience_years, bio });
+        return res.status(201).json({ ...profile.toJSON(), image_url: null });
       }
       const { specialization, experience_years, bio } = req.body;
       const updates = {};

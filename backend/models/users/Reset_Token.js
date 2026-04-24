@@ -21,6 +21,10 @@ export const Reset_Token = db.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
+    otp: {
+      type: DataTypes.STRING(6),
+      allowNull: true,
+    },
     used: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

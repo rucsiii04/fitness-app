@@ -97,6 +97,19 @@ export const controller = {
     }
   },
 
+  getMyAttendance: async (req, res) => {
+    try {
+      const records = await Gym_Attendance.findAll({
+        where: { user_id: req.user.user_id },
+        order: [["entry_time", "DESC"]],
+        limit: 20,
+      });
+      return res.status(200).json(records);
+    } catch (err) {
+      return res.status(500).json({ message: "Error fetching attendance: " + err.message });
+    }
+  },
+
   scanQR: async (req, res) => {
     try {
       const { token } = req.body;

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const API_BASE = process.env.EXPO_PUBLIC_API_URL;
+import api from "@/services/api";
 
 const AuthContext = createContext(null);
 
@@ -18,21 +17,15 @@ export function AuthProvider({ children }) {
 
         if (storedToken) {
           setToken(storedToken);
-          // Always refresh user data from server so gym_id and role are never stale
+
           try {
-            const res = await fetch(`${API_BASE}/auth/me`, {
-              headers: { Authorization: `Bearer ${storedToken}` },
-            });
-            if (res.ok) {
-              const freshUser = await res.json();
-              await AsyncStorage.setItem("user", JSON.stringify(freshUser));
-              setUser(freshUser);
-            } else {
-              // Token invalid/expired — fall back to stored user
-              if (storedUser) setUser(JSON.parse(storedUser));
-            }
-          } catch {
-            // Network unavailable — use cached user
+            const res = await api.get("/auth/me");
+
+            const freshUser = res.data;
+
+            await AsyncStorage.setItem("user", JSON.stringify(freshUser));
+            setUser(freshUser);
+          } catch (err) {
             if (storedUser) setUser(JSON.parse(storedUser));
           }
         }
@@ -71,20 +64,23 @@ export function AuthProvider({ children }) {
 
   const refreshUser = async () => {
     if (!token) return;
+
     try {
-      const res = await fetch(`${API_BASE}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const freshUser = await res.json();
-        await AsyncStorage.setItem("user", JSON.stringify(freshUser));
-        setUser(freshUser);
-      }
-    } catch {}
+      const res = await api.get("/auth/me");
+
+      const freshUser = res.data;
+
+      await AsyncStorage.setItem("user", JSON.stringify(freshUser));
+      setUser(freshUser);
+    } catch (err) {
+      console.log("Failed to refresh user");
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, refreshUser }}>
+    <AuthContext.Provider
+      value={{ user, token, login, logout, loading, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );

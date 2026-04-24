@@ -590,5 +590,33 @@ export const controller = {
   } catch (err) {
     return res.status(500).json({ message: "Error resuming membership: " + err });
   }
-}
+},
+
+  searchClients: async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || q.trim().length < 2) {
+        return res.status(400).json({ message: "Query too short" });
+      }
+
+      const term = `%${q.trim()}%`;
+      const clients = await User.findAll({
+        where: {
+          role: "client",
+          [Op.or]: [
+            { first_name: { [Op.like]: term } },
+            { last_name: { [Op.like]: term } },
+            { email: { [Op.like]: term } },
+            { phone: { [Op.like]: term } },
+          ],
+        },
+        attributes: ["user_id", "first_name", "last_name", "email", "phone"],
+        limit: 10,
+      });
+
+      return res.status(200).json(clients);
+    } catch (err) {
+      return res.status(500).json({ message: "Error searching clients: " + err });
+    }
+  },
 };

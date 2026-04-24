@@ -12,6 +12,13 @@ router.get(
 );
 
 router.get(
+  "/clients/search",
+  verifyToken,
+  requireRole("front_desk", "gym_admin"),
+  controllers.membershipController.searchClients,
+);
+
+router.get(
   "/gyms/:gymId/manage/types",
   verifyToken,
   requireRole("gym_admin"),

@@ -482,6 +482,7 @@ export const controller = {
 
       const enrollments = await Class_Enrollment.findAll({
         where: { session_id: sessionId },
+        include: [{ model: User, as: "Client", attributes: ["first_name", "last_name", "email"] }],
         order: [["enrollment_date", "ASC"]],
       });
 

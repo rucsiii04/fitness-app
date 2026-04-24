@@ -10,6 +10,8 @@ export const router=express.Router();
 
 router.post("/generate", verifyToken, requireRole("client"), controllers.qrController.generateQR);
 
+router.get("/my-attendance", verifyToken, requireRole("client"), controllers.qrController.getMyAttendance);
+
 router.get("/me", verifyToken, requireRole("client"), controllers.qrController.getMyQR);
 
 router.delete("/me", verifyToken, requireRole("client"), controllers.qrController.deleteMyQR);

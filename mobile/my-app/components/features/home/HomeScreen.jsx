@@ -30,6 +30,8 @@ export default function HomeScreen() {
   const [sessions, setSessions] = useState([]);
   const [latestWorkout, setLatestWorkout] = useState(null);
   const [alert, setAlert] = useState(null);
+  const [attendance, setAttendance] = useState([]);
+
   useEffect(() => {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
@@ -43,10 +45,8 @@ export default function HomeScreen() {
 
         if (res.status === 401) {
           console.log("Token expirat → logout");
-
           await logout();
           router.replace("/login");
-
           return;
         }
 
@@ -78,8 +78,10 @@ export default function HomeScreen() {
     safeFetch(`${API_BASE}/workouts`, setLatestWorkout, (data) =>
       Array.isArray(data) ? data?.[0] : null,
     );
-
     safeFetch(`${API_BASE}/gyms/${user.gym_id}/alerts`, setAlert);
+    safeFetch(`${API_BASE}/qr/my-attendance`, setAttendance, (data) =>
+      Array.isArray(data) ? data : [],
+    );
   }, [token]);
 
   const getGreeting = () => {
@@ -90,9 +92,13 @@ export default function HomeScreen() {
   };
 
   const totalWorkouts = sessions.length;
-  const lastVisitHours = sessions[0]?.start_time
-    ? Math.round((Date.now() - new Date(sessions[0].start_time)) / 3600000)
-    : null;
+  const lastVisit = (() => {
+    if (!attendance[0]?.entry_time) return null;
+    const diffMs = Date.now() - new Date(attendance[0].entry_time);
+    const mins = Math.round(diffMs / 60000);
+    if (mins < 60) return { value: mins, unit: "Min Ago" };
+    return { value: Math.round(diffMs / 3600000), unit: "Hrs Ago" };
+  })();
   const membershipDaysLeft = membership?.end_date
     ? Math.max(
         0,
@@ -196,17 +202,10 @@ export default function HomeScreen() {
             <View style={styles.statsRow}>
               <StatCard
                 label="Last Visit"
-                value={lastVisitHours != null ? lastVisitHours : "—"}
-                unit={lastVisitHours != null ? "Hrs Ago" : ""}
+                value={lastVisit ? lastVisit.value : "—"}
+                unit={lastVisit ? lastVisit.unit : ""}
                 icon="time-outline"
                 iconColor={Colors.secondary}
-              />
-              <StatCard
-                label="Weekly Streak"
-                value="—"
-                unit="Days"
-                icon="flame-outline"
-                iconColor={Colors.primary}
               />
             </View>
           </View>

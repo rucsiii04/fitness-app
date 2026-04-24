@@ -102,6 +102,7 @@ export const controller = {
 
       const token = crypto.randomBytes(32).toString("hex");
       const token_hash = await bcrypt.hash(token, 10);
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
       await Reset_Token.update(
         { used: true },
@@ -111,21 +112,31 @@ export const controller = {
       await Reset_Token.create({
         user_id: user.user_id,
         token_hash,
+        otp,
         expires_at: new Date(Date.now() + 1000 * 60 * 30),
       });
 
-      const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${user.user_id}`;
+      const webLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${user.user_id}`;
 
       await transporter.sendMail({
         from: "Fitness App",
         to: user.email,
         subject: "Resetare parola",
         html: `
-          <p>Salut ${user.first_name},</p>
-          <p>Apasă pe link pentru a-ți reseta parola:</p>
-          <a href="${resetLink}">Resetare parola</a>
-          <p>Link-ul este valabil 30 de minute.</p>
-        `,
+  <p>Salut ${user.first_name},</p>
+
+  <p>Dacă folosești <strong>aplicația mobilă</strong>, introdu acest cod:</p>
+
+  <p style="font-size:32px; font-weight:bold; letter-spacing:8px;">${otp}</p>
+
+  <p>Codul este valabil <strong>30 de minute</strong>.</p>
+
+  <hr style="margin:24px 0; border:none; border-top:1px solid #eee;" />
+
+  <p>Dacă ești pe <strong>web</strong>, resetează parola din browser:</p>
+
+  <p><a href="${webLink}" style="font-weight:bold;">Resetare parola</a></p>
+`,
       });
 
       return res.status(200).json({
@@ -176,7 +187,15 @@ export const controller = {
   me: async (req, res) => {
     try {
       const user = await User.findByPk(req.user.user_id, {
-        attributes: ["user_id", "email", "role", "gym_id", "first_name", "last_name", "phone"],
+        attributes: [
+          "user_id",
+          "email",
+          "role",
+          "gym_id",
+          "first_name",
+          "last_name",
+          "phone",
+        ],
       });
       if (!user) return res.status(404).json({ message: "User not found" });
       res.json(user);
@@ -206,9 +225,13 @@ export const controller = {
         });
         if (conflict) {
           if (email && conflict.email === email)
-            return res.status(409).json({ message: "Email-ul este deja folosit" });
+            return res
+              .status(409)
+              .json({ message: "Email-ul este deja folosit" });
           if (phone && conflict.phone === phone)
-            return res.status(409).json({ message: "Numărul de telefon este deja folosit" });
+            return res
+              .status(409)
+              .json({ message: "Numărul de telefon este deja folosit" });
         }
       }
 
@@ -221,7 +244,15 @@ export const controller = {
       await User.update(updates, { where: { user_id: userId } });
 
       const updated = await User.findByPk(userId, {
-        attributes: ["user_id", "email", "role", "gym_id", "first_name", "last_name", "phone"],
+        attributes: [
+          "user_id",
+          "email",
+          "role",
+          "gym_id",
+          "first_name",
+          "last_name",
+          "phone",
+        ],
       });
       return res.status(200).json(updated);
     } catch (err) {
@@ -265,6 +296,65 @@ export const controller = {
       return res.status(500).json({
         message: "Error while updating password: " + err,
       });
+    }
+  },
+
+  verifyOtp: async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+
+      const user = await User.findOne({ where: { email } });
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid code" });
+      }
+
+      const resetToken = await Reset_Token.findOne({
+        where: { user_id: user.user_id, used: false },
+      });
+
+      if (!resetToken || resetToken.expires_at < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired code" });
+      }
+
+      if (resetToken.otp !== otp) {
+        return res.status(400).json({ message: "Invalid code" });
+      }
+
+      return res.status(200).json({ userId: user.user_id });
+    } catch (err) {
+      return res.status(500).json({ message: "Error: " + err });
+    }
+  },
+
+  resetPasswordOtp: async (req, res) => {
+    try {
+      const { userId, otp, newPassword } = req.body;
+
+      const resetToken = await Reset_Token.findOne({
+        where: { user_id: userId, used: false },
+      });
+
+      if (!resetToken || resetToken.expires_at < new Date()) {
+        return res.status(400).json({ message: "Invalid or expired code" });
+      }
+
+      if (resetToken.otp !== otp) {
+        return res.status(400).json({ message: "Invalid code" });
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+
+      await User.update(
+        { password: hashedPassword },
+        { where: { user_id: userId } },
+      );
+
+      await Reset_Token.update({ used: true }, { where: { user_id: userId } });
+
+      return res.status(200).json({ message: "Password reset successfully" });
+    } catch (err) {
+      return res.status(500).json({ message: "Error: " + err });
     }
   },
 };
