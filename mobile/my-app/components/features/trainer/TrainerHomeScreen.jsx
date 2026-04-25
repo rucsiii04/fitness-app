@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -29,6 +30,16 @@ const GOAL_COLORS = {
 
 const DAYS = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
 
+function pluralClients(n) {
+  return n === 1 ? `${n} Client Activ` : `${n} Clienți Activi`;
+}
+function pluralRequests(n) {
+  return n === 1 ? "1 Cerere" : `${n} Cereri`;
+}
+function pluralClasses(n) {
+  return n === 1 ? "1 Curs Azi" : `${n} Cursuri Azi`;
+}
+
 function ClientMiniCard({ client, lastSession }) {
   const profile = client.Client_Profile;
   const goal = profile?.main_goal;
@@ -36,7 +47,7 @@ function ClientMiniCard({ client, lastSession }) {
 
   const lastSessionText = lastSession
     ? new Date(lastSession).toLocaleDateString("ro-RO", { day: "2-digit", month: "short" })
-    : "Nicio sesiune";
+    : null;
 
   return (
     <View style={styles.clientCard}>
@@ -51,7 +62,9 @@ function ClientMiniCard({ client, lastSession }) {
           </View>
         ) : null}
       </View>
-      <Text style={styles.clientLastSession}>{lastSessionText}</Text>
+      {lastSessionText ? (
+        <Text style={styles.clientLastSession}>{lastSessionText}</Text>
+      ) : null}
     </View>
   );
 }
@@ -105,11 +118,18 @@ export default function TrainerHomeScreen() {
     }
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   if (!fontsLoaded) return null;
 
   const weeklyTotal = stats?.weeklyData?.reduce((a, b) => a + b, 0) ?? 0;
+  const activeClients = stats?.activeClients ?? 0;
+  const pendingRequests = stats?.pendingRequests ?? 0;
+  const classesToday = stats?.classesToday ?? 0;
 
   return (
     <ScreenBackground>
@@ -124,7 +144,6 @@ export default function TrainerHomeScreen() {
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.welcomeSection}>
-            <Text style={styles.eyebrow}>⬡ Sistem Activ</Text>
             <Text style={styles.greeting}>
               Bun venit,{"\n"}
               <Text style={styles.greetingName}>{user?.first_name ?? "Antrenor"}.</Text>
@@ -137,19 +156,29 @@ export default function TrainerHomeScreen() {
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
-              <Text style={styles.heroValue}>{stats?.activeClients ?? "—"}</Text>
-              <Text style={styles.heroLabel}>Clienți Activi</Text>
+              <Text style={styles.heroValue}>{stats ? activeClients : "—"}</Text>
+              <Text style={styles.heroLabel}>
+                {stats ? pluralClients(activeClients) : "Clienți Activi"}
+              </Text>
             </View>
             <View style={styles.heroSideCol}>
               <View style={[styles.heroSmallCard, { backgroundColor: Colors.error + "18" }]}>
                 <Ionicons name="mail-outline" size={18} color={Colors.error} />
-                <Text style={[styles.heroSmallValue, { color: Colors.error }]}>{stats?.pendingRequests ?? "—"}</Text>
-                <Text style={styles.heroSmallLabel}>Cereri</Text>
+                <Text style={[styles.heroSmallValue, { color: Colors.error }]}>
+                  {stats ? pendingRequests : "—"}
+                </Text>
+                <Text style={styles.heroSmallLabel}>
+                  {stats ? pluralRequests(pendingRequests) : "Cereri"}
+                </Text>
               </View>
               <View style={[styles.heroSmallCard, { backgroundColor: Colors.secondary + "18" }]}>
                 <Ionicons name="calendar-outline" size={18} color={Colors.secondary} />
-                <Text style={[styles.heroSmallValue, { color: Colors.secondary }]}>{stats?.classesToday ?? "—"}</Text>
-                <Text style={styles.heroSmallLabel}>Cursuri Azi</Text>
+                <Text style={[styles.heroSmallValue, { color: Colors.secondary }]}>
+                  {stats ? classesToday : "—"}
+                </Text>
+                <Text style={styles.heroSmallLabel}>
+                  {stats ? pluralClasses(classesToday) : "Cursuri Azi"}
+                </Text>
               </View>
             </View>
           </View>
@@ -211,16 +240,7 @@ const styles = StyleSheet.create({
   },
   headerIcon: { padding: 6 },
   scroll: { paddingHorizontal: 20, gap: 16 },
-  welcomeSection: { paddingTop: 24, paddingBottom: 4, gap: 4 },
-  eyebrow: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 3,
-    textTransform: "uppercase",
-    color: Colors.secondary,
-    fontFamily: Fonts.label,
-    marginBottom: 6,
-  },
+  welcomeSection: { paddingTop: 24, paddingBottom: 4 },
   greeting: {
     fontSize: 32,
     fontWeight: "700",

@@ -11,10 +11,11 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -42,12 +43,13 @@ function InputField({ label, value, onChangeText, placeholder, keyboardType, mul
 
 export default function TrainerProfileScreen() {
   const fontsLoaded = useAppFonts();
-  const router = useRouter();
   const { token, user, logout } = useAuth();
 
   const [specialization, setSpecialization] = useState("");
   const [experienceYears, setExperienceYears] = useState("");
   const [bio, setBio] = useState("");
+  const [imageUri, setImageUri] = useState(null);
+  const [existingImageUrl, setExistingImageUrl] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const initials = `${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase();
@@ -60,6 +62,7 @@ export default function TrainerProfileScreen() {
         setSpecialization(profile.specialization ?? "");
         setExperienceYears(profile.experience_years?.toString() ?? "");
         setBio(profile.bio ?? "");
+        setExistingImageUrl(profile.image_url ?? null);
       }
     } catch {
       /* silent */
@@ -67,6 +70,23 @@ export default function TrainerProfileScreen() {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permisiune necesară", "Acordă acces la galerie pentru a selecta o fotografie.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
 
   const handleSave = async () => {
     if (!specialization.trim() || !experienceYears.trim()) {
@@ -80,7 +100,13 @@ export default function TrainerProfileScreen() {
     }
     setSaving(true);
     try {
-      await updateTrainerProfile({ specialization: specialization.trim(), experience_years: years, bio: bio.trim() }, token);
+      const updated = await updateTrainerProfile(
+        { specialization: specialization.trim(), experience_years: years, bio: bio.trim() },
+        imageUri,
+        token,
+      );
+      setExistingImageUrl(updated.image_url ?? existingImageUrl);
+      setImageUri(null);
       Alert.alert("Succes", "Profilul a fost salvat.");
     } catch (err) {
       Alert.alert("Eroare", err.message);
@@ -102,6 +128,8 @@ export default function TrainerProfileScreen() {
 
   if (!fontsLoaded) return null;
 
+  const displayImage = imageUri ?? existingImageUrl;
+
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
@@ -116,9 +144,18 @@ export default function TrainerProfileScreen() {
         >
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.avatarSection}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
+              <TouchableOpacity onPress={pickImage} activeOpacity={0.8} style={styles.avatarWrapper}>
+                {displayImage ? (
+                  <Image source={{ uri: displayImage }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarText}>{initials}</Text>
+                  </View>
+                )}
+                <View style={styles.avatarEditBadge}>
+                  <Ionicons name="camera" size={14} color={Colors.background} />
+                </View>
+              </TouchableOpacity>
               <Text style={styles.userName}>{user?.first_name} {user?.last_name}</Text>
               <View style={styles.roleBadge}>
                 <Text style={styles.roleText}>Antrenor</Text>
@@ -188,10 +225,18 @@ const styles = StyleSheet.create({
   },
   scroll: { padding: 20, gap: 20 },
   avatarSection: { alignItems: "center", paddingVertical: 16, gap: 10 },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  avatarWrapper: { position: "relative" },
+  avatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+  },
+  avatarFallback: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primaryDimAlphaLight,
     borderWidth: 2,
     borderColor: Colors.primary,
@@ -199,10 +244,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarText: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "700",
     fontFamily: Fonts.headline,
     color: Colors.primary,
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.background,
   },
   userName: {
     fontSize: 20,

@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
+import { ExerciseRow } from "./ExerciseRow";
+import { AddExerciseSheet } from "./AddExerciseSheet";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -26,41 +28,100 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState("beginner");
+  const [exercises, setExercises] = useState([]);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (workout) {
-      setName(workout.name ?? "");
-      setDescription(workout.description ?? "");
-      setDifficulty(workout.difficulty_level ?? "beginner");
-      setError(null);
-    }
-  }, [workout]);
+    if (!workout) return;
+    setName(workout.name ?? "");
+    setDescription(workout.description ?? "");
+    setDifficulty(workout.difficulty_level ?? "beginner");
+    setError(null);
+    setExercises([]);
+
+    fetch(`${API_BASE}/workouts/${workout.workout_id}/exercises`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setExercises(
+            data.map((item) => ({
+              exercise_id: item.exercise_id,
+              exercise: item.Exercise,
+              sets: String(item.sets ?? 3),
+              reps: String(item.reps ?? 10),
+            })),
+          );
+        }
+      })
+      .catch(() => {});
+  }, [workout, token]);
+
+  const handleExercisesConfirmed = (selectedExercises) => {
+    const merged = selectedExercises.map((ex) => {
+      const existing = exercises.find((e) => e.exercise_id === ex.exercise_id);
+      return existing ?? { exercise_id: ex.exercise_id, exercise: ex, sets: "3", reps: "10" };
+    });
+    setExercises(merged);
+    setSheetVisible(false);
+  };
+
+  const updateExercise = (index, field, value) => {
+    setExercises((prev) =>
+      prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex)),
+    );
+  };
+
+  const removeExercise = (index) => {
+    setExercises((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
       setError("Numele nu poate fi gol.");
       return;
     }
+    const invalidEx = exercises.find((ex) => {
+      const s = parseInt(ex.sets);
+      return isNaN(s) || s <= 0;
+    });
+    if (invalidEx) {
+      setError(`"${invalidEx.exercise.name}" trebuie să aibă minim 1 set.`);
+      return;
+    }
+
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/workouts/${workout.workout_id}`, {
+      const metaRes = await fetch(`${API_BASE}/workouts/${workout.workout_id}`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim(),
           difficulty_level: difficulty,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Eroare la salvare.");
-      onSaved(data);
+      const metaData = await metaRes.json();
+      if (!metaRes.ok) throw new Error(metaData.message ?? "Eroare la salvare.");
+
+      await fetch(`${API_BASE}/workouts/${workout.workout_id}/exercises`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exercises: exercises.map((ex, index) => ({
+            exercise_id: ex.exercise_id,
+            sets: parseInt(ex.sets) || 3,
+            reps: ex.reps || "10",
+            order_index: index,
+          })),
+        }),
+      });
+
+      onSaved(metaData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -82,7 +143,7 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.label}>NUME</Text>
             <TextInput
               style={styles.input}
@@ -127,6 +188,30 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
               })}
             </View>
 
+            <View style={styles.exercisesHeader}>
+              <Text style={styles.label}>EXERCIȚII {exercises.length > 0 ? `(${exercises.length})` : ""}</Text>
+            </View>
+
+            {exercises.map((item, index) => (
+              <View key={item.exercise_id} style={styles.exerciseRowWrapper}>
+                <ExerciseRow
+                  item={item}
+                  onChangeSets={(v) => updateExercise(index, "sets", v)}
+                  onChangeReps={(v) => updateExercise(index, "reps", v)}
+                  onRemove={() => removeExercise(index)}
+                />
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={styles.addExBtn}
+              onPress={() => setSheetVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+              <Text style={styles.addExText}>ADAUGĂ EXERCIȚIU</Text>
+            </TouchableOpacity>
+
             {error && (
               <View style={styles.errorBox}>
                 <Ionicons name="alert-circle-outline" size={14} color={Colors.error} />
@@ -149,6 +234,14 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      <AddExerciseSheet
+        visible={sheetVisible}
+        token={token}
+        currentExercises={exercises}
+        onClose={() => setSheetVisible(false)}
+        onConfirm={handleExercisesConfirmed}
+      />
     </Modal>
   );
 }
@@ -165,7 +258,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
-    maxHeight: "85%",
+    maxHeight: "92%",
   },
   sheetHeader: {
     flexDirection: "row",
@@ -232,6 +325,32 @@ const styles = StyleSheet.create({
   diffChipText: {
     fontSize: 11,
     fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
+  },
+  exercisesHeader: {
+    marginBottom: 4,
+  },
+  exerciseRowWrapper: {
+    marginBottom: 10,
+  },
+  addExBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: Colors.outlineVariant,
+    marginBottom: 16,
+    marginTop: 4,
+  },
+  addExText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 2,
     fontFamily: Fonts.label,
     color: Colors.onSurfaceVariant,
   },

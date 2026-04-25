@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { useActiveSession } from "@/context/ActiveSessionContext";
@@ -150,7 +151,7 @@ function FreestyleButton({ token, router }) {
   const { activeSession, setActiveSession } = useActiveSession();
 
   const handlePress = async () => {
-    // Resume existing open session instead of trying to create a new one
+   
     if (activeSession?.session_id) {
       router.push(`/session/${activeSession.session_id}`);
       return;
@@ -172,7 +173,6 @@ function FreestyleButton({ token, router }) {
         router.push(`/session/${data.session_id}`);
       }
     } catch {
-      // silently fail
     } finally {
       setStarting(false);
     }
@@ -252,9 +252,11 @@ export default function WorkoutsScreen() {
     }
   }, [token]);
 
-  useEffect(() => {
-    fetchWorkouts();
-  }, [fetchWorkouts]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchWorkouts();
+    }, [fetchWorkouts]),
+  );
 
   const handleDeleteConfirm = () => {
     Alert.alert(
@@ -308,13 +310,10 @@ export default function WorkoutsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tabs */}
         <TabBar active={activeTab} onChange={setActiveTab} />
 
-        {/* Difficulty filter */}
         <DifficultyFilter active={difficulty} onChange={setDifficulty} />
 
-        {/* Freestyle session + Create workout */}
         <View style={styles.freestyleRow}>
           <FreestyleButton token={token} router={router} />
           {activeTab === "mine" && (
@@ -340,7 +339,6 @@ export default function WorkoutsScreen() {
             renderItem={({ item }) => (
               <WorkoutCard
                 workout={item}
-                onPress={() => router.push(`/workout/${item.workout_id}`)}
                 onStart={() => router.push(`/workout/${item.workout_id}`)}
                 onLongPress={() => setSelectedWorkout(item)}
               />
@@ -360,7 +358,6 @@ export default function WorkoutsScreen() {
         )}
       </SafeAreaView>
 
-      {/* Action sheet */}
       <Modal
         visible={!!selectedWorkout}
         transparent
@@ -440,7 +437,6 @@ const styles = StyleSheet.create({
   },
   headerIconBtn: { padding: 6 },
 
-  // Tabs
   tabBar: {
     flexDirection: "row",
     marginHorizontal: 20,

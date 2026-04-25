@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Text, TouchableOpacity, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
@@ -15,12 +15,18 @@ const SOURCE_ICON = {
   user: { icon: "create-outline", color: Colors.onSurfaceVariant },
 };
 
-export function WorkoutCard({ workout, onPress, onLongPress, onStart }) {
+export function WorkoutCard({ workout, onLongPress, onStart }) {
   const diff = DIFFICULTY[workout.difficulty_level] ?? DIFFICULTY.beginner;
   const src = SOURCE_ICON[workout.source] ?? SOURCE_ICON.user;
+  const [expanded, setExpanded] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+
+  const onTextLayout = useCallback((e) => {
+    setTruncated(e.nativeEvent.lines.length > 2);
+  }, []);
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.8} delayLongPress={350}>
+    <Pressable style={styles.card} onLongPress={onLongPress} delayLongPress={350}>
       <View style={[styles.accent, { backgroundColor: diff.color }]} />
 
       <View style={styles.body}>
@@ -41,8 +47,9 @@ export function WorkoutCard({ workout, onPress, onLongPress, onStart }) {
             style={styles.startBtn}
             onPress={onStart}
             activeOpacity={0.85}
+            hitSlop={8}
           >
-            <Ionicons name="play" size={14} color={Colors.background} />
+            <Ionicons name="play" size={22} color={Colors.background} />
           </TouchableOpacity>
         </View>
 
@@ -51,12 +58,39 @@ export function WorkoutCard({ workout, onPress, onLongPress, onStart }) {
         </Text>
 
         {workout.description ? (
-          <Text style={styles.description} numberOfLines={2}>
-            {workout.description}
-          </Text>
+          <>
+            {/* Hidden measurer — no line limit, zero height, used only to count lines */}
+            {!expanded && (
+              <Text
+                style={[styles.description, styles.measurer]}
+                numberOfLines={0}
+                onTextLayout={onTextLayout}
+                aria-hidden
+              >
+                {workout.description}
+              </Text>
+            )}
+            <Text
+              style={styles.description}
+              numberOfLines={expanded ? undefined : 2}
+            >
+              {workout.description}
+            </Text>
+            {truncated && (
+              <TouchableOpacity
+                onPress={() => setExpanded((v) => !v)}
+                hitSlop={8}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.showMore}>
+                  {expanded ? "show less" : "show more..."}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
         ) : null}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -107,9 +141,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   startBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -131,5 +165,17 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
     fontFamily: Fonts.body,
     lineHeight: 18,
+  },
+  measurer: {
+    position: "absolute",
+    opacity: 0,
+    pointerEvents: "none",
+  },
+  showMore: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: 0.3,
   },
 });

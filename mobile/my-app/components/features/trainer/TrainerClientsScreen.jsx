@@ -7,14 +7,20 @@ import {
   StatusBar,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
-import { fetchClientsWithDetails, endTrainingWithClient } from "@/services/trainerDashboardService";
+import {
+  fetchClientsWithDetails,
+  fetchClientWorkouts,
+  endTrainingWithClient,
+} from "@/services/trainerDashboardService";
 
 const GOAL_LABELS = {
   lose_weight: "Slăbire",
@@ -27,15 +33,71 @@ const GOAL_COLORS = {
   gain_weight: Colors.primary,
 };
 
-function ClientCard({ item, onEnd }) {
+const DIFFICULTY_COLORS = {
+  beginner: Colors.primary,
+  intermediate: Colors.secondary,
+  advanced: Colors.error,
+};
+const DIFFICULTY_LABELS = {
+  beginner: "Începător",
+  intermediate: "Intermediar",
+  advanced: "Avansat",
+};
+
+function WorkoutRow({ workout }) {
+  return (
+    <View style={styles.workoutRow}>
+      <View style={styles.workoutRowLeft}>
+        <Ionicons name="barbell-outline" size={14} color={Colors.onSurfaceVariant} />
+        <Text style={styles.workoutName} numberOfLines={1}>{workout.name}</Text>
+      </View>
+      <View style={[styles.diffBadge, { backgroundColor: DIFFICULTY_COLORS[workout.difficulty_level] + "22" }]}>
+        <Text style={[styles.diffBadgeText, { color: DIFFICULTY_COLORS[workout.difficulty_level] }]}>
+          {DIFFICULTY_LABELS[workout.difficulty_level]}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function ClientCard({ item, token, onEnd }) {
+  const router = useRouter();
   const { client, last_session } = item;
   const profile = client.Client_Profile;
   const goal = profile?.main_goal;
   const initials = `${client.first_name?.[0] ?? ""}${client.last_name?.[0] ?? ""}`.toUpperCase();
-
   const lastSessionText = last_session
     ? new Date(last_session).toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" })
-    : "Nicio sesiune";
+    : null;
+
+  const [expanded, setExpanded] = useState(false);
+  const [workouts, setWorkouts] = useState([]);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false);
+
+  const loadWorkouts = useCallback(async () => {
+    if (workouts.length > 0 || loadingWorkouts) return;
+    setLoadingWorkouts(true);
+    try {
+      const data = await fetchClientWorkouts(client.user_id, token);
+      setWorkouts(data);
+    } catch {
+      /* silent */
+    } finally {
+      setLoadingWorkouts(false);
+    }
+  }, [client.user_id, token, workouts.length, loadingWorkouts]);
+
+  const handleToggle = () => {
+    if (!expanded) loadWorkouts();
+    setExpanded((v) => !v);
+  };
+
+  const handleCreate = () => {
+    router.push({
+      pathname: "/workout/create",
+      params: { clientId: client.user_id, clientName: `${client.first_name} ${client.last_name}` },
+    });
+  };
 
   return (
     <View style={styles.card}>
@@ -53,22 +115,56 @@ function ClientCard({ item, onEnd }) {
         </View>
       </View>
 
-      <View style={styles.detailRow}>
-        <Ionicons name="mail-outline" size={14} color={Colors.onSurfaceVariant} />
-        <Text style={styles.detailText}>{client.email}</Text>
-      </View>
+      {client.email ? (
+        <View style={styles.detailRow}>
+          <Ionicons name="mail-outline" size={14} color={Colors.onSurfaceVariant} />
+          <Text style={styles.detailText}>{client.email}</Text>
+        </View>
+      ) : null}
       {client.phone ? (
         <View style={styles.detailRow}>
           <Ionicons name="call-outline" size={14} color={Colors.onSurfaceVariant} />
           <Text style={styles.detailText}>{client.phone}</Text>
         </View>
       ) : null}
-      <View style={styles.detailRow}>
-        <Ionicons name="time-outline" size={14} color={Colors.onSurfaceVariant} />
-        <Text style={styles.detailText}>Ultima sesiune: {lastSessionText}</Text>
+      {lastSessionText ? (
+        <View style={styles.detailRow}>
+          <Ionicons name="time-outline" size={14} color={Colors.onSurfaceVariant} />
+          <Text style={styles.detailText}>Ultima sesiune: {lastSessionText}</Text>
+        </View>
+      ) : null}
+
+      <View style={styles.actionsRow}>
+        <TouchableOpacity style={styles.createBtn} onPress={handleCreate} activeOpacity={0.8}>
+          <Ionicons name="add" size={15} color={Colors.background} />
+          <Text style={styles.createBtnText}>Antrenament Nou</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.expandBtn} onPress={handleToggle} activeOpacity={0.8}>
+          <Ionicons
+            name={expanded ? "chevron-up" : "barbell-outline"}
+            size={15}
+            color={Colors.onSurfaceVariant}
+          />
+          <Text style={styles.expandBtnText}>Antrenamente</Text>
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.endBtn} onPress={() => onEnd(client.user_id, `${client.first_name} ${client.last_name}`)}>
+      {expanded ? (
+        <View style={styles.workoutsSection}>
+          {loadingWorkouts ? (
+            <ActivityIndicator size="small" color={Colors.primary} style={{ marginVertical: 8 }} />
+          ) : workouts.length === 0 ? (
+            <Text style={styles.noWorkoutsText}>Niciun antrenament creat pentru acest client.</Text>
+          ) : (
+            workouts.map((w) => <WorkoutRow key={w.workout_id} workout={w} />)
+          )}
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.endBtn}
+        onPress={() => onEnd(client.user_id, `${client.first_name} ${client.last_name}`)}
+      >
         <Text style={styles.endBtnText}>Încheie Colaborarea</Text>
       </TouchableOpacity>
     </View>
@@ -136,7 +232,7 @@ export default function TrainerClientsScreen() {
             </View>
           ) : (
             clients.map((item) => (
-              <ClientCard key={item.assignment_id} item={item} onEnd={handleEnd} />
+              <ClientCard key={item.assignment_id} item={item} token={token} onEnd={handleEnd} />
             ))
           )}
           <View style={styles.bottomPadding} />
@@ -211,6 +307,81 @@ const styles = StyleSheet.create({
   goalText: { fontSize: 10, fontFamily: Fonts.label, fontWeight: "700" },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   detailText: { fontSize: 13, color: Colors.onSurfaceVariant, fontFamily: Fonts.body },
+  actionsRow: { flexDirection: "row", gap: 8, marginTop: 4 },
+  createBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  createBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.background,
+  },
+  expandBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  expandBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
+  },
+  workoutsSection: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderSubtle,
+    paddingTop: 10,
+    gap: 8,
+  },
+  workoutRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  workoutRowLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  workoutName: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  diffBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
+  },
+  diffBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+  },
+  noWorkoutsText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontFamily: Fonts.body,
+    textAlign: "center",
+    paddingVertical: 8,
+  },
   endBtn: {
     marginTop: 4,
     paddingVertical: 10,

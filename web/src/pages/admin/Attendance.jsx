@@ -8,7 +8,8 @@ import Btn from "../../components/ui/Btn.jsx";
 import Pill from "../../components/ui/Pill.jsx";
 import Avatar from "../../components/ui/Avatar.jsx";
 import Progress from "../../components/ui/Progress.jsx";
-import BarChart from "../../components/ui/BarChart.jsx";
+import HourlyBarChart from "../../components/ui/HourlyBarChart.jsx";
+import ExportMenu from "../../components/ui/ExportMenu.jsx";
 import Modal from "../../components/ui/Modal.jsx";
 import QrScanner from "../../components/ui/QrScanner.jsx";
 import * as I from "../../components/ui/Icons.jsx";
@@ -66,7 +67,7 @@ function fmtDate(iso) {
 }
 
 function ScanContent({ gymId, onCheckedIn }) {
-  const [phase, setPhase] = useState("scanning"); // scanning | loading | done
+  const [phase, setPhase] = useState("scanning"); 
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
@@ -218,17 +219,23 @@ function ScanContent({ gymId, onCheckedIn }) {
   );
 }
 
+function todayStr() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 export default function AdminAttendance() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [scanOpen, setScanOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const gymId = user?.gym_id;
 
-  function refetch() {
+  function refetch(date) {
     if (!gymId) return;
-    getAttendanceStats(gymId).then((r) => setStats(r.data)).catch(() => {});
+    getAttendanceStats(gymId, date).then((r) => setStats(r.data)).catch(() => {});
   }
 
   useEffect(() => {
@@ -236,11 +243,18 @@ export default function AdminAttendance() {
       setLoading(false);
       return;
     }
-    getAttendanceStats(gymId)
+    getAttendanceStats(gymId, selectedDate)
       .then((r) => setStats(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [gymId]);
+
+  function handleDateChange(e) {
+    const d = e.target.value;
+    if (!d) return;
+    setSelectedDate(d);
+    refetch(d);
+  }
 
   const hourly = stats?.hourly || Array(24).fill(0);
   const daily = stats?.daily || Array(7).fill(0);
@@ -253,9 +267,7 @@ export default function AdminAttendance() {
         eyebrow="Check-in analytics"
         actions={
           <div style={{ display: "flex", gap: 8 }}>
-            <Btn variant="outline" icon={<I.download />}>
-              Export
-            </Btn>
+            <ExportMenu gymId={gymId} />
             <Btn
               variant="primary"
               icon={<I.qr />}
@@ -273,7 +285,7 @@ export default function AdminAttendance() {
         title="QR Check-in"
         width={480}
       >
-        {scanOpen && <ScanContent gymId={gymId} onCheckedIn={refetch} />}
+        {scanOpen && <ScanContent gymId={gymId} onCheckedIn={() => refetch(selectedDate)} />}
       </Modal>
 
       {loading ? (
@@ -345,13 +357,34 @@ export default function AdminAttendance() {
               gap: 20,
             }}
           >
-            <Panel title="Hourly Check-ins · Today" eyebrow="00:00 – 23:59">
-              <div style={{ padding: "20px 0 4px" }}>
-                <BarChart
+            <Panel
+              title={`Hourly Check-ins · ${selectedDate === todayStr() ? "Today" : fmtDate(selectedDate + "T00:00:00")}`}
+              eyebrow={`${stats?.hourlyTotal ?? 0} check-ins · 00:00 – 23:59`}
+              action={
+                <input
+                  type="date"
+                  value={selectedDate}
+                  max={todayStr()}
+                  onChange={handleDateChange}
+                  style={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border-strong)",
+                    borderRadius: 8,
+                    color: "var(--text)",
+                    fontSize: 12,
+                    fontFamily: "var(--mono)",
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                    outline: "none",
+                  }}
+                />
+              }
+            >
+              <div style={{ padding: "8px 0 4px" }}>
+                <HourlyBarChart
                   data={hourly}
-                  labels={hourly.map((_, i) => (i % 3 === 0 ? String(i) : ""))}
-                  height={180}
-                  benchmark={Math.max(...hourly) * 0.7 || 1}
+                  height={200}
+                  isToday={selectedDate === todayStr()}
                 />
               </div>
             </Panel>
@@ -377,11 +410,7 @@ export default function AdminAttendance() {
                     </div>
                     <Progress
                       value={(daily[i] / maxDaily) * 100}
-                      color={
-                        daily[i] === Math.max(...daily)
-                          ? "var(--accent)"
-                          : "var(--surface-3)"
-                      }
+                      color={`rgba(224, 251, 76, ${daily[i] / maxDaily})`}
                       height={14}
                     />
                     <div
@@ -404,21 +433,6 @@ export default function AdminAttendance() {
           <Panel
             title="Recent Check-ins"
             eyebrow="Latest entries"
-            action={
-              <Pill tone="accent">
-                <span
-                  className="pulse-dot"
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: 3,
-                    background: "currentColor",
-                    marginRight: 4,
-                  }}
-                />
-                Live
-              </Pill>
-            }
           >
             {!stats?.recent || stats.recent.length === 0 ? (
               <div

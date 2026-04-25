@@ -10,7 +10,6 @@ export function ActiveSessionBanner() {
   const router = useRouter();
   const segments = useSegments();
 
-  // Hide when user is already inside a session screen
   const inSession = segments[0] === "session" || segments[0] === "workout";
 
   if (!activeSession || !activeSession.session_id || inSession) return null;
@@ -28,7 +27,6 @@ export function ActiveSessionBanner() {
       onPress={handlePress}
       activeOpacity={0.9}
     >
-      <View style={styles.pulse} />
       <Ionicons name="radio-button-on" size={14} color={Colors.background} />
       <Text style={styles.label}>SESSION IN PROGRESS</Text>
       <Ionicons name="chevron-forward" size={14} color={Colors.background} />

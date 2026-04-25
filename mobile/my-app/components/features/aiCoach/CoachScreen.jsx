@@ -30,6 +30,24 @@ const WELCOME_MESSAGE = {
   sent_at: new Date().toISOString(),
 };
 
+function ErrorCard({ item, onRetry }) {
+  return (
+    <View style={styles.errorCard}>
+      <View style={styles.errorHeader}>
+        <Ionicons name="cloud-offline-outline" size={14} color={Colors.error} />
+        <Text style={styles.errorTitle}>ASISTENT AI SUPRASOLICITAT</Text>
+      </View>
+      <Text style={styles.errorBody}>
+        Serverele AI sunt momentan ocupate. Mesajul tău a fost salvat — apasă mai jos pentru a reîncerca.
+      </Text>
+      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} activeOpacity={0.85}>
+        <Ionicons name="refresh-outline" size={14} color={Colors.primary} />
+        <Text style={styles.retryBtnText}>Retrimite mesajul</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 function PlanGeneratedCard({ item, onView }) {
   return (
     <View style={styles.planCard}>
@@ -114,8 +132,16 @@ export default function CoachScreen({ conversationId }) {
         setMessages((prev) => [...prev, aiMsg]);
       } catch (err) {
         console.error("Send error:", err.message);
-        setMessages((prev) => prev.filter((m) => m.message_id !== tempId));
-        Alert.alert("Error", "Failed to send message. Please try again.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            message_id: `error_${tempId}`,
+            sender: "__error__",
+            retryText: text,
+            prevMsgId: tempId,
+            sent_at: new Date().toISOString(),
+          },
+        ]);
       } finally {
         setSending(false);
       }
@@ -166,6 +192,21 @@ export default function CoachScreen({ conversationId }) {
     : messages;
 
   const renderItem = ({ item }) => {
+    if (item.sender === "__error__") {
+      return (
+        <ErrorCard
+          item={item}
+          onRetry={() => {
+            setMessages((prev) =>
+              prev.filter(
+                (m) => m.message_id !== item.message_id && m.message_id !== item.prevMsgId
+              )
+            );
+            handleSend(item.retryText);
+          }}
+        />
+      );
+    }
     if (item.sender === "__plan__") {
       return (
         <PlanGeneratedCard
@@ -439,5 +480,54 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,
     backgroundColor: Colors.background,
+  },
+
+  errorCard: {
+    alignSelf: "flex-start",
+    maxWidth: "85%",
+    backgroundColor: "rgba(255,115,81,0.07)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,115,81,0.22)",
+    padding: 14,
+    gap: 8,
+  },
+  errorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  errorTitle: {
+    fontSize: 9,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    color: Colors.error,
+    textTransform: "uppercase",
+  },
+  errorBody: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 20,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    marginTop: 2,
+  },
+  retryBtnText: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: 0.5,
   },
 });

@@ -64,7 +64,14 @@ export const controller = {
         }
       }
       const tempPassword = crypto.randomBytes(16).toString("hex");
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      const token = crypto.randomBytes(32).toString("hex");
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const [hashedPassword, token_hash] = await Promise.all([
+        bcrypt.hash(tempPassword, 10),
+        bcrypt.hash(token, 10),
+      ]);
+
       const trainer = await User.create({
         email,
         password: hashedPassword,
@@ -76,25 +83,34 @@ export const controller = {
         registration_date: new Date(),
         is_active: false,
       });
-      const token = crypto.randomBytes(32).toString("hex");
-      const token_hash = await bcrypt.hash(token, 10);
+
       await Reset_Token.create({
         user_id: trainer.user_id,
         token_hash,
-        expires_at: new Date(Date.now() + 1000 * 60 * 60), //intr o ora
+        otp,
+        expires_at: new Date(Date.now() + 1000 * 60 * 60),
       });
-      const resetLink = `${process.env.CLIENT_URL}/set-password?token=${token}&userId=${trainer.user_id}`;
-      await transporter.sendMail({
+
+      const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${trainer.user_id}`;
+      transporter.sendMail({
+        from: "Kinetic Fitness",
         to: trainer.email,
-        subject: "Set your password - Fitness App",
+        subject: "You've been invited as a trainer — set your password",
         html: `
-                     <p>Hello ${trainer.first_name},</p>
-          <p>Your trainer account has been created.</p>
-          <p>Please set your password by clicking the link below:</p>
-          <a href="${resetLink}">Set Password</a>
-          <p>This link expires in 1 hour.</p>
-                    `,
-      });
+          <p>Hi ${trainer.first_name},</p>
+          <p>Your trainer account on <strong>Kinetic</strong> has been created.</p>
+
+          <p>If you're using the <strong>mobile app</strong>, enter this code when prompted:</p>
+          <p style="font-size:36px; font-weight:bold; letter-spacing:10px; margin:16px 0;">${otp}</p>
+          <p>The code is valid for <strong>1 hour</strong>.</p>
+
+          <hr style="margin:24px 0; border:none; border-top:1px solid #eee;" />
+
+          <p>If you're on <strong>web</strong>, click the link below to set your password:</p>
+          <p><a href="${resetLink}" style="font-weight:bold;">Set my password</a></p>
+        `,
+      }).catch((err) => console.error("Failed to send trainer invite email:", err));
+
       return res
         .status(201)
         .json({ message: "Trainer created and email sent" });
@@ -315,6 +331,8 @@ export const controller = {
   getAttendanceStats: async (req, res) => {
     try {
       const { gymId } = req.params;
+      const { date } = req.query; // optional YYYY-MM-DD for hourly view
+
       const gym = await Gym.findOne({ where: { gym_id: gymId, admin_user_id: req.user.user_id } });
       if (!gym) return res.status(403).json({ message: "You do not manage this gym" });
 
@@ -326,12 +344,32 @@ export const controller = {
       const weekStart = new Date(todayStart.getTime() - dayOfWeek * 24 * 60 * 60 * 1000);
       const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      const [todayRows, weekRows, recentRows] = await Promise.all([
-        Gym_Attendance.findAll({ where: { gym_id: gymId, entry_time: { [Op.gte]: todayStart, [Op.lt]: todayEnd } } }),
+      // Parse selected date for hourly chart (defaults to today)
+      let selStart = todayStart;
+      let selEnd = todayEnd;
+      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        const [y, m, d] = date.split("-").map(Number);
+        selStart = new Date(y, m - 1, d);
+        selEnd = new Date(selStart.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      const sameDay = selStart.getTime() === todayStart.getTime();
+      const todayRowsPromise = Gym_Attendance.findAll({
+        where: { gym_id: gymId, entry_time: { [Op.gte]: todayStart, [Op.lt]: todayEnd } },
+      });
+      const selRowsPromise = sameDay
+        ? todayRowsPromise
+        : Gym_Attendance.findAll({
+            where: { gym_id: gymId, entry_time: { [Op.gte]: selStart, [Op.lt]: selEnd } },
+          });
+
+      const [todayRows, weekRows, selRows, recentRows] = await Promise.all([
+        todayRowsPromise,
         Gym_Attendance.findAll({
           where: { gym_id: gymId, entry_time: { [Op.gte]: weekStart, [Op.lt]: weekEnd } },
           include: [{ model: User, attributes: ["user_id", "first_name", "last_name", "email"] }],
         }),
+        selRowsPromise,
         Gym_Attendance.findAll({
           where: { gym_id: gymId },
           include: [{ model: User, attributes: ["user_id", "first_name", "last_name", "email"] }],
@@ -341,7 +379,7 @@ export const controller = {
       ]);
 
       const hourly = Array(24).fill(0);
-      for (const row of todayRows) {
+      for (const row of selRows) {
         hourly[new Date(row.entry_time).getHours()]++;
       }
 
@@ -360,6 +398,8 @@ export const controller = {
         thisWeek: weekRows.length,
         uniqueThisWeek,
         avgPerDay,
+        hourlyDate: selStart.toISOString().split("T")[0],
+        hourlyTotal: selRows.length,
         hourly,
         daily,
         recent: recentRows.map((r) => ({

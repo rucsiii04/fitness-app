@@ -20,10 +20,7 @@ function RootNavigator() {
     if (loading) return;
 
     const isResetPassword = segments[0] === "reset-password";
-    const inOnboarding = segments[0] === "(onboarding)";
     const inSplash = segments[0] === undefined;
-    const inTabs = segments[0] === "(tabs)";
-    const inTrainer = segments[0] === "(trainer)";
     const inAuthGroup = segments[0] === "(auth)";
     if (!token) {
       if (!inAuthGroup && !inSplash && !isResetPassword) {
@@ -74,7 +71,8 @@ function RootNavigator() {
       <Stack.Screen name="(onboarding)" />
       {token && <Stack.Screen name="(tabs)" />}
       {token && <Stack.Screen name="(trainer)" />}
-      {token && <Stack.Screen name="(workout)" />}
+      {token && <Stack.Screen name="session" />}
+      {token && <Stack.Screen name="workout" />}
       {token && <Stack.Screen name="coach" />}
       {token && <Stack.Screen name="membership" />}
     </Stack>

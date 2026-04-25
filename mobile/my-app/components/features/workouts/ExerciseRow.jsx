@@ -12,10 +12,6 @@ export function ExerciseRow({ item, onChangeSets, onChangeReps, onRemove }) {
 
   return (
     <View style={styles.row}>
-      <View style={styles.dragHandle}>
-        <Ionicons name="reorder-three-outline" size={20} color={Colors.outlineVariant} />
-      </View>
-
       <View style={styles.body}>
         <Text style={styles.name} numberOfLines={1}>
           {item.exercise.name}
@@ -94,9 +90,6 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.borderSubtle,
     borderRightColor: Colors.borderSubtle,
     borderBottomColor: Colors.borderSubtle,
-  },
-  dragHandle: {
-    paddingHorizontal: 2,
   },
   body: {
     flex: 1,

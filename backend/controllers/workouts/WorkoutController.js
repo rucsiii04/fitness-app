@@ -226,6 +226,29 @@ export const controller = {
       return res.status(500).json({ message: "Internal server error" });
     }
   },
+  getClientWorkouts: async (req, res) => {
+    try {
+      const trainerId = req.user.user_id;
+      const { clientId } = req.params;
+
+      const assignment = await Trainer_Assignment.findOne({
+        where: { trainer_id: trainerId, client_id: clientId, status: "accepted" },
+      });
+      if (!assignment) {
+        return res.status(403).json({ message: "Not your client" });
+      }
+
+      const workouts = await Workout.findAll({
+        where: { created_by_user_id: trainerId, assigned_to_user_id: clientId },
+        order: [["created_at", "DESC"]],
+      });
+
+      return res.status(200).json(workouts);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
   restore: async (req, res) => {
     try {
       const { id } = req.params;

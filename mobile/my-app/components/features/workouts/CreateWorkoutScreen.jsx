@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -30,6 +30,7 @@ const DIFFICULTIES = [
 export default function CreateWorkoutScreen() {
   const { token } = useAuth();
   const router = useRouter();
+  const { clientId, clientName } = useLocalSearchParams();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -77,6 +78,7 @@ export default function CreateWorkoutScreen() {
           description: description.trim() || undefined,
           difficulty_level: difficulty,
           is_public: false,
+          ...(clientId ? { assigned_to_user_id: Number(clientId) } : {}),
         }),
       });
       const workout = await workoutRes.json();
@@ -120,7 +122,7 @@ export default function CreateWorkoutScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
             <Ionicons name="arrow-back" size={22} color={Colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>NEW WORKOUT</Text>
+          <Text style={styles.headerTitle}>{clientName ? `PENTRU ${clientName.toUpperCase().split(" ")[0]}` : "NEW WORKOUT"}</Text>
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
@@ -139,6 +141,14 @@ export default function CreateWorkoutScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {/* Client banner */}
+          {clientName ? (
+            <View style={styles.clientBanner}>
+              <Ionicons name="person-circle-outline" size={16} color={Colors.secondary} />
+              <Text style={styles.clientBannerText}>Antrenament pentru {clientName}</Text>
+            </View>
+          ) : null}
+
           {/* Name */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>WORKOUT NAME</Text>
@@ -246,6 +256,23 @@ export default function CreateWorkoutScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  clientBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(0,227,253,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(0,227,253,0.2)",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  clientBannerText: {
+    fontSize: 13,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.secondary,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

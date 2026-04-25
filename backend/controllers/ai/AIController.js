@@ -27,23 +27,9 @@ const isWorkoutGenerationRequest = (message) => {
   return hasVerb && hasNoun;
 };
 
-const isFitnessRelated = async (message) => {
-  const result = await geminiModel.generateContent(`
-Answer ONLY "yes" or "no".
-Is this message related to: fitness, workouts, gym training,healthy diet for fitness goals, weight loss or muscle gain?
-
-Message: "${message}"
-`);
-
-  const text = result.response.text().toLowerCase();
-  return text.includes("yes");
-};
-
 const buildSystemPrompt = (profile, user, recentSessions) => {
   const name = `${user.first_name} ${user.last_name}`;
-  const weight = profile?.current_weight
-    ? `${profile.current_weight} kg`
-    : "unknown";
+  const weight = profile?.current_weight ? `${profile.current_weight} kg` : "unknown";
   const height = profile?.height ? `${profile.height} cm` : "unknown";
   const goal = profile?.main_goal ?? "unknown";
   const activity = profile?.activity_level ?? "unknown";
@@ -90,6 +76,220 @@ STRICT RULES:
 `;
 };
 
+const buildWorkoutContextSection = (workout, workoutExercises, availableExercises) => {
+  const exerciseLines = workoutExercises.length
+    ? workoutExercises
+        .map(
+          (we) =>
+            `  [workout_exercise_id: ${we.workout_exercise_id}] ${we.Exercise?.name ?? "Unknown"} (${we.Exercise?.muscle_group ?? "?"}) — ${we.sets} sets × ${we.reps} reps${we.rest_time ? `, ${we.rest_time}s rest` : ""}`,
+        )
+        .join("\n")
+    : "  (no exercises yet)";
+
+  const libraryLines = availableExercises
+    .map((e) => `  [exercise_id: ${e.exercise_id}] ${e.name} (${e.muscle_group})`)
+    .join("\n");
+
+  return `
+The user has a linked workout plan:
+- Name: "${workout.name}"
+- Difficulty: ${workout.difficulty_level ?? "not set"}
+- Description: ${workout.description ?? "none"}
+
+Current exercises in this plan (use workout_exercise_id to update or remove):
+${exerciseLines}
+
+Available exercises you can add (use exercise_id when adding):
+${libraryLines}
+
+You CAN modify this workout using the provided tools when the user asks to add, remove, or change exercises, their sets/reps, or the workout name/description/difficulty.
+Always confirm in your response what was changed.
+`;
+};
+
+const WORKOUT_TOOLS = [
+  {
+    functionDeclarations: [
+      {
+        name: "add_exercise",
+        description: "Add an exercise to the user's linked workout plan.",
+        parameters: {
+          type: "object",
+          properties: {
+            exercise_id: {
+              type: "number",
+              description: "The exercise_id from the available exercise library.",
+            },
+            sets: { type: "number", description: "Number of sets (e.g. 3)." },
+            reps: {
+              type: "string",
+              description: "Number of reps as a string (e.g. '12', '8-10', 'to failure').",
+            },
+            rest_time: {
+              type: "number",
+              description: "Rest time in seconds between sets (default 60).",
+            },
+          },
+          required: ["exercise_id", "sets", "reps"],
+        },
+      },
+      {
+        name: "remove_exercise",
+        description: "Remove an exercise from the user's linked workout plan.",
+        parameters: {
+          type: "object",
+          properties: {
+            workout_exercise_id: {
+              type: "number",
+              description: "The workout_exercise_id from the current plan exercises list.",
+            },
+          },
+          required: ["workout_exercise_id"],
+        },
+      },
+      {
+        name: "update_exercise",
+        description: "Update the sets or reps for an exercise already in the workout plan.",
+        parameters: {
+          type: "object",
+          properties: {
+            workout_exercise_id: {
+              type: "number",
+              description: "The workout_exercise_id from the current plan exercises list.",
+            },
+            sets: { type: "number", description: "New number of sets." },
+            reps: { type: "string", description: "New number of reps as a string." },
+          },
+          required: ["workout_exercise_id"],
+        },
+      },
+      {
+        name: "update_workout",
+        description: "Update the name, description, or difficulty level of the linked workout plan itself.",
+        parameters: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "New workout name." },
+            description: { type: "string", description: "New workout description." },
+            difficulty_level: {
+              type: "string",
+              description: "New difficulty: 'beginner', 'intermediate', or 'advanced'.",
+            },
+          },
+        },
+      },
+    ],
+  },
+];
+
+const executeWorkoutAction = async (name, args, workoutId, userId) => {
+  try {
+    if (name === "add_exercise") {
+      const { exercise_id, sets, reps, rest_time } = args;
+
+      const [workout, exercise] = await Promise.all([
+        Workout.findByPk(workoutId),
+        Exercise.findByPk(exercise_id),
+      ]);
+
+      if (!workout || workout.created_by_user_id !== userId) {
+        return { success: false, error: "Not authorized to modify this workout." };
+      }
+      if (!exercise) {
+        return { success: false, error: `No exercise found with id ${exercise_id}.` };
+      }
+
+      const count = await Workout_Exercise.count({ where: { workout_id: workoutId } });
+      await Workout_Exercise.create({
+        workout_id: workoutId,
+        exercise_id,
+        order_index: count,
+        sets,
+        reps: String(reps),
+        rest_time: rest_time ?? 60,
+      });
+
+      return { success: true, message: `Added "${exercise.name}" — ${sets} sets × ${reps} reps.` };
+    }
+
+    if (name === "remove_exercise") {
+      const { workout_exercise_id } = args;
+      const item = await Workout_Exercise.findByPk(workout_exercise_id);
+
+      if (!item) return { success: false, error: "Exercise entry not found." };
+
+      const workout = await Workout.findByPk(item.workout_id);
+      if (!workout || workout.created_by_user_id !== userId) {
+        return { success: false, error: "Not authorized to modify this workout." };
+      }
+
+      const exercise = await Exercise.findByPk(item.exercise_id);
+      await item.destroy();
+
+      return { success: true, message: `Removed "${exercise?.name ?? "exercise"}" from the workout.` };
+    }
+
+    if (name === "update_exercise") {
+      const { workout_exercise_id, sets, reps } = args;
+      const item = await Workout_Exercise.findByPk(workout_exercise_id);
+
+      if (!item) return { success: false, error: "Exercise entry not found." };
+
+      const workout = await Workout.findByPk(item.workout_id);
+      if (!workout || workout.created_by_user_id !== userId) {
+        return { success: false, error: "Not authorized to modify this workout." };
+      }
+
+      const updates = {};
+      if (sets !== undefined) updates.sets = sets;
+      if (reps !== undefined) updates.reps = String(reps);
+      await item.update(updates);
+
+      const exercise = await Exercise.findByPk(item.exercise_id);
+      const summary = [
+        sets !== undefined ? `${sets} sets` : null,
+        reps !== undefined ? `${reps} reps` : null,
+      ]
+        .filter(Boolean)
+        .join(" × ");
+
+      return { success: true, message: `Updated "${exercise?.name ?? "exercise"}": ${summary}.` };
+    }
+
+    if (name === "update_workout") {
+      const { name: newName, description, difficulty_level } = args;
+
+      const workout = await Workout.findByPk(workoutId);
+      if (!workout || workout.created_by_user_id !== userId) {
+        return { success: false, error: "Not authorized to modify this workout." };
+      }
+
+      const updates = {};
+      if (newName !== undefined) updates.name = newName;
+      if (description !== undefined) updates.description = description;
+      if (difficulty_level !== undefined) updates.difficulty_level = difficulty_level;
+
+      if (Object.keys(updates).length === 0) {
+        return { success: false, error: "No fields provided to update." };
+      }
+
+      await workout.update(updates);
+
+      const parts = [
+        newName ? `name → "${newName}"` : null,
+        description ? `description updated` : null,
+        difficulty_level ? `difficulty → ${difficulty_level}` : null,
+      ].filter(Boolean);
+
+      return { success: true, message: `Workout updated: ${parts.join(", ")}.` };
+    }
+
+    return { success: false, error: "Unknown function." };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
 const getClientContext = async (userId) => {
   const [user, profile, recentSessions] = await Promise.all([
     User.findByPk(userId),
@@ -120,12 +320,9 @@ export const controller = {
         started_at: now,
         last_activity_at: now,
       });
-
       return res.status(201).json(conversation);
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "Error starting conversation: " + err.message });
+      return res.status(500).json({ message: "Error starting conversation: " + err.message });
     }
   },
 
@@ -139,7 +336,6 @@ export const controller = {
       if (conversations.length === 0) return res.status(200).json([]);
 
       const ids = conversations.map((c) => c.conversation_id);
-
       const userMessages = await Message.findAll({
         where: { conversation_id: ids, sender: "user" },
         order: [["sent_at", "ASC"]],
@@ -160,20 +356,14 @@ export const controller = {
 
       return res.status(200).json(result);
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "Error fetching conversations: " + err.message });
+      return res.status(500).json({ message: "Error fetching conversations: " + err.message });
     }
   },
 
   getMessages: async (req, res) => {
     try {
       const { conversationId } = req.params;
-
-      const conversation = await verifyOwnership(
-        conversationId,
-        req.user.user_id,
-      );
+      const conversation = await verifyOwnership(conversationId, req.user.user_id);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
@@ -188,9 +378,7 @@ export const controller = {
         linked_plan_id: conversation.linked_plan_id ?? null,
       });
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "Error fetching messages: " + err.message });
+      return res.status(500).json({ message: "Error fetching messages: " + err.message });
     }
   },
 
@@ -202,38 +390,13 @@ export const controller = {
       if (!content?.trim()) {
         return res.status(400).json({ message: "Message content is required" });
       }
-      const conversation = await verifyOwnership(
-        conversationId,
-        req.user.user_id,
-      );
 
+      const conversation = await verifyOwnership(conversationId, req.user.user_id);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
-      const fitnessKeywords = [
-        "gym",
-        "workout",
-        "fitness",
-        "exercise",
-        "training",
-        "diet",
-        "protein",
-        "muscle",
-        "cardio",
-      ];
 
-      const isLikelyFitness = fitnessKeywords.some((k) =>
-        content.toLowerCase().includes(k),
-      );
-      let isValid;
-
-      if (isLikelyFitness) {
-        isValid = true;
-      } else {
-        isValid = await isFitnessRelated(content);
-      }
       const now = new Date();
-
       await Message.create({
         conversation_id: conversationId,
         sender: "user",
@@ -241,7 +404,8 @@ export const controller = {
         sent_at: now,
       });
 
-      if (isWorkoutGenerationRequest(content)) {
+      // Only redirect to plan generation when there's no linked plan yet
+      if (!conversation.linked_plan_id && isWorkoutGenerationRequest(content)) {
         const redirect =
           "Folosește butonul ✦ din colțul din dreapta sus pentru a genera un antrenament personalizat. Îți pot răspunde la orice întrebări despre antrenamentele tale după ce le generezi.";
         const aiMessage = await Message.create({
@@ -254,24 +418,31 @@ export const controller = {
         return res.status(200).json(aiMessage);
       }
 
-      if (!isValid) {
-        const warning =
-          "Mă ocup doar de subiecte legate de fitness. Te pot ajuta cu antrenamente, nutriție sportivă sau sfaturi de sănătate.";
+      const { user, profile, recentSessions } = await getClientContext(req.user.user_id);
+      let systemPrompt = buildSystemPrompt(profile, user, recentSessions);
 
-        const aiMessage = await Message.create({
-          conversation_id: conversationId,
-          sender: "AI",
-          content: warning,
-          sent_at: new Date(),
-        });
+      // Load workout context and enable tools when a plan is linked
+      let tools;
+      if (conversation.linked_plan_id) {
+        const [workout, workoutExercises, allExercises] = await Promise.all([
+          Workout.findByPk(conversation.linked_plan_id),
+          Workout_Exercise.findAll({
+            where: { workout_id: conversation.linked_plan_id },
+            include: [{ model: Exercise }],
+            order: [["order_index", "ASC"]],
+          }),
+          Exercise.findAll({
+            where: { is_active: true },
+            attributes: ["exercise_id", "name", "muscle_group"],
+            order: [["name", "ASC"]],
+          }),
+        ]);
 
-        return res.status(200).json(aiMessage);
+        if (workout) {
+          systemPrompt += buildWorkoutContextSection(workout, workoutExercises, allExercises);
+          tools = WORKOUT_TOOLS;
+        }
       }
-
-      const { user, profile, recentSessions } = await getClientContext(
-        req.user.user_id,
-      );
-      const systemPrompt = buildSystemPrompt(profile, user, recentSessions);
 
       const history = await Message.findAll({
         where: { conversation_id: conversationId },
@@ -285,54 +456,64 @@ export const controller = {
 
       const chat = geminiModel.startChat({
         history: geminiHistory,
-        systemInstruction: {
-          role: "user",
-          parts: [{ text: systemPrompt }],
-        },
+        systemInstruction: { role: "user", parts: [{ text: systemPrompt }] },
+        ...(tools && { tools }),
       });
 
-      const result = await chat.sendMessage(content);
-      const aiResponse = result.response.text();
+      let result = await chat.sendMessage(content);
+      let response = result.response;
 
+      // Execute function calls until the model returns a text response
+      while (response.functionCalls()?.length) {
+        const calls = response.functionCalls();
+        const functionResponses = await Promise.all(
+          calls.map(async (call) => ({
+            functionResponse: {
+              name: call.name,
+              response: await executeWorkoutAction(
+                call.name,
+                call.args,
+                conversation.linked_plan_id,
+                req.user.user_id,
+              ),
+            },
+          })),
+        );
+
+        result = await chat.sendMessage(functionResponses);
+        response = result.response;
+      }
+
+      const aiText = response.text();
       const aiMessage = await Message.create({
         conversation_id: conversationId,
         sender: "AI",
-        content: aiResponse,
+        content: aiText,
         sent_at: new Date(),
       });
 
       await conversation.update({ last_activity_at: new Date() });
-
       return res.status(200).json(aiMessage);
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "Error sending message: " + err.message });
+      return res.status(500).json({ message: "Error sending message: " + err.message });
     }
   },
 
   deleteConversation: async (req, res) => {
     try {
       const { conversationId } = req.params;
-
-      const conversation = await verifyOwnership(
-        conversationId,
-        req.user.user_id,
-      );
+      const conversation = await verifyOwnership(conversationId, req.user.user_id);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      // Delete messages first, then the conversation.
       // The linked workout (linked_plan_id) is intentionally left intact.
       await Message.destroy({ where: { conversation_id: conversationId } });
       await conversation.destroy();
 
       return res.status(200).json({ message: "Conversation deleted" });
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "Error deleting conversation: " + err.message });
+      return res.status(500).json({ message: "Error deleting conversation: " + err.message });
     }
   },
 
@@ -340,19 +521,13 @@ export const controller = {
     try {
       const { conversationId } = req.params;
       const { preferences } = req.body;
-      const conversation = await verifyOwnership(
-        conversationId,
-        req.user.user_id,
-      );
+      const conversation = await verifyOwnership(conversationId, req.user.user_id);
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      const { user, profile, recentSessions } = await getClientContext(
-        req.user.user_id,
-      );
+      const { user, profile, recentSessions } = await getClientContext(req.user.user_id);
 
-      // Fetch recent conversation history
       const recentMessages = await Message.findAll({
         where: { conversation_id: conversationId },
         order: [["sent_at", "DESC"]],
@@ -361,22 +536,16 @@ export const controller = {
 
       const conversationContext = recentMessages
         .reverse()
-        .map(
-          (m) =>
-            `${m.sender === "user" ? "Client" : "Assistant"}: ${m.content}`,
-        )
+        .map((m) => `${m.sender === "user" ? "Client" : "Assistant"}: ${m.content}`)
         .join("\n");
+
       const preferencesSection = preferences?.trim()
         ? `\nClient's additional preferences for this plan:\n${preferences}\n`
         : "";
+
       const exercises = await Exercise.findAll({
         where: { is_active: true },
-        attributes: [
-          "exercise_id",
-          "name",
-          "muscle_group",
-          "equipment_required",
-        ],
+        attributes: ["exercise_id", "name", "muscle_group", "equipment_required"],
       });
 
       const exerciseLibrary = exercises.map((e) => ({
@@ -387,7 +556,6 @@ export const controller = {
       }));
 
       const validIds = new Set(exercises.map((e) => e.exercise_id));
-
       const systemPrompt = buildSystemPrompt(profile, user, recentSessions);
 
       const planPrompt = `${systemPrompt}
@@ -421,26 +589,18 @@ Rules:
 
       const result = await geminiModel.generateContent(planPrompt);
       const raw = result.response.text();
-
       const cleaned = raw.replace(/```json|```/g, "").trim();
 
       let plan;
       try {
         plan = JSON.parse(cleaned);
       } catch {
-        return res
-          .status(500)
-          .json({ message: "AI returned invalid JSON. Try again." });
+        return res.status(500).json({ message: "AI returned invalid JSON. Try again." });
       }
 
-      const validExercises = (plan.exercises ?? []).filter((e) =>
-        validIds.has(e.exercise_id),
-      );
-
+      const validExercises = (plan.exercises ?? []).filter((e) => validIds.has(e.exercise_id));
       if (validExercises.length === 0) {
-        return res
-          .status(500)
-          .json({ message: "AI returned no valid exercises. Try again." });
+        return res.status(500).json({ message: "AI returned no valid exercises. Try again." });
       }
 
       const workout = await Workout.create({
@@ -481,9 +641,7 @@ Rules:
 
       return res.status(201).json(workout);
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "Error generating plan: " + err.message });
+      return res.status(500).json({ message: "Error generating plan: " + err.message });
     }
   },
 };

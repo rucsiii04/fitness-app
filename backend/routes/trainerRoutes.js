@@ -78,6 +78,13 @@ router.get(
 );
 
 router.get(
+  "/me/clients/:clientId/workouts",
+  verifyToken,
+  requireRole("trainer"),
+  controllers.workoutController.getClientWorkouts,
+);
+
+router.get(
   "/gyms/:gymId/clients",
   verifyToken,
   requireRole("trainer", "gym_admin"),
@@ -111,6 +118,7 @@ router.put(
   "/profil",
   verifyToken,
   requireRole("trainer"),
+  upload.single("image"),
   controllers.trainerProfileController.updateTrainerProfile,
 );
 

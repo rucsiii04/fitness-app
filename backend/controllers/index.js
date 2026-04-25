@@ -13,6 +13,7 @@ import { controller as workoutSessionController } from "./workouts/WorkoutSessio
 import {controller as qrController} from "./gym/QRController.js"
 import {controller as aiController}from "./ai/AIController.js"
 import { controller as gymController } from "./gym/GymController.js";
+import { controller as exportController } from "./admin/exportController.js";
 export const controllers = {
   authController,
   profileController,
@@ -29,5 +30,6 @@ export const controllers = {
   qrController,
   aiController,
   gymController,
+  exportController,
 };
 

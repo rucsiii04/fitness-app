@@ -49,15 +49,32 @@ export async function fetchTrainerProfile(token) {
   return res.json();
 }
 
-export async function updateTrainerProfile(data, token) {
+export async function updateTrainerProfile(data, imageUri, token) {
+  const form = new FormData();
+  form.append("specialization", data.specialization);
+  form.append("experience_years", String(data.experience_years));
+  if (data.bio) form.append("bio", data.bio);
+  if (imageUri) {
+    const filename = imageUri.split("/").pop();
+    const ext = /\.(\w+)$/.exec(filename)?.[1] ?? "jpg";
+    form.append("image", { uri: imageUri, name: filename, type: `image/${ext}` });
+  }
   const res = await fetch(`${API_BASE}/trainer/profil`, {
     method: "PUT",
-    headers: authHeaders(token),
-    body: JSON.stringify(data),
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
   });
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? "Failed to update profile");
   return body;
+}
+
+export async function fetchClientWorkouts(clientId, token) {
+  const res = await fetch(`${API_BASE}/trainer/me/clients/${clientId}/workouts`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Failed to load client workouts");
+  return res.json();
 }
 
 export async function endTrainingWithClient(clientId, token) {

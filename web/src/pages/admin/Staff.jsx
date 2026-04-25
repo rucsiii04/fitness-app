@@ -18,7 +18,7 @@ export default function AdminStaff() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "", first_name: "", last_name: "", phone: "" });
+  const [form, setForm] = useState({ email: "", first_name: "", last_name: "", phone: "" });
 
   const gymId = user?.gym_id;
 
@@ -38,7 +38,7 @@ export default function AdminStaff() {
       await createTrainer({ ...form, gym_id: gymId });
       toast("Trainer invited");
       setInviteOpen(false);
-      setForm({ email: "", password: "", first_name: "", last_name: "", phone: "" });
+      setForm({ email: "", first_name: "", last_name: "", phone: "" });
       load();
     } catch (err) { toast(err.response?.data?.message || "Failed to invite", "coral"); }
   };
@@ -134,7 +134,6 @@ export default function AdminStaff() {
           </div>
           <Field label="Email"><Input icon={<I.mail />} type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required /></Field>
           <Field label="Phone"><Input icon={<I.phone />} value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} /></Field>
-          <Field label="Temporary Password"><Input icon={<I.lock />} type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required /></Field>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
             <Btn variant="outline" type="button" onClick={() => setInviteOpen(false)}>Cancel</Btn>
             <Btn variant="primary" type="submit">Send Invite</Btn>

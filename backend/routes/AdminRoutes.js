@@ -79,3 +79,24 @@ router.get(
   requireRole("gym_admin"),
   controllers.adminController.getRevenueStats
 )
+
+router.get(
+  "/gyms/:gymId/export/memberships",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.exportController.exportMemberships
+)
+
+router.get(
+  "/gyms/:gymId/export/users",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.exportController.exportUsers
+)
+
+router.get(
+  "/gyms/:gymId/export/checkins",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.exportController.exportCheckins
+)
