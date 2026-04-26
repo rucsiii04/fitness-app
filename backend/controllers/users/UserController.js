@@ -171,10 +171,10 @@ export const controller = {
       const trainers = await User.findAll({
         where: {
           gym_id: gymId,
-          role: "trainer",
+          role: ["trainer", "front_desk"],
           is_active: true,
         },
-        attributes: ["user_id", "first_name", "last_name", "email"],
+        attributes: ["user_id", "first_name", "last_name", "email", "role", "phone"],
       });
       return res.status(200).json(trainers);
     } catch (err) {

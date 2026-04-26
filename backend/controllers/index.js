@@ -10,8 +10,8 @@ import { controller as exerciseController } from "./workouts/ExerciseController.
 import { controller as workoutController } from "./workouts/WorkoutController.js";
 import { controller as workoutExerciseController } from "./workouts/WorkoutExerciseController.js";
 import { controller as workoutSessionController } from "./workouts/WorkoutSessionController.js";
-import {controller as qrController} from "./gym/QRController.js"
-import {controller as aiController}from "./ai/AIController.js"
+import { controller as qrController } from "./gym/QRController.js";
+import { controller as aiController } from "./ai/AIController.js";
 import { controller as gymController } from "./gym/GymController.js";
 import { controller as exportController } from "./admin/exportController.js";
 export const controllers = {
@@ -32,4 +32,3 @@ export const controllers = {
   gymController,
   exportController,
 };
-
