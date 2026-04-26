@@ -57,22 +57,23 @@ export default function LoginScreen() {
       }
 
       await login(data.token, data.user);
-      const profileRes = await fetch(`${API_BASE}/profile`, {
-        headers: { Authorization: `Bearer ${data.token}` },
-      });
-      if (profileRes.status === 404) {
-        router.replace("/(auth)/setup-profile");
-      } else {
-        switch (data.user.role) {
-          case "trainer":
-            router.replace("/(trainer)/home");
-            break;
-          case "gym_admin":
-            router.replace("/(admin)/home");
-            break;
-          default:
-            router.replace("/(tabs)/home");
+
+      if (data.user.role === "client") {
+        const profileRes = await fetch(`${API_BASE}/profile`, {
+          headers: { Authorization: `Bearer ${data.token}` },
+        });
+        if (profileRes.status === 404) {
+          router.replace("/(onboarding)");
+          return;
         }
+      }
+
+      switch (data.user.role) {
+        case "trainer":
+          router.replace("/(trainer)/home");
+          break;
+        default:
+          router.replace("/(tabs)/home");
       }
     } catch (err) {
       setError("Something went wrong. Check your connection.");

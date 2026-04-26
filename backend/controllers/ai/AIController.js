@@ -11,13 +11,35 @@ import {
 import { geminiModel } from "../../config/gemini.js";
 
 const GENERATION_VERBS = [
-  "genereaz", "creeaz", "creaz", "fă-mi", "fa-mi", "fă mi", "fa mi",
-  "vreau un plan", "vreau sa", "vreau să", "fă-mi", "make me", "generate",
-  "create", "build me", "give me a", "pot avea", "poți face", "poti face",
+  "genereaz",
+  "creeaz",
+  "creaz",
+  "fă-mi",
+  "fa-mi",
+  "fă mi",
+  "fa mi",
+  "vreau un plan",
+  "vreau sa",
+  "vreau să",
+  "fă-mi",
+  "make me",
+  "generate",
+  "create",
+  "build me",
+  "give me a",
+  "pot avea",
+  "poți face",
+  "poti face",
 ];
 const GENERATION_NOUNS = [
-  "antrenament", "workout", "plan de antrenament", "training plan",
-  "program de antrenament", "plan de fitness", "rutina", "rutină",
+  "antrenament",
+  "workout",
+  "plan de antrenament",
+  "training plan",
+  "program de antrenament",
+  "plan de fitness",
+  "rutina",
+  "rutină",
 ];
 
 const isWorkoutGenerationRequest = (message) => {
@@ -27,9 +49,48 @@ const isWorkoutGenerationRequest = (message) => {
   return hasVerb && hasNoun;
 };
 
+const MODIFICATION_KEYWORDS = [
+  "schimbă",
+  "schimba",
+  "înlocuiește",
+  "inlocuieste",
+  "înlocuieste",
+  "scoate",
+  "elimină",
+  "elimina",
+  "șterge",
+  "sterge",
+  "adaugă",
+  "adauga",
+  "adăuga",
+  "modifică",
+  "modifica",
+  "actualizează",
+  "actualizeaza",
+  "renumește",
+  "redenumește",
+  "redenumeste",
+  "change",
+  "replace",
+  "swap",
+  "remove",
+  "delete",
+  "add",
+  "update",
+  "rename",
+  "modify",
+];
+
+const isWorkoutModificationRequest = (message) => {
+  const lower = message.toLowerCase();
+  return MODIFICATION_KEYWORDS.some((k) => lower.includes(k));
+};
+
 const buildSystemPrompt = (profile, user, recentSessions) => {
   const name = `${user.first_name} ${user.last_name}`;
-  const weight = profile?.current_weight ? `${profile.current_weight} kg` : "unknown";
+  const weight = profile?.current_weight
+    ? `${profile.current_weight} kg`
+    : "unknown";
   const height = profile?.height ? `${profile.height} cm` : "unknown";
   const goal = profile?.main_goal ?? "unknown";
   const activity = profile?.activity_level ?? "unknown";
@@ -76,18 +137,29 @@ STRICT RULES:
 `;
 };
 
-const buildWorkoutContextSection = (workout, workoutExercises, availableExercises) => {
+const buildWorkoutContextSection = (
+  workout,
+  workoutExercises,
+  availableExercises,
+) => {
   const exerciseLines = workoutExercises.length
     ? workoutExercises
         .map(
-          (we) =>
-            `  [workout_exercise_id: ${we.workout_exercise_id}] ${we.Exercise?.name ?? "Unknown"} (${we.Exercise?.muscle_group ?? "?"}) — ${we.sets} sets × ${we.reps} reps${we.rest_time ? `, ${we.rest_time}s rest` : ""}`,
+          (we, i) =>
+            `  ${i + 1}. [workout_exercise_id: ${we.workout_exercise_id}] ${we.Exercise?.name ?? "Unknown"} (${we.Exercise?.muscle_group ?? "?"}) — ${we.sets} sets × ${we.reps} reps${we.rest_time ? `, ${we.rest_time}s rest` : ""}${i === workoutExercises.length - 1 ? "  ← LAST EXERCISE" : ""}`,
         )
         .join("\n")
     : "  (no exercises yet)";
 
+  const lastExercise = workoutExercises[workoutExercises.length - 1];
+  const lastExerciseHint = lastExercise
+    ? `The LAST exercise is "${lastExercise.Exercise?.name ?? "Unknown"}" with workout_exercise_id=${lastExercise.workout_exercise_id}. When the user says "last exercise" or "ultimul exercițiu", they mean this one.`
+    : "";
+
   const libraryLines = availableExercises
-    .map((e) => `  [exercise_id: ${e.exercise_id}] ${e.name} (${e.muscle_group})`)
+    .map(
+      (e) => `  [exercise_id: ${e.exercise_id}] ${e.name} (${e.muscle_group})`,
+    )
     .join("\n");
 
   return `
@@ -96,14 +168,34 @@ The user has a linked workout plan:
 - Difficulty: ${workout.difficulty_level ?? "not set"}
 - Description: ${workout.description ?? "none"}
 
-Current exercises in this plan (use workout_exercise_id to update or remove):
+Current exercises in this plan (use workout_exercise_id when calling tools):
 ${exerciseLines}
 
-Available exercises you can add (use exercise_id when adding):
+${lastExerciseHint}
+
+Available exercises you can add (use exercise_id when calling tools):
 ${libraryLines}
 
-You CAN modify this workout using the provided tools when the user asks to add, remove, or change exercises, their sets/reps, or the workout name/description/difficulty.
-Always confirm in your response what was changed.
+TOOL USAGE RULES:
+
+IMPORTANT:
+- If the user asks to change, swap, or replace an exercise, you MUST call the function "replace_exercise".
+- Do NOT respond with text before calling the function.
+- Never explain what to do. Always use the function.
+
+GENERAL RULES:
+- To ADD a new exercise: call add_exercise with an exercise_id.
+- To REMOVE an exercise: call remove_exercise with its workout_exercise_id.
+- To UPDATE sets or reps: call update_exercise with its workout_exercise_id.
+- To RENAME the workout: call update_workout.
+
+AFTER TOOL EXECUTION:
+- After the function is executed, you MUST respond with a short confirmation message describing what changed.
+
+IDENTIFIERS:
+- NEVER say you don't have an identifier.
+- Every exercise already has a workout_exercise_id.
+- Always use the provided IDs.
 `;
 };
 
@@ -118,12 +210,14 @@ const WORKOUT_TOOLS = [
           properties: {
             exercise_id: {
               type: "number",
-              description: "The exercise_id from the available exercise library.",
+              description:
+                "The exercise_id from the available exercise library.",
             },
             sets: { type: "number", description: "Number of sets (e.g. 3)." },
             reps: {
               type: "string",
-              description: "Number of reps as a string (e.g. '12', '8-10', 'to failure').",
+              description:
+                "Number of reps as a string (e.g. '12', '8-10', 'to failure').",
             },
             rest_time: {
               type: "number",
@@ -141,7 +235,8 @@ const WORKOUT_TOOLS = [
           properties: {
             workout_exercise_id: {
               type: "number",
-              description: "The workout_exercise_id from the current plan exercises list.",
+              description:
+                "The workout_exercise_id from the current plan exercises list.",
             },
           },
           required: ["workout_exercise_id"],
@@ -149,31 +244,73 @@ const WORKOUT_TOOLS = [
       },
       {
         name: "update_exercise",
-        description: "Update the sets or reps for an exercise already in the workout plan.",
+        description:
+          "Update the sets or reps for an exercise already in the workout plan.",
         parameters: {
           type: "object",
           properties: {
             workout_exercise_id: {
               type: "number",
-              description: "The workout_exercise_id from the current plan exercises list.",
+              description:
+                "The workout_exercise_id from the current plan exercises list.",
             },
             sets: { type: "number", description: "New number of sets." },
-            reps: { type: "string", description: "New number of reps as a string." },
+            reps: {
+              type: "string",
+              description: "New number of reps as a string.",
+            },
           },
           required: ["workout_exercise_id"],
         },
       },
       {
+        name: "replace_exercise",
+        description:
+          "Replace (swap) an existing exercise in the workout with a different one from the library. Use this when the user asks to change, swap, or replace a specific exercise with another.",
+        parameters: {
+          type: "object",
+          properties: {
+            workout_exercise_id: {
+              type: "number",
+              description: "The workout_exercise_id of the exercise to remove.",
+            },
+            exercise_id: {
+              type: "number",
+              description:
+                "The exercise_id of the new exercise to add in its place.",
+            },
+            sets: {
+              type: "number",
+              description: "Number of sets for the new exercise.",
+            },
+            reps: {
+              type: "string",
+              description: "Number of reps as a string (e.g. '12', '8-10').",
+            },
+            rest_time: {
+              type: "number",
+              description: "Rest time in seconds (default 60).",
+            },
+          },
+          required: ["workout_exercise_id", "exercise_id", "sets", "reps"],
+        },
+      },
+      {
         name: "update_workout",
-        description: "Update the name, description, or difficulty level of the linked workout plan itself.",
+        description:
+          "Update the name, description, or difficulty level of the linked workout plan itself.",
         parameters: {
           type: "object",
           properties: {
             name: { type: "string", description: "New workout name." },
-            description: { type: "string", description: "New workout description." },
+            description: {
+              type: "string",
+              description: "New workout description.",
+            },
             difficulty_level: {
               type: "string",
-              description: "New difficulty: 'beginner', 'intermediate', or 'advanced'.",
+              description:
+                "New difficulty: 'beginner', 'intermediate', or 'advanced'.",
             },
           },
         },
@@ -193,13 +330,21 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
       ]);
 
       if (!workout || workout.created_by_user_id !== userId) {
-        return { success: false, error: "Not authorized to modify this workout." };
+        return {
+          success: false,
+          error: "Not authorized to modify this workout.",
+        };
       }
       if (!exercise) {
-        return { success: false, error: `No exercise found with id ${exercise_id}.` };
+        return {
+          success: false,
+          error: `No exercise found with id ${exercise_id}.`,
+        };
       }
 
-      const count = await Workout_Exercise.count({ where: { workout_id: workoutId } });
+      const count = await Workout_Exercise.count({
+        where: { workout_id: workoutId },
+      });
       await Workout_Exercise.create({
         workout_id: workoutId,
         exercise_id,
@@ -209,7 +354,10 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
         rest_time: rest_time ?? 60,
       });
 
-      return { success: true, message: `Added "${exercise.name}" — ${sets} sets × ${reps} reps.` };
+      return {
+        success: true,
+        message: `Added "${exercise.name}" — ${sets} sets × ${reps} reps.`,
+      };
     }
 
     if (name === "remove_exercise") {
@@ -220,13 +368,60 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       const workout = await Workout.findByPk(item.workout_id);
       if (!workout || workout.created_by_user_id !== userId) {
-        return { success: false, error: "Not authorized to modify this workout." };
+        return {
+          success: false,
+          error: "Not authorized to modify this workout.",
+        };
       }
 
       const exercise = await Exercise.findByPk(item.exercise_id);
       await item.destroy();
 
-      return { success: true, message: `Removed "${exercise?.name ?? "exercise"}" from the workout.` };
+      return {
+        success: true,
+        message: `Removed "${exercise?.name ?? "exercise"}" from the workout.`,
+      };
+    }
+
+    if (name === "replace_exercise") {
+      const { workout_exercise_id, exercise_id, sets, reps, rest_time } = args;
+
+      const item = await Workout_Exercise.findByPk(workout_exercise_id);
+      if (!item) return { success: false, error: "Exercise entry not found." };
+
+      const workout = await Workout.findByPk(item.workout_id);
+      if (!workout || workout.created_by_user_id !== userId) {
+        return {
+          success: false,
+          error: "Not authorized to modify this workout.",
+        };
+      }
+
+      const [oldExercise, newExercise] = await Promise.all([
+        Exercise.findByPk(item.exercise_id),
+        Exercise.findByPk(exercise_id),
+      ]);
+      if (!newExercise)
+        return {
+          success: false,
+          error: `No exercise found with id ${exercise_id}.`,
+        };
+
+      const orderIndex = item.order_index;
+      await item.destroy();
+      await Workout_Exercise.create({
+        workout_id: item.workout_id,
+        exercise_id,
+        order_index: orderIndex,
+        sets,
+        reps: String(reps),
+        rest_time: rest_time ?? 60,
+      });
+
+      return {
+        success: true,
+        message: `Replaced "${oldExercise?.name ?? "exercise"}" with "${newExercise.name}" — ${sets} sets × ${reps} reps.`,
+      };
     }
 
     if (name === "update_exercise") {
@@ -237,7 +432,10 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       const workout = await Workout.findByPk(item.workout_id);
       if (!workout || workout.created_by_user_id !== userId) {
-        return { success: false, error: "Not authorized to modify this workout." };
+        return {
+          success: false,
+          error: "Not authorized to modify this workout.",
+        };
       }
 
       const updates = {};
@@ -253,7 +451,10 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
         .filter(Boolean)
         .join(" × ");
 
-      return { success: true, message: `Updated "${exercise?.name ?? "exercise"}": ${summary}.` };
+      return {
+        success: true,
+        message: `Updated "${exercise?.name ?? "exercise"}": ${summary}.`,
+      };
     }
 
     if (name === "update_workout") {
@@ -261,13 +462,17 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       const workout = await Workout.findByPk(workoutId);
       if (!workout || workout.created_by_user_id !== userId) {
-        return { success: false, error: "Not authorized to modify this workout." };
+        return {
+          success: false,
+          error: "Not authorized to modify this workout.",
+        };
       }
 
       const updates = {};
       if (newName !== undefined) updates.name = newName;
       if (description !== undefined) updates.description = description;
-      if (difficulty_level !== undefined) updates.difficulty_level = difficulty_level;
+      if (difficulty_level !== undefined)
+        updates.difficulty_level = difficulty_level;
 
       if (Object.keys(updates).length === 0) {
         return { success: false, error: "No fields provided to update." };
@@ -281,7 +486,10 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
         difficulty_level ? `difficulty → ${difficulty_level}` : null,
       ].filter(Boolean);
 
-      return { success: true, message: `Workout updated: ${parts.join(", ")}.` };
+      return {
+        success: true,
+        message: `Workout updated: ${parts.join(", ")}.`,
+      };
     }
 
     return { success: false, error: "Unknown function." };
@@ -322,7 +530,9 @@ export const controller = {
       });
       return res.status(201).json(conversation);
     } catch (err) {
-      return res.status(500).json({ message: "Error starting conversation: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error starting conversation: " + err.message });
     }
   },
 
@@ -356,14 +566,19 @@ export const controller = {
 
       return res.status(200).json(result);
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching conversations: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error fetching conversations: " + err.message });
     }
   },
 
   getMessages: async (req, res) => {
     try {
       const { conversationId } = req.params;
-      const conversation = await verifyOwnership(conversationId, req.user.user_id);
+      const conversation = await verifyOwnership(
+        conversationId,
+        req.user.user_id,
+      );
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
@@ -378,11 +593,14 @@ export const controller = {
         linked_plan_id: conversation.linked_plan_id ?? null,
       });
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching messages: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error fetching messages: " + err.message });
     }
   },
 
   sendMessage: async (req, res) => {
+    let userMessage;
     try {
       const { conversationId } = req.params;
       const { content } = req.body;
@@ -391,13 +609,16 @@ export const controller = {
         return res.status(400).json({ message: "Message content is required" });
       }
 
-      const conversation = await verifyOwnership(conversationId, req.user.user_id);
+      const conversation = await verifyOwnership(
+        conversationId,
+        req.user.user_id,
+      );
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
       const now = new Date();
-      await Message.create({
+      userMessage = await Message.create({
         conversation_id: conversationId,
         sender: "user",
         content,
@@ -418,11 +639,14 @@ export const controller = {
         return res.status(200).json(aiMessage);
       }
 
-      const { user, profile, recentSessions } = await getClientContext(req.user.user_id);
+      const { user, profile, recentSessions } = await getClientContext(
+        req.user.user_id,
+      );
       let systemPrompt = buildSystemPrompt(profile, user, recentSessions);
 
       // Load workout context and enable tools when a plan is linked
       let tools;
+      let toolConfig;
       if (conversation.linked_plan_id) {
         const [workout, workoutExercises, allExercises] = await Promise.all([
           Workout.findByPk(conversation.linked_plan_id),
@@ -439,8 +663,19 @@ export const controller = {
         ]);
 
         if (workout) {
-          systemPrompt += buildWorkoutContextSection(workout, workoutExercises, allExercises);
+          systemPrompt += buildWorkoutContextSection(
+            workout,
+            workoutExercises,
+            allExercises,
+          );
           tools = WORKOUT_TOOLS;
+
+          // Force function calling when the user clearly wants to modify the workout
+          if (isWorkoutModificationRequest(content)) {
+            toolConfig = {
+              functionCallingConfig: { mode: "ANY" },
+            };
+          }
         }
       }
 
@@ -458,6 +693,7 @@ export const controller = {
         history: geminiHistory,
         systemInstruction: { role: "user", parts: [{ text: systemPrompt }] },
         ...(tools && { tools }),
+        ...(toolConfig && { toolConfig }),
       });
 
       let result = await chat.sendMessage(content);
@@ -495,14 +731,20 @@ export const controller = {
       await conversation.update({ last_activity_at: new Date() });
       return res.status(200).json(aiMessage);
     } catch (err) {
-      return res.status(500).json({ message: "Error sending message: " + err.message });
+      if (userMessage) await userMessage.destroy().catch(() => {});
+      return res
+        .status(500)
+        .json({ message: "Error sending message: " + err.message });
     }
   },
 
   deleteConversation: async (req, res) => {
     try {
       const { conversationId } = req.params;
-      const conversation = await verifyOwnership(conversationId, req.user.user_id);
+      const conversation = await verifyOwnership(
+        conversationId,
+        req.user.user_id,
+      );
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
@@ -513,7 +755,9 @@ export const controller = {
 
       return res.status(200).json({ message: "Conversation deleted" });
     } catch (err) {
-      return res.status(500).json({ message: "Error deleting conversation: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error deleting conversation: " + err.message });
     }
   },
 
@@ -521,12 +765,17 @@ export const controller = {
     try {
       const { conversationId } = req.params;
       const { preferences } = req.body;
-      const conversation = await verifyOwnership(conversationId, req.user.user_id);
+      const conversation = await verifyOwnership(
+        conversationId,
+        req.user.user_id,
+      );
       if (!conversation) {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      const { user, profile, recentSessions } = await getClientContext(req.user.user_id);
+      const { user, profile, recentSessions } = await getClientContext(
+        req.user.user_id,
+      );
 
       const recentMessages = await Message.findAll({
         where: { conversation_id: conversationId },
@@ -536,7 +785,10 @@ export const controller = {
 
       const conversationContext = recentMessages
         .reverse()
-        .map((m) => `${m.sender === "user" ? "Client" : "Assistant"}: ${m.content}`)
+        .map(
+          (m) =>
+            `${m.sender === "user" ? "Client" : "Assistant"}: ${m.content}`,
+        )
         .join("\n");
 
       const preferencesSection = preferences?.trim()
@@ -545,7 +797,12 @@ export const controller = {
 
       const exercises = await Exercise.findAll({
         where: { is_active: true },
-        attributes: ["exercise_id", "name", "muscle_group", "equipment_required"],
+        attributes: [
+          "exercise_id",
+          "name",
+          "muscle_group",
+          "equipment_required",
+        ],
       });
 
       const exerciseLibrary = exercises.map((e) => ({
@@ -595,12 +852,18 @@ Rules:
       try {
         plan = JSON.parse(cleaned);
       } catch {
-        return res.status(500).json({ message: "AI returned invalid JSON. Try again." });
+        return res
+          .status(500)
+          .json({ message: "AI returned invalid JSON. Try again." });
       }
 
-      const validExercises = (plan.exercises ?? []).filter((e) => validIds.has(e.exercise_id));
+      const validExercises = (plan.exercises ?? []).filter((e) =>
+        validIds.has(e.exercise_id),
+      );
       if (validExercises.length === 0) {
-        return res.status(500).json({ message: "AI returned no valid exercises. Try again." });
+        return res
+          .status(500)
+          .json({ message: "AI returned no valid exercises. Try again." });
       }
 
       const workout = await Workout.create({
@@ -641,7 +904,9 @@ Rules:
 
       return res.status(201).json(workout);
     } catch (err) {
-      return res.status(500).json({ message: "Error generating plan: " + err.message });
+      return res
+        .status(500)
+        .json({ message: "Error generating plan: " + err.message });
     }
   },
 };

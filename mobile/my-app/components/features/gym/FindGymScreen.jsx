@@ -17,6 +17,7 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useAuth } from "@/context/AuthContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { GymCard } from "./GymCard";
+import { GymDetailSheet } from "./GymDetailSheet";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -130,6 +131,7 @@ export default function FindGymScreen() {
   const [loading, setLoading] = useState(false);
   const [region, setRegion] = useState(DEFAULT_REGION);
   const [locationGranted, setLocationGranted] = useState(false);
+  const [selectedGym, setSelectedGym] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -331,7 +333,11 @@ export default function FindGymScreen() {
               data={gyms}
               keyExtractor={(g) => String(g.gym_id)}
               renderItem={({ item }) => (
-                <GymCard gym={item} onPress={() => focusGym(item)} />
+                <GymCard
+                  gym={item}
+                  onPress={() => focusGym(item)}
+                  onView={() => setSelectedGym(item)}
+                />
               )}
               contentContainerStyle={styles.list}
               showsVerticalScrollIndicator={false}
@@ -339,6 +345,12 @@ export default function FindGymScreen() {
           )}
         </View>
       </SafeAreaView>
+
+      <GymDetailSheet
+        visible={selectedGym !== null}
+        gym={selectedGym}
+        onClose={() => setSelectedGym(null)}
+      />
     </ScreenBackground>
   );
 }

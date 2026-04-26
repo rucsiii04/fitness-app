@@ -13,6 +13,7 @@ import { hasManagedGymAccess } from "../../utils/access.js";
 import { isAttendanceWindowOpen } from "../../utils/dateUtils.js";
 import { syncExpiredNoShows } from "../../utils/syncNoShow.js";
 import { Op } from "sequelize";
+import { transporter } from "../../config/mail.js";
 
 const promoteFromWaitingList = async (sessionId, transaction) => {
   const next = await Class_Enrollment.findOne({
@@ -21,10 +22,11 @@ const promoteFromWaitingList = async (sessionId, transaction) => {
     transaction,
     lock: transaction.LOCK.UPDATE,
   });
-  if (!next) return;
+  if (!next) return null;
 
   next.status = "confirmed";
   await next.save({ transaction });
+  return next.client_id;
 };
 
 export const controller = {
@@ -56,7 +58,9 @@ export const controller = {
 
       if (computedStatus !== "scheduled") {
         await t.rollback();
-        return res.status(400).json({ message: "Session is not open for enrollment" });
+        return res
+          .status(400)
+          .json({ message: "Session is not open for enrollment" });
       }
 
       const activeMembership = await Membership.findOne({
@@ -98,7 +102,9 @@ export const controller = {
 
       if (noShowCount >= 3) {
         await t.rollback();
-        return res.status(403).json({ message: "Booking blocked due to repeated no-shows" });
+        return res
+          .status(403)
+          .json({ message: "Booking blocked due to repeated no-shows" });
       }
 
       const existingEnrollment = await Class_Enrollment.findOne({
@@ -239,11 +245,45 @@ export const controller = {
       const previousStatus = enrollment.status;
 
       await enrollment.update({ status: "cancelled" }, { transaction: t });
+      let promotedClientId = null;
       if (previousStatus === "confirmed") {
-        await promoteFromWaitingList(sessionId, t);
+        promotedClientId = await promoteFromWaitingList(sessionId, t);
       }
 
       await t.commit();
+
+      if (promotedClientId) {
+        const [promotedUser, classType] = await Promise.all([
+          User.findByPk(promotedClientId, {
+            attributes: ["email", "first_name"],
+          }),
+          Class_Type.findByPk(session.class_type_id, { attributes: ["name"] }),
+        ]);
+        if (promotedUser) {
+          const sessionDate = new Date(session.start_datetime).toLocaleString(
+            "ro-RO",
+            {
+              dateStyle: "full",
+              timeStyle: "short",
+            },
+          );
+          transporter
+            .sendMail({
+              from: "Kinetic Fitness",
+              to: promotedUser.email,
+              subject: "Ai fost confirmat din lista de așteptare!",
+              html: `
+      <p>Bună, ${promotedUser.first_name},</p>
+       <p>Vești bune! </p>
+  <p>Un loc s-a eliberat și ai fost mutat(ă) din lista de așteptare în clasa <strong>${classType?.name ?? "selectată"}</strong>, care va avea loc <strong>${sessionDate}</strong>.</p>
+  <p>Ne bucurăm să te avem alături!</p>
+  <p>— Echipa Kinetic Fitness </p>
+`,
+            })
+            .catch(console.error);
+        }
+      }
+
       return res.status(200).json({ message: "Enrollment cancelled" });
     } catch (err) {
       if (t) await t.rollback();
@@ -273,9 +313,9 @@ export const controller = {
       const session = enrollment.Class_Session;
 
       if (!isAttendanceWindowOpen(session)) {
-        return res
-          .status(400)
-          .json({ message: "Attendance can only be marked near the session time" });
+        return res.status(400).json({
+          message: "Attendance can only be marked near the session time",
+        });
       }
 
       const isTrainer = req.user.user_id === session.trainer_id;
@@ -334,22 +374,15 @@ export const controller = {
     try {
       const { gymId } = req.params;
 
-      // Trainers/admins can always fetch; clients must have an active membership at this gym
-      if (req.user.role === "client") {
-        const membership = await Membership.findOne({
-          where: { client_id: req.user.user_id, status: "active" },
-          include: [{ model: Membership_Type, where: { gym_id: gymId }, attributes: [] }],
-        });
-        if (!membership) {
-          return res.status(403).json({ message: "No active membership at this gym" });
-        }
-      }
-
       const sessions = await Class_Session.findAll({
         where: { gym_id: gymId },
         include: [
           Class_Type,
-          { model: User, as: "Trainer", attributes: ["first_name", "last_name"] },
+          {
+            model: User,
+            as: "Trainer",
+            attributes: ["first_name", "last_name"],
+          },
           {
             model: Class_Enrollment,
             where: { status: "confirmed" },
@@ -405,7 +438,9 @@ export const controller = {
       if (req.user.role === "gym_admin") {
         const hasAccess = await hasManagedGymAccess(req.user, gym_id);
         if (!hasAccess) {
-          return res.status(403).json({ message: "Not authorized for this gym" });
+          return res
+            .status(403)
+            .json({ message: "Not authorized for this gym" });
         }
       }
 
@@ -427,7 +462,9 @@ export const controller = {
         },
       });
       if (!trainer) {
-        return res.status(400).json({ message: "Invalid trainer for this gym" });
+        return res
+          .status(400)
+          .json({ message: "Invalid trainer for this gym" });
       }
 
       const overlappingSession = await Class_Session.findOne({
@@ -441,9 +478,9 @@ export const controller = {
         },
       });
       if (overlappingSession) {
-        return res
-          .status(400)
-          .json({ message: "Trainer already has a session in this time interval" });
+        return res.status(400).json({
+          message: "Trainer already has a session in this time interval",
+        });
       }
 
       const session = await Class_Session.create({
@@ -458,9 +495,9 @@ export const controller = {
       res.status(201).json(session);
     } catch (err) {
       console.error("createClassSession error:", err);
-      res
-        .status(500)
-        .json({ message: "An unexpected error occurred. Please try again later." });
+      res.status(500).json({
+        message: "An unexpected error occurred. Please try again later.",
+      });
     }
   },
   getSessionEnrollments: async (req, res) => {
@@ -482,7 +519,13 @@ export const controller = {
 
       const enrollments = await Class_Enrollment.findAll({
         where: { session_id: sessionId },
-        include: [{ model: User, as: "Client", attributes: ["first_name", "last_name", "email"] }],
+        include: [
+          {
+            model: User,
+            as: "Client",
+            attributes: ["first_name", "last_name", "email"],
+          },
+        ],
         order: [["enrollment_date", "ASC"]],
       });
 
@@ -539,7 +582,11 @@ export const controller = {
             model: Class_Session,
             include: [
               Class_Type,
-              { model: User, as: "Trainer", attributes: ["first_name", "last_name"] },
+              {
+                model: User,
+                as: "Trainer",
+                attributes: ["first_name", "last_name"],
+              },
             ],
           },
         ],

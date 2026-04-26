@@ -1,11 +1,21 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 const DIFFICULTY = {
   beginner: { label: "Beginner", color: Colors.primary, icon: "leaf-outline" },
-  intermediate: { label: "Intermediate", color: Colors.tertiary, icon: "flash-outline" },
+  intermediate: {
+    label: "Intermediate",
+    color: Colors.tertiary,
+    icon: "flash-outline",
+  },
   advanced: { label: "Advanced", color: Colors.error, icon: "flame-outline" },
 };
 
@@ -26,7 +36,11 @@ export function WorkoutCard({ workout, onLongPress, onStart }) {
   }, []);
 
   return (
-    <Pressable style={styles.card} onLongPress={onLongPress} delayLongPress={350}>
+    <Pressable
+      style={styles.card}
+      onLongPress={onLongPress}
+      delayLongPress={350}
+    >
       <View style={[styles.accent, { backgroundColor: diff.color }]} />
 
       <View style={styles.body}>
@@ -57,9 +71,19 @@ export function WorkoutCard({ workout, onLongPress, onStart }) {
           {workout.name}
         </Text>
 
+        {workout.is_public && workout.creator_name ? (
+          <View style={styles.creatorRow}>
+            <Ionicons
+              name="person-outline"
+              size={11}
+              color={Colors.secondary}
+            />
+            <Text style={styles.creatorText}>{workout.creator_name}</Text>
+          </View>
+        ) : null}
+
         {workout.description ? (
           <>
-            {/* Hidden measurer — no line limit, zero height, used only to count lines */}
             {!expanded && (
               <Text
                 style={[styles.description, styles.measurer]}
@@ -177,5 +201,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.primary,
     letterSpacing: 0.3,
+  },
+  creatorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  creatorText: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    color: Colors.secondary,
   },
 });

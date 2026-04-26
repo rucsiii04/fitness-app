@@ -126,13 +126,6 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>KINETIC PROFILE</Text>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons
-              name="settings-outline"
-              size={22}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -279,7 +272,10 @@ export default function ProfileScreen() {
           user={user}
           token={token}
           onClose={() => setAccountVisible(false)}
-          onSaved={async () => { await refreshUser(); setAccountVisible(false); }}
+          onSaved={async () => {
+            await refreshUser();
+            setAccountVisible(false);
+          }}
         />
         <ChangePasswordModal
           visible={passwordVisible}
@@ -317,7 +313,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     letterSpacing: -0.5,
   },
-  headerIcon: { padding: 4 },
   scroll: {
     paddingHorizontal: 20,
     gap: 16,

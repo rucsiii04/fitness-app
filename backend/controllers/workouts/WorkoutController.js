@@ -1,5 +1,5 @@
 import { Op } from "sequelize";
-import { Workout } from "../../models/index.js";
+import { Workout, User } from "../../models/index.js";
 import { Trainer_Assignment } from "../../models/index.js";
 const canAssignToClient = async (trainerId, clientId) => {
   if (trainerId === clientId) return true;
@@ -26,10 +26,29 @@ export const controller = {
             { assigned_to_user_id: userId },
           ],
         },
+        include: [
+          {
+            model: User,
+            as: "Creator",
+            attributes: ["first_name", "last_name"],
+            required: false,
+          },
+        ],
         order: [["created_at", "DESC"]],
       });
 
-      return res.status(200).json(workouts);
+      const result = workouts.map((w) => {
+        const plain = w.toJSON();
+        return {
+          ...plain,
+          creator_name: plain.Creator
+            ? `${plain.Creator.first_name} ${plain.Creator.last_name}`
+            : null,
+          Creator: undefined,
+        };
+      });
+
+      return res.status(200).json(result);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Internal server error" });
@@ -232,7 +251,11 @@ export const controller = {
       const { clientId } = req.params;
 
       const assignment = await Trainer_Assignment.findOne({
-        where: { trainer_id: trainerId, client_id: clientId, status: "accepted" },
+        where: {
+          trainer_id: trainerId,
+          client_id: clientId,
+          status: "accepted",
+        },
       });
       if (!assignment) {
         return res.status(403).json({ message: "Not your client" });

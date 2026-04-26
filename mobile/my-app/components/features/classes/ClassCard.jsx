@@ -10,9 +10,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 const DIFFICULTY_CONFIG = {
-  beginner:     { label: "Beginner",     color: Colors.primary,   bg: "rgba(209,255,0,0.12)" },
-  intermediate: { label: "Intermediate", color: Colors.tertiary,  bg: "rgba(255,238,171,0.10)" },
-  advanced:     { label: "Advanced",     color: Colors.error,     bg: "rgba(255,115,81,0.12)" },
+  beginner: {
+    label: "Beginner",
+    color: Colors.primary,
+    bg: "rgba(209,255,0,0.12)",
+  },
+  intermediate: {
+    label: "Intermediate",
+    color: Colors.tertiary,
+    bg: "rgba(255,238,171,0.10)",
+  },
+  advanced: {
+    label: "Advanced",
+    color: Colors.error,
+    bg: "rgba(255,115,81,0.12)",
+  },
 };
 
 const formatTime = (dateString) => {
@@ -23,10 +35,18 @@ const formatTime = (dateString) => {
   });
 };
 
-export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
+export function ClassCard({
+  session,
+  enrollment,
+  onEnroll,
+  onCancel,
+  busy,
+  membershipStatus = "none",
+}) {
   const type = session.Class_Type;
   const trainer = session.Trainer;
-  const diff = DIFFICULTY_CONFIG[type?.difficulty_level] ?? DIFFICULTY_CONFIG.beginner;
+  const diff =
+    DIFFICULTY_CONFIG[type?.difficulty_level] ?? DIFFICULTY_CONFIG.beginner;
   const spotsLeft = session.max_participants - (session.confirmed_count ?? 0);
   const isFull = spotsLeft <= 0;
   const isCancelled = session.status === "cancelled";
@@ -42,25 +62,52 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
   const spotsColor = spotsLeft <= 3 ? Colors.error : Colors.primary;
 
   return (
-    <View style={[styles.card, (isCancelled || isOver) && styles.cardCancelled]}>
+    <View
+      style={[styles.card, (isCancelled || isOver) && styles.cardCancelled]}
+    >
       <View style={styles.topRow}>
         <View style={styles.badges}>
           <View style={[styles.badge, { backgroundColor: diff.bg }]}>
-            <Text style={[styles.badgeText, { color: diff.color }]}>{diff.label}</Text>
+            <Text style={[styles.badgeText, { color: diff.color }]}>
+              {diff.label}
+            </Text>
           </View>
           {isCancelled && (
-            <View style={[styles.badge, { backgroundColor: "rgba(255,115,81,0.12)" }]}>
-              <Text style={[styles.badgeText, { color: Colors.error }]}>Cancelled</Text>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: "rgba(255,115,81,0.12)" },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: Colors.error }]}>
+                Cancelled
+              </Text>
             </View>
           )}
           {!isCancelled && isOver && (
-            <View style={[styles.badge, { backgroundColor: "rgba(150,150,150,0.15)" }]}>
-              <Text style={[styles.badgeText, { color: Colors.onSurfaceVariant }]}>Over</Text>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: "rgba(150,150,150,0.15)" },
+              ]}
+            >
+              <Text
+                style={[styles.badgeText, { color: Colors.onSurfaceVariant }]}
+              >
+                Over
+              </Text>
             </View>
           )}
           {!isCancelled && isOngoing && (
-            <View style={[styles.badge, { backgroundColor: "rgba(209,255,0,0.12)" }]}>
-              <Text style={[styles.badgeText, { color: Colors.primary }]}>Ongoing</Text>
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: "rgba(209,255,0,0.12)" },
+              ]}
+            >
+              <Text style={[styles.badgeText, { color: Colors.primary }]}>
+                Ongoing
+              </Text>
             </View>
           )}
         </View>
@@ -71,20 +118,32 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
         )}
       </View>
 
-      <Text style={[styles.className, isCancelled && styles.textDim]} numberOfLines={1}>
+      <Text
+        style={[styles.className, isCancelled && styles.textDim]}
+        numberOfLines={1}
+      >
         {type?.name ?? "Class"}
       </Text>
 
       <View style={styles.metaRow}>
         <View style={styles.metaItem}>
-          <Ionicons name="time-outline" size={13} color={Colors.onSurfaceVariant} />
+          <Ionicons
+            name="time-outline"
+            size={13}
+            color={Colors.onSurfaceVariant}
+          />
           <Text style={styles.metaText}>
-            {formatTime(session.start_datetime)} – {formatTime(session.end_datetime)}
+            {formatTime(session.start_datetime)} –{" "}
+            {formatTime(session.end_datetime)}
           </Text>
         </View>
         {trainer && (
           <View style={styles.metaItem}>
-            <Ionicons name="person-outline" size={13} color={Colors.onSurfaceVariant} />
+            <Ionicons
+              name="person-outline"
+              size={13}
+              color={Colors.onSurfaceVariant}
+            />
             <Text style={styles.metaText}>
               {trainer.first_name} {trainer.last_name}
             </Text>
@@ -97,7 +156,11 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
           {isEnrolled ? (
             <View style={styles.enrolledRow}>
               <View style={styles.enrolledBadge}>
-                <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={14}
+                  color={Colors.primary}
+                />
                 <Text style={styles.enrolledText}>Enrolled</Text>
               </View>
               <TouchableOpacity
@@ -115,9 +178,20 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
             </View>
           ) : isWaiting ? (
             <View style={styles.enrolledRow}>
-              <View style={[styles.enrolledBadge, { backgroundColor: "rgba(255,238,171,0.1)" }]}>
-                <Ionicons name="hourglass-outline" size={14} color={Colors.tertiary} />
-                <Text style={[styles.enrolledText, { color: Colors.tertiary }]}>Waitlisted</Text>
+              <View
+                style={[
+                  styles.enrolledBadge,
+                  { backgroundColor: "rgba(255,238,171,0.1)" },
+                ]}
+              >
+                <Ionicons
+                  name="hourglass-outline"
+                  size={14}
+                  color={Colors.tertiary}
+                />
+                <Text style={[styles.enrolledText, { color: Colors.tertiary }]}>
+                  Waitlisted
+                </Text>
               </View>
               <TouchableOpacity
                 style={styles.cancelBtn}
@@ -131,6 +205,19 @@ export function ClassCard({ session, enrollment, onEnroll, onCancel, busy }) {
                   <Text style={styles.cancelBtnText}>Leave</Text>
                 )}
               </TouchableOpacity>
+            </View>
+          ) : membershipStatus !== "ok" ? (
+            <View style={styles.lockedBtn}>
+              <Ionicons
+                name="lock-closed-outline"
+                size={14}
+                color={Colors.onSurfaceVariant}
+              />
+              <Text style={styles.lockedBtnText}>
+                {membershipStatus === "no_classes"
+                  ? "Abonamentul nu include clase"
+                  : "Membership Required"}
+              </Text>
             </View>
           ) : (
             <TouchableOpacity
@@ -289,5 +376,25 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.error,
     letterSpacing: 0.5,
+  },
+  lockedBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 10,
+    paddingVertical: 13,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  lockedBtnText: {
+    fontSize: 12,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
 });

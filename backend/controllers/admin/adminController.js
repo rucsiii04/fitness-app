@@ -328,6 +328,147 @@ export const controller = {
     }
   },
 
+  createFrontDesk: async (req, res) => {
+    try {
+      const requester = req.user;
+      if (requester.role !== "gym_admin") {
+        return res.status(403).json({ message: "Only gym admin can create front desk accounts" });
+      }
+      const { gym_id, email, first_name, last_name, phone } = req.body;
+      if (!gym_id || !email || !first_name || !last_name || !phone) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const gym = await Gym.findOne({
+        where: { gym_id, admin_user_id: requester.user_id },
+      });
+      if (!gym) {
+        return res.status(403).json({ message: "You do not manage this gym" });
+      }
+
+      const existing = await User.findOne({
+        where: { [Op.or]: [{ email }, { phone }] },
+      });
+      if (existing) {
+        if (existing.email === email) return res.status(409).json({ message: "Email already used" });
+        if (existing.phone === phone) return res.status(409).json({ message: "Phone number already used" });
+      }
+
+      const tempPassword = crypto.randomBytes(16).toString("hex");
+      const token = crypto.randomBytes(32).toString("hex");
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const [hashedPassword, token_hash] = await Promise.all([
+        bcrypt.hash(tempPassword, 10),
+        bcrypt.hash(token, 10),
+      ]);
+
+      const frontDesk = await User.create({
+        email,
+        password: hashedPassword,
+        first_name,
+        last_name,
+        role: "front_desk",
+        phone,
+        gym_id,
+        registration_date: new Date(),
+        is_active: false,
+      });
+
+      await Reset_Token.create({
+        user_id: frontDesk.user_id,
+        token_hash,
+        otp,
+        expires_at: new Date(Date.now() + 1000 * 60 * 60),
+      });
+
+      const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${frontDesk.user_id}`;
+      transporter.sendMail({
+        from: "Kinetic Fitness",
+        to: frontDesk.email,
+        subject: "Ai fost invitat ca recepționer — setează-ți parola",
+        html: `
+          <p>Salut ${frontDesk.first_name},</p>
+          <p>Contul tău de <strong>recepționer</strong> pe <strong>Kinetic</strong> a fost creat.</p>
+
+          <p>Dacă folosești <strong>aplicația mobilă</strong>, introdu acest cod când ți se solicită:</p>
+          <p style="font-size:36px; font-weight:bold; letter-spacing:10px; margin:16px 0;">${otp}</p>
+          <p>Codul este valabil <strong>1 oră</strong>.</p>
+
+          <hr style="margin:24px 0; border:none; border-top:1px solid #eee;" />
+
+          <p>Dacă ești pe <strong>web</strong>, apasă linkul de mai jos pentru a-ți seta parola:</p>
+          <p><a href="${resetLink}" style="font-weight:bold;">Setează parola</a></p>
+        `,
+      }).catch((err) => console.error("Failed to send front desk invite email:", err));
+
+      return res.status(201).json({ message: "Front desk account created and email sent" });
+    } catch (err) {
+      return res.status(500).json({ message: "Error creating front desk account: " + err });
+    }
+  },
+
+  updateFrontDesk: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const frontDesk = await User.findOne({
+        where: { user_id: userId, role: "front_desk" },
+      });
+      if (!frontDesk) {
+        return res.status(404).json({ message: "Front desk user not found" });
+      }
+
+      const gym = await Gym.findOne({
+        where: { gym_id: frontDesk.gym_id, admin_user_id: req.user.user_id },
+      });
+      if (!gym) {
+        return res.status(403).json({ message: "You do not manage this user's gym" });
+      }
+
+      const updates = {};
+      const allowedFields = ["first_name", "last_name", "phone", "is_active"];
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) updates[field] = req.body[field];
+      }
+
+      if (updates.phone) {
+        const existing = await User.findOne({ where: { phone: updates.phone } });
+        if (existing && existing.user_id !== frontDesk.user_id) {
+          return res.status(409).json({ message: "Phone number already used" });
+        }
+      }
+
+      await frontDesk.update(updates);
+      return res.status(200).json(frontDesk);
+    } catch (err) {
+      return res.status(500).json({ message: "Error updating front desk user: " + err });
+    }
+  },
+
+  deleteFrontDesk: async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const frontDesk = await User.findOne({
+        where: { user_id: userId, role: "front_desk" },
+      });
+      if (!frontDesk) {
+        return res.status(404).json({ message: "Front desk user not found" });
+      }
+
+      const gym = await Gym.findOne({
+        where: { gym_id: frontDesk.gym_id, admin_user_id: req.user.user_id },
+      });
+      if (!gym) {
+        return res.status(403).json({ message: "You do not manage this user's gym" });
+      }
+
+      await frontDesk.update({ is_active: false });
+      return res.status(200).json({ message: "Front desk user deactivated" });
+    } catch (err) {
+      return res.status(500).json({ message: "Error deactivating front desk user: " + err });
+    }
+  },
+
   getAttendanceStats: async (req, res) => {
     try {
       const { gymId } = req.params;

@@ -133,6 +133,15 @@ export function HistorySessionCard({ session }) {
               <ExerciseBlock key={i} exercise={ex} index={i} />
             ))
           )}
+          {session.notes ? (
+            <View style={styles.notesBox}>
+              <View style={styles.notesHeader}>
+                <Ionicons name="create-outline" size={13} color={Colors.primary} />
+                <Text style={styles.notesLabel}>NOTIȚE</Text>
+              </View>
+              <Text style={styles.notesText}>{session.notes}</Text>
+            </View>
+          ) : null}
         </View>
       )}
     </View>
@@ -241,5 +250,33 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.headline,
     fontWeight: "700",
     letterSpacing: -0.3,
+  },
+
+  notesBox: {
+    marginTop: 12,
+    backgroundColor: "rgba(209,255,0,0.05)",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(209,255,0,0.15)",
+    padding: 14,
+    gap: 6,
+  },
+  notesHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  notesLabel: {
+    fontSize: 9,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: 2,
+  },
+  notesText: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.textPrimary,
+    lineHeight: 20,
   },
 });

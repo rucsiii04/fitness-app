@@ -18,6 +18,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { DateSelector } from "./DateSelector";
 import { ClassCard } from "./ClassCard";
 import { EnrollmentCard } from "./EnrollmentCard";
+import { CancelConfirmSheet } from "./CancelConfirmSheet";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -42,7 +43,12 @@ function TabToggle({ active, onChange }) {
           onPress={() => onChange(tab)}
           activeOpacity={0.8}
         >
-          <Text style={[styles.tabBtnText, active === tab && styles.tabBtnTextActive]}>
+          <Text
+            style={[
+              styles.tabBtnText,
+              active === tab && styles.tabBtnTextActive,
+            ]}
+          >
             {tab === "schedule" ? "Schedule" : "My Bookings"}
           </Text>
         </TouchableOpacity>
@@ -54,7 +60,11 @@ function TabToggle({ active, onChange }) {
 function EmptyDay() {
   return (
     <View style={styles.emptyState}>
-      <Ionicons name="barbell-outline" size={40} color={Colors.outlineVariant} />
+      <Ionicons
+        name="barbell-outline"
+        size={40}
+        color={Colors.outlineVariant}
+      />
       <Text style={styles.emptyTitle}>No Classes Today</Text>
       <Text style={styles.emptySubtitle}>
         There are no sessions scheduled for this day. Check another date.
@@ -66,10 +76,15 @@ function EmptyDay() {
 function EmptyEnrollments() {
   return (
     <View style={styles.emptyState}>
-      <Ionicons name="calendar-outline" size={40} color={Colors.outlineVariant} />
+      <Ionicons
+        name="calendar-outline"
+        size={40}
+        color={Colors.outlineVariant}
+      />
       <Text style={styles.emptyTitle}>No Bookings Yet</Text>
       <Text style={styles.emptySubtitle}>
-        You haven't enrolled in any classes yet. Browse the schedule to get started.
+        You haven't enrolled in any classes yet. Browse the schedule to get
+        started.
       </Text>
     </View>
   );
@@ -85,6 +100,8 @@ export default function ClassesScreen() {
   const [loading, setLoading] = useState(true);
   const [enrollmentMap, setEnrollmentMap] = useState({});
   const [busyMap, setBusyMap] = useState({});
+  const [membershipStatus, setMembershipStatus] = useState("none");
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const authHeader = { Authorization: `Bearer ${token}` };
 
@@ -92,7 +109,7 @@ export default function ClassesScreen() {
     useCallback(() => {
       if (!token) return;
       loadAll();
-    }, [token])
+    }, [token]),
   );
 
   const loadAll = async () => {
@@ -100,11 +117,14 @@ export default function ClassesScreen() {
     try {
       const gymId = user?.gym_id;
 
-      const [sessionsRes, enrollmentsRes] = await Promise.all([
+      const [sessionsRes, enrollmentsRes, membershipRes] = await Promise.all([
         gymId
-          ? fetch(`${API_BASE}/classes/gyms/${gymId}/class-sessions`, { headers: authHeader })
+          ? fetch(`${API_BASE}/classes/gyms/${gymId}/class-sessions`, {
+              headers: authHeader,
+            })
           : Promise.resolve(null),
         fetch(`${API_BASE}/classes/enrollments/my`, { headers: authHeader }),
+        fetch(`${API_BASE}/memberships/me/current`, { headers: authHeader }),
       ]);
 
       let sessionsData = [];
@@ -125,6 +145,17 @@ export default function ClassesScreen() {
         }
         setEnrollmentMap(map);
       }
+
+      if (membershipRes.ok) {
+        const mData = await membershipRes.json();
+        setMembershipStatus(
+          mData?.Membership_Type?.includes_group_classes === true
+            ? "ok"
+            : "no_classes",
+        );
+      } else {
+        setMembershipStatus("none");
+      }
     } catch (err) {
       console.error("Load classes error:", err.message);
     } finally {
@@ -140,7 +171,7 @@ export default function ClassesScreen() {
     try {
       const res = await fetch(
         `${API_BASE}/classes/class-sessions/${session.session_id}/enrollments`,
-        { method: "POST", headers: authHeader }
+        { method: "POST", headers: authHeader },
       );
       const body = await res.json();
       if (!res.ok) throw new Error(body.message);
@@ -148,14 +179,17 @@ export default function ClassesScreen() {
       const enrollment = body.enrollment ?? body;
       const waitingPosition = body.waiting_position ?? null;
 
-      setEnrollmentMap((prev) => ({ ...prev, [session.session_id]: enrollment }));
+      setEnrollmentMap((prev) => ({
+        ...prev,
+        [session.session_id]: enrollment,
+      }));
       if (enrollment.status === "confirmed") {
         setSessions((prev) =>
           prev.map((s) =>
             s.session_id === session.session_id
               ? { ...s, confirmed_count: (s.confirmed_count ?? 0) + 1 }
-              : s
-          )
+              : s,
+          ),
         );
       }
       const fullEnrollment = { ...enrollment, Class_Session: session };
@@ -164,7 +198,7 @@ export default function ClassesScreen() {
       if (enrollment.status === "waiting_list") {
         Alert.alert(
           "Added to Waitlist",
-          `This class is full. You are #${waitingPosition} on the waiting list.`
+          `This class is full. You are #${waitingPosition} on the waiting list.`,
         );
       }
     } catch (err) {
@@ -174,98 +208,106 @@ export default function ClassesScreen() {
     }
   };
 
-  const handleCancel = async (session) => {
-    Alert.alert("Cancel Enrollment", "Are you sure you want to cancel?", [
-      { text: "Keep It", style: "cancel" },
-      {
-        text: "Cancel Enrollment",
-        style: "destructive",
-        onPress: async () => {
-          setBusy(session.session_id, true);
-          try {
-            const res = await fetch(
-              `${API_BASE}/classes/class-sessions/${session.session_id}/enrollments`,
-              { method: "DELETE", headers: authHeader }
-            );
-            if (!res.ok) {
-              const data = await res.json();
-              throw new Error(data.message);
-            }
-            const wasConfirmed = enrollmentMap[session.session_id]?.status === "confirmed";
-            setEnrollmentMap((prev) => {
-              const next = { ...prev };
-              delete next[session.session_id];
-              return next;
-            });
-            if (wasConfirmed) {
-              setSessions((prev) =>
-                prev.map((s) =>
-                  s.session_id === session.session_id
-                    ? { ...s, confirmed_count: Math.max(0, (s.confirmed_count ?? 1) - 1) }
-                    : s
-                )
-              );
-            }
-            setMyEnrollments((prev) =>
-              prev.filter((e) => e.session_id !== session.session_id)
-            );
-          } catch (err) {
-            Alert.alert("Error", err.message ?? "Could not cancel.");
-          } finally {
-            setBusy(session.session_id, false);
-          }
-        },
-      },
-    ]);
+  const handleCancel = (session) => {
+    setConfirmTarget({
+      type: "session",
+      data: session,
+      isWaitlist: enrollmentMap[session.session_id]?.status === "waiting_list",
+    });
   };
 
-  const handleCancelFromEnrollments = async (enrollment) => {
-    const sessionId = enrollment.session_id;
-    Alert.alert("Cancel Enrollment", "Are you sure?", [
-      { text: "Keep It", style: "cancel" },
-      {
-        text: "Cancel",
-        style: "destructive",
-        onPress: async () => {
-          setBusy(sessionId, true);
-          try {
-            const res = await fetch(
-              `${API_BASE}/classes/class-sessions/${sessionId}/enrollments`,
-              { method: "DELETE", headers: authHeader }
-            );
-            if (!res.ok) {
-              const data = await res.json();
-              throw new Error(data.message);
-            }
-            setMyEnrollments((prev) =>
-              prev.filter((e) => e.enrollment_id !== enrollment.enrollment_id)
-            );
-            setEnrollmentMap((prev) => {
-              const next = { ...prev };
-              delete next[sessionId];
-              return next;
-            });
-          } catch (err) {
-            Alert.alert("Error", err.message ?? "Could not cancel.");
-          } finally {
-            setBusy(sessionId, false);
-          }
-        },
-      },
-    ]);
+  const handleCancelFromEnrollments = (enrollment) => {
+    setConfirmTarget({
+      type: "enrollment",
+      data: enrollment,
+      isWaitlist: enrollment.status === "waiting_list",
+    });
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!confirmTarget) return;
+    const { type, data } = confirmTarget;
+    setConfirmTarget(null);
+
+    if (type === "session") {
+      const session = data;
+      setBusy(session.session_id, true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/classes/class-sessions/${session.session_id}/enrollments`,
+          { method: "DELETE", headers: authHeader },
+        );
+        if (!res.ok) {
+          const body = await res.json();
+          throw new Error(body.message);
+        }
+        const wasConfirmed =
+          enrollmentMap[session.session_id]?.status === "confirmed";
+        setEnrollmentMap((prev) => {
+          const next = { ...prev };
+          delete next[session.session_id];
+          return next;
+        });
+        if (wasConfirmed) {
+          setSessions((prev) =>
+            prev.map((s) =>
+              s.session_id === session.session_id
+                ? {
+                    ...s,
+                    confirmed_count: Math.max(0, (s.confirmed_count ?? 1) - 1),
+                  }
+                : s,
+            ),
+          );
+        }
+        setMyEnrollments((prev) =>
+          prev.filter((e) => e.session_id !== session.session_id),
+        );
+      } catch (err) {
+        Alert.alert("Error", err.message ?? "Could not cancel.");
+      } finally {
+        setBusy(session.session_id, false);
+      }
+    } else {
+      const enrollment = data;
+      const sessionId = enrollment.session_id;
+      setBusy(sessionId, true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/classes/class-sessions/${sessionId}/enrollments`,
+          { method: "DELETE", headers: authHeader },
+        );
+        if (!res.ok) {
+          const body = await res.json();
+          throw new Error(body.message);
+        }
+        setMyEnrollments((prev) =>
+          prev.filter((e) => e.enrollment_id !== enrollment.enrollment_id),
+        );
+        setEnrollmentMap((prev) => {
+          const next = { ...prev };
+          delete next[sessionId];
+          return next;
+        });
+      } catch (err) {
+        Alert.alert("Error", err.message ?? "Could not cancel.");
+      } finally {
+        setBusy(sessionId, false);
+      }
+    }
   };
 
   // Filter sessions for the selected date
   const sessionsForDay = sessions.filter((s) =>
-    isSameDay(new Date(s.start_datetime), selectedDate)
+    isSameDay(new Date(s.start_datetime), selectedDate),
   );
 
   const upcomingEnrollments = myEnrollments.filter((e) =>
-    ["confirmed", "waiting_list"].includes(e.status)
+    ["confirmed", "waiting_list"].includes(e.status),
   );
 
   const historyEnrollments = myEnrollments.filter((e) =>
-    ["attended", "no_show", "cancelled"].includes(e.status)
+    ["attended", "no_show", "cancelled"].includes(e.status),
   );
 
   if (!user?.gym_id && !loading) {
@@ -276,7 +318,11 @@ export default function ClassesScreen() {
             <Text style={styles.headerTitle}>Classes</Text>
           </View>
           <View style={styles.centered}>
-            <Ionicons name="card-outline" size={40} color={Colors.outlineVariant} />
+            <Ionicons
+              name="card-outline"
+              size={40}
+              color={Colors.outlineVariant}
+            />
             <Text style={styles.emptyTitle}>No Gym Membership</Text>
             <Text style={styles.emptySubtitle}>
               You need an active membership to view and book classes.
@@ -291,9 +337,11 @@ export default function ClassesScreen() {
     <ScreenBackground>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.header}>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Classes</Text>
-            <Text style={styles.headerSub}>Elevate your baseline performance</Text>
+            <Text style={styles.headerSub}>
+              Elevate your baseline performance
+            </Text>
           </View>
           <TabToggle active={activeTab} onChange={setActiveTab} />
         </View>
@@ -320,6 +368,7 @@ export default function ClassesScreen() {
                   onEnroll={() => handleEnroll(item)}
                   onCancel={() => handleCancel(item)}
                   busy={!!busyMap[item.session_id]}
+                  membershipStatus={membershipStatus}
                 />
               )}
             />
@@ -329,7 +378,8 @@ export default function ClassesScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           >
-            {upcomingEnrollments.length === 0 && historyEnrollments.length === 0 ? (
+            {upcomingEnrollments.length === 0 &&
+            historyEnrollments.length === 0 ? (
               <EmptyEnrollments />
             ) : (
               <>
@@ -337,7 +387,10 @@ export default function ClassesScreen() {
                   <>
                     <Text style={styles.sectionLabel}>Upcoming</Text>
                     {upcomingEnrollments.map((item, i) => (
-                      <View key={String(item.enrollment_id)} style={i > 0 && { marginTop: 10 }}>
+                      <View
+                        key={String(item.enrollment_id)}
+                        style={i > 0 && { marginTop: 10 }}
+                      >
                         <EnrollmentCard
                           enrollment={item}
                           onCancel={() => handleCancelFromEnrollments(item)}
@@ -349,11 +402,19 @@ export default function ClassesScreen() {
                 )}
                 {historyEnrollments.length > 0 && (
                   <>
-                    <Text style={[styles.sectionLabel, upcomingEnrollments.length > 0 && { marginTop: 28 }]}>
+                    <Text
+                      style={[
+                        styles.sectionLabel,
+                        upcomingEnrollments.length > 0 && { marginTop: 28 },
+                      ]}
+                    >
                       History
                     </Text>
                     {historyEnrollments.map((item, i) => (
-                      <View key={String(item.enrollment_id)} style={i > 0 && { marginTop: 10 }}>
+                      <View
+                        key={String(item.enrollment_id)}
+                        style={i > 0 && { marginTop: 10 }}
+                      >
                         <EnrollmentCard
                           enrollment={item}
                           onCancel={() => handleCancelFromEnrollments(item)}
@@ -369,19 +430,32 @@ export default function ClassesScreen() {
           </ScrollView>
         )}
       </SafeAreaView>
+
+      <CancelConfirmSheet
+        visible={confirmTarget !== null}
+        isWaitlist={confirmTarget?.isWaitlist ?? false}
+        onConfirm={handleConfirmCancel}
+        onClose={() => setConfirmTarget(null)}
+      />
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+    gap: 12,
+  },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingLeft: 20,
+    paddingRight: 16,
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
@@ -411,7 +485,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
   },
   tabBtn: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 9,
   },
@@ -423,7 +497,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     fontWeight: "700",
     color: Colors.onSurfaceVariant,
-    letterSpacing: 0.5,
+    letterSpacing: 0,
     textTransform: "uppercase",
   },
   tabBtnTextActive: { color: Colors.primary },

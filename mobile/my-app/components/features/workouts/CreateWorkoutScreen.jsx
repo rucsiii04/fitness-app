@@ -28,9 +28,10 @@ const DIFFICULTIES = [
 ];
 
 export default function CreateWorkoutScreen() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const { clientId, clientName } = useLocalSearchParams();
+  const isPublicZone = user?.role === "trainer" && !clientId;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -40,10 +41,16 @@ export default function CreateWorkoutScreen() {
   const [saving, setSaving] = useState(false);
 
   const handleExercisesConfirmed = (selectedExercises) => {
-    // Merge: preserve sets/reps for already-added, default for new
     const merged = selectedExercises.map((ex) => {
       const existing = exercises.find((e) => e.exercise_id === ex.exercise_id);
-      return existing ?? { exercise_id: ex.exercise_id, exercise: ex, sets: "3", reps: "10" };
+      return (
+        existing ?? {
+          exercise_id: ex.exercise_id,
+          exercise: ex,
+          sets: "3",
+          reps: "10",
+        }
+      );
     });
     setExercises(merged);
     setSheetVisible(false);
@@ -51,7 +58,7 @@ export default function CreateWorkoutScreen() {
 
   const updateExercise = (index, field, value) => {
     setExercises((prev) =>
-      prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex))
+      prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex)),
     );
   };
 
@@ -66,7 +73,6 @@ export default function CreateWorkoutScreen() {
     }
     setSaving(true);
     try {
-      // 1. Create workout
       const workoutRes = await fetch(`${API_BASE}/workouts`, {
         method: "POST",
         headers: {
@@ -77,7 +83,7 @@ export default function CreateWorkoutScreen() {
           name: name.trim(),
           description: description.trim() || undefined,
           difficulty_level: difficulty,
-          is_public: false,
+          is_public: isPublicZone,
           ...(clientId ? { assigned_to_user_id: Number(clientId) } : {}),
         }),
       });
@@ -119,10 +125,19 @@ export default function CreateWorkoutScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.headerBtn}
+          >
             <Ionicons name="arrow-back" size={22} color={Colors.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{clientName ? `PENTRU ${clientName.toUpperCase().split(" ")[0]}` : "NEW WORKOUT"}</Text>
+          <Text style={styles.headerTitle}>
+            {clientName
+              ? `PENTRU ${clientName.toUpperCase().split(" ")[0]}`
+              : isPublicZone
+                ? "PUBLIC WORKOUT"
+                : "NEW WORKOUT"}
+          </Text>
           <TouchableOpacity
             onPress={handleSave}
             disabled={saving}
@@ -141,11 +156,23 @@ export default function CreateWorkoutScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Client banner */}
           {clientName ? (
             <View style={styles.clientBanner}>
-              <Ionicons name="person-circle-outline" size={16} color={Colors.secondary} />
-              <Text style={styles.clientBannerText}>Antrenament pentru {clientName}</Text>
+              <Ionicons
+                name="person-circle-outline"
+                size={16}
+                color={Colors.secondary}
+              />
+              <Text style={styles.clientBannerText}>
+                Antrenament pentru {clientName}
+              </Text>
+            </View>
+          ) : isPublicZone ? (
+            <View style={styles.publicBanner}>
+              <Ionicons name="globe-outline" size={16} color={Colors.primary} />
+              <Text style={styles.publicBannerText}>
+                Vizibil pentru toată lumea de pe aplicație
+              </Text>
             </View>
           ) : null}
 
@@ -162,7 +189,6 @@ export default function CreateWorkoutScreen() {
             />
           </View>
 
-          {/* Description */}
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>DESCRIPTION</Text>
             <TextInput
@@ -184,11 +210,19 @@ export default function CreateWorkoutScreen() {
               {DIFFICULTIES.map((d) => (
                 <TouchableOpacity
                   key={d.key}
-                  style={[styles.diffBtn, difficulty === d.key && styles.diffBtnActive]}
+                  style={[
+                    styles.diffBtn,
+                    difficulty === d.key && styles.diffBtnActive,
+                  ]}
                   onPress={() => setDifficulty(d.key)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.diffLabel, difficulty === d.key && styles.diffLabelActive]}>
+                  <Text
+                    style={[
+                      styles.diffLabel,
+                      difficulty === d.key && styles.diffLabelActive,
+                    ]}
+                  >
                     {d.label}
                   </Text>
                 </TouchableOpacity>
@@ -216,20 +250,22 @@ export default function CreateWorkoutScreen() {
             />
           ))}
 
-          {/* Add exercise button */}
           <TouchableOpacity
             style={styles.addExBtn}
             onPress={() => setSheetVisible(true)}
             activeOpacity={0.8}
           >
-            <Ionicons name="add-circle-outline" size={22} color={Colors.primary} />
+            <Ionicons
+              name="add-circle-outline"
+              size={22}
+              color={Colors.primary}
+            />
             <Text style={styles.addExText}>ADD EXERCISE</Text>
           </TouchableOpacity>
 
           <View style={{ height: 120 }} />
         </ScrollView>
 
-        {/* Bottom save button */}
         <View style={styles.bottomBar}>
           <TouchableOpacity
             style={[styles.launchBtn, saving && { opacity: 0.6 }]}
@@ -272,6 +308,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     fontWeight: "700",
     color: Colors.secondary,
+  },
+  publicBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(209,255,0,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(209,255,0,0.2)",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  publicBannerText: {
+    fontSize: 13,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
   },
   header: {
     flexDirection: "row",

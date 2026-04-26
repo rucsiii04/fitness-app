@@ -3,5 +3,5 @@ import CoachScreen from "@/components/features/aiCoach/CoachScreen";
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams();
-  return <CoachScreen conversationId={Number(id)} />;
+  return <CoachScreen conversationId={id === "new" ? null : Number(id)} />;
 }

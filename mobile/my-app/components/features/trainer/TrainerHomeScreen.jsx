@@ -15,7 +15,10 @@ import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
-import { fetchDashboardStats, fetchClientsWithDetails } from "@/services/trainerDashboardService";
+import {
+  fetchDashboardStats,
+  fetchClientsWithDetails,
+} from "@/services/trainerDashboardService";
 
 const GOAL_LABELS = {
   lose_weight: "Slăbire",
@@ -43,10 +46,14 @@ function pluralClasses(n) {
 function ClientMiniCard({ client, lastSession }) {
   const profile = client.Client_Profile;
   const goal = profile?.main_goal;
-  const initials = `${client.first_name?.[0] ?? ""}${client.last_name?.[0] ?? ""}`.toUpperCase();
+  const initials =
+    `${client.first_name?.[0] ?? ""}${client.last_name?.[0] ?? ""}`.toUpperCase();
 
   const lastSessionText = lastSession
-    ? new Date(lastSession).toLocaleDateString("ro-RO", { day: "2-digit", month: "short" })
+    ? new Date(lastSession).toLocaleDateString("ro-RO", {
+        day: "2-digit",
+        month: "short",
+      })
     : null;
 
   return (
@@ -55,10 +62,19 @@ function ClientMiniCard({ client, lastSession }) {
         <Text style={styles.clientAvatarText}>{initials}</Text>
       </View>
       <View style={styles.clientInfo}>
-        <Text style={styles.clientName}>{client.first_name} {client.last_name}</Text>
+        <Text style={styles.clientName}>
+          {client.first_name} {client.last_name}
+        </Text>
         {goal ? (
-          <View style={[styles.goalBadge, { backgroundColor: GOAL_COLORS[goal] + "22" }]}>
-            <Text style={[styles.goalText, { color: GOAL_COLORS[goal] }]}>{GOAL_LABELS[goal]}</Text>
+          <View
+            style={[
+              styles.goalBadge,
+              { backgroundColor: GOAL_COLORS[goal] + "22" },
+            ]}
+          >
+            <Text style={[styles.goalText, { color: GOAL_COLORS[goal] }]}>
+              {GOAL_LABELS[goal]}
+            </Text>
           </View>
         ) : null}
       </View>
@@ -89,7 +105,9 @@ function TrainerBarChart({ data }) {
                 ]}
               />
             </View>
-            <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{DAYS[i]}</Text>
+            <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>
+              {DAYS[i]}
+            </Text>
           </View>
         );
       })}
@@ -113,9 +131,7 @@ export default function TrainerHomeScreen() {
       ]);
       setStats(s);
       setClients(c);
-    } catch {
-      /* silent */
-    }
+    } catch {}
   }, [token]);
 
   useFocusEffect(
@@ -137,16 +153,50 @@ export default function TrainerHomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.logoText}>KINETIC</Text>
-          <TouchableOpacity onPress={() => router.push("/(trainer)/profile")} style={styles.headerIcon}>
-            <Ionicons name="settings-outline" size={22} color={Colors.onSurfaceVariant} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => router.push("/workout/schedule")}
+              style={styles.headerIcon}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/workout/public-zone")}
+              style={styles.headerIcon}
+            >
+              <Ionicons
+                name="compass-outline"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/(trainer)/profile")}
+              style={styles.headerIcon}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.welcomeSection}>
             <Text style={styles.greeting}>
               Bun venit,{"\n"}
-              <Text style={styles.greetingName}>{user?.first_name ?? "Antrenor"}.</Text>
+              <Text style={styles.greetingName}>
+                {user?.first_name ?? "Antrenor"}.
+              </Text>
             </Text>
           </View>
 
@@ -156,13 +206,20 @@ export default function TrainerHomeScreen() {
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
-              <Text style={styles.heroValue}>{stats ? activeClients : "—"}</Text>
+              <Text style={styles.heroValue}>
+                {stats ? activeClients : "—"}
+              </Text>
               <Text style={styles.heroLabel}>
                 {stats ? pluralClients(activeClients) : "Clienți Activi"}
               </Text>
             </View>
             <View style={styles.heroSideCol}>
-              <View style={[styles.heroSmallCard, { backgroundColor: Colors.error + "18" }]}>
+              <View
+                style={[
+                  styles.heroSmallCard,
+                  { backgroundColor: Colors.error + "18" },
+                ]}
+              >
                 <Ionicons name="mail-outline" size={18} color={Colors.error} />
                 <Text style={[styles.heroSmallValue, { color: Colors.error }]}>
                   {stats ? pendingRequests : "—"}
@@ -171,9 +228,20 @@ export default function TrainerHomeScreen() {
                   {stats ? pluralRequests(pendingRequests) : "Cereri"}
                 </Text>
               </View>
-              <View style={[styles.heroSmallCard, { backgroundColor: Colors.secondary + "18" }]}>
-                <Ionicons name="calendar-outline" size={18} color={Colors.secondary} />
-                <Text style={[styles.heroSmallValue, { color: Colors.secondary }]}>
+              <View
+                style={[
+                  styles.heroSmallCard,
+                  { backgroundColor: Colors.secondary + "18" },
+                ]}
+              >
+                <Ionicons
+                  name="calendar-outline"
+                  size={18}
+                  color={Colors.secondary}
+                />
+                <Text
+                  style={[styles.heroSmallValue, { color: Colors.secondary }]}
+                >
                   {stats ? classesToday : "—"}
                 </Text>
                 <Text style={styles.heroSmallLabel}>
@@ -197,18 +265,37 @@ export default function TrainerHomeScreen() {
             <Text style={styles.cardTitle}>Clienții Mei</Text>
             {clients.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="people-outline" size={32} color={Colors.textMuted} />
+                <Ionicons
+                  name="people-outline"
+                  size={32}
+                  color={Colors.textMuted}
+                />
                 <Text style={styles.emptyText}>Niciun client activ</Text>
               </View>
             ) : (
-              clients.slice(0, 5).map((item) => (
-                <ClientMiniCard key={item.assignment_id} client={item.client} lastSession={item.last_session} />
-              ))
+              clients
+                .slice(0, 5)
+                .map((item) => (
+                  <ClientMiniCard
+                    key={item.assignment_id}
+                    client={item.client}
+                    lastSession={item.last_session}
+                  />
+                ))
             )}
             {clients.length > 5 && (
-              <TouchableOpacity onPress={() => router.push("/(trainer)/clients")} style={styles.viewAllBtn}>
-                <Text style={styles.viewAllText}>Vezi toți ({clients.length})</Text>
-                <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+              <TouchableOpacity
+                onPress={() => router.push("/(trainer)/clients")}
+                style={styles.viewAllBtn}
+              >
+                <Text style={styles.viewAllText}>
+                  Vezi toți ({clients.length})
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={Colors.primary}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -238,6 +325,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     letterSpacing: -1,
   },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
   headerIcon: { padding: 6 },
   scroll: { paddingHorizontal: 20, gap: 16 },
   welcomeSection: { paddingTop: 24, paddingBottom: 4 },
@@ -261,7 +349,12 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     minHeight: 140,
   },
-  liveIndicator: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 },
+  liveIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+  },
   liveDot: {
     width: 8,
     height: 8,
@@ -316,7 +409,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderSubtle,
     gap: 16,
   },
-  cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   cardTitle: {
     fontSize: 14,
     fontWeight: "700",

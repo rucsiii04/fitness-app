@@ -57,6 +57,27 @@ router.delete(
   controllers.adminController.deleteTrainer
 )
 
+router.post(
+  "/front-desk",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.createFrontDesk
+)
+
+router.put(
+  "/front-desk/:userId",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.updateFrontDesk
+)
+
+router.delete(
+  "/front-desk/:userId",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.deleteFrontDesk
+)
+
 router.get("/gyms/all", verifyToken, controllers.adminController.getAllGyms)
 
 router.put(

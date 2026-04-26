@@ -30,11 +30,14 @@ export async function fetchTrainerInbox(token) {
 }
 
 export async function respondToRequest(requestId, action, token) {
-  const res = await fetch(`${API_BASE}/trainer/trainer-assignments/${requestId}`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-    body: JSON.stringify({ action }),
-  });
+  const res = await fetch(
+    `${API_BASE}/trainer/trainer-assignments/${requestId}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify({ action }),
+    },
+  );
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? "Failed to respond");
   return body;
@@ -57,7 +60,11 @@ export async function updateTrainerProfile(data, imageUri, token) {
   if (imageUri) {
     const filename = imageUri.split("/").pop();
     const ext = /\.(\w+)$/.exec(filename)?.[1] ?? "jpg";
-    form.append("image", { uri: imageUri, name: filename, type: `image/${ext}` });
+    form.append("image", {
+      uri: imageUri,
+      name: filename,
+      type: `image/${ext}`,
+    });
   }
   const res = await fetch(`${API_BASE}/trainer/profil`, {
     method: "PUT",
@@ -70,19 +77,69 @@ export async function updateTrainerProfile(data, imageUri, token) {
 }
 
 export async function fetchClientWorkouts(clientId, token) {
-  const res = await fetch(`${API_BASE}/trainer/me/clients/${clientId}/workouts`, {
-    headers: authHeaders(token),
-  });
+  const res = await fetch(
+    `${API_BASE}/trainer/me/clients/${clientId}/workouts`,
+    {
+      headers: authHeaders(token),
+    },
+  );
   if (!res.ok) throw new Error("Failed to load client workouts");
   return res.json();
 }
 
 export async function endTrainingWithClient(clientId, token) {
-  const res = await fetch(`${API_BASE}/trainer/trainer-assignments/end/${clientId}`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-  });
+  const res = await fetch(
+    `${API_BASE}/trainer/trainer-assignments/end/${clientId}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(token),
+    },
+  );
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? "Failed to end training");
+  return body;
+}
+
+export async function fetchMyPublicWorkouts(token) {
+  const res = await fetch(`${API_BASE}/workouts`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Failed to load workouts");
+  const all = await res.json();
+  return Array.isArray(all) ? all.filter((w) => w.is_public) : [];
+}
+
+export async function deleteWorkout(workoutId, token) {
+  const res = await fetch(`${API_BASE}/workouts/${workoutId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Failed to delete workout");
+}
+
+export async function fetchGymSessions(gymId, token) {
+  const res = await fetch(`${API_BASE}/classes/gyms/${gymId}/class-sessions`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Failed to load sessions");
+  return res.json();
+}
+
+export async function fetchGymClassTypes(gymId, token) {
+  const res = await fetch(`${API_BASE}/classes/gyms/${gymId}/class-types`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Failed to load class types");
+  return res.json();
+}
+
+export async function createGymClassSession(data, token) {
+  const res = await fetch(`${API_BASE}/classes/class-sessions`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(data),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message ?? "Failed to create session");
   return body;
 }

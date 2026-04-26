@@ -3,7 +3,9 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import {
   getTrainersByGym,
   createTrainer,
+  createFrontDesk,
   deleteTrainer,
+  deleteFrontDesk,
 } from "../../api/gymAdmin.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import TopBar from "../../components/layout/TopBar.jsx";
@@ -27,6 +29,7 @@ export default function AdminStaff() {
     first_name: "",
     last_name: "",
     phone: "",
+    role: "trainer",
   });
 
   const gymId = user?.gym_id;
@@ -49,24 +52,33 @@ export default function AdminStaff() {
   const handleInvite = async (e) => {
     e.preventDefault();
     try {
-      await createTrainer({ ...form, gym_id: gymId });
-      toast("Trainer invited");
+      const payload = { ...form, gym_id: gymId };
+      if (form.role === "front_desk") {
+        await createFrontDesk(payload);
+      } else {
+        await createTrainer(payload);
+      }
+      toast("Invitație trimisă");
       setInviteOpen(false);
-      setForm({ email: "", first_name: "", last_name: "", phone: "" });
+      setForm({ email: "", first_name: "", last_name: "", phone: "", role: "trainer" });
       load();
     } catch (err) {
-      toast(err.response?.data?.message || "Failed to invite", "coral");
+      toast(err.response?.data?.message || "Eroare la trimiterea invitației", "coral");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Remove this trainer from the gym?")) return;
+  const handleDelete = async (id, role) => {
+    if (!window.confirm("Elimini acest angajat din sală?")) return;
     try {
-      await deleteTrainer(id);
-      toast("Trainer removed");
+      if (role === "front_desk") {
+        await deleteFrontDesk(id);
+      } else {
+        await deleteTrainer(id);
+      }
+      toast("Angajat dezactivat");
       load();
     } catch (err) {
-      toast(err.response?.data?.message || "Failed", "coral");
+      toast(err.response?.data?.message || "Eroare", "coral");
     }
   };
 
@@ -260,7 +272,7 @@ export default function AdminStaff() {
               >
                 <Pill tone="green">Activ</Pill>
                 <button
-                  onClick={() => handleDelete(s.user_id)}
+                  onClick={() => handleDelete(s.user_id, s.role)}
                   style={{ color: "var(--text-dim)", padding: 4 }}
                 >
                   <I.trash width={14} height={14} />
@@ -326,6 +338,36 @@ export default function AdminStaff() {
                 setForm((f) => ({ ...f, phone: e.target.value }))
               }
             />
+          </Field>
+          <Field label="Rol">
+            <div style={{ display: "flex", gap: 8 }}>
+              {[
+                { value: "trainer", label: "Antrenor" },
+                { value: "front_desk", label: "Recepționer" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, role: opt.value }))}
+                  style={{
+                    flex: 1,
+                    padding: "10px 0",
+                    borderRadius: 10,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: "var(--display)",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    background: form.role === opt.value ? "var(--accent)" : "transparent",
+                    color: form.role === opt.value ? "var(--accent-ink)" : "var(--text-muted)",
+                    border: `1px solid ${form.role === opt.value ? "var(--accent)" : "var(--border-strong)"}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </Field>
           <div
             style={{

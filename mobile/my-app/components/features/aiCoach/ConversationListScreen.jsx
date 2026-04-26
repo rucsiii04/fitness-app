@@ -34,16 +34,26 @@ const relativeTime = (dateString) => {
 
 function ConversationItem({ item, onPress, onDelete }) {
   return (
-    <TouchableOpacity style={styles.item} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={styles.item}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
       <View style={styles.itemIcon}>
-        <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.primary} />
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={18}
+          color={Colors.primary}
+        />
       </View>
 
       <View style={styles.itemBody}>
         <Text style={styles.itemTitle} numberOfLines={1}>
           {item.preview ?? "New conversation"}
         </Text>
-        <Text style={styles.itemMeta}>{relativeTime(item.last_activity_at)}</Text>
+        <Text style={styles.itemMeta}>
+          {relativeTime(item.last_activity_at)}
+        </Text>
       </View>
 
       <View style={styles.itemRight}>
@@ -74,9 +84,14 @@ function EmptyState({ onNewChat }) {
       </View>
       <Text style={styles.emptyTitle}>No chats yet</Text>
       <Text style={styles.emptySubtitle}>
-        Start a conversation with your AI coach to get personalized workout plans and fitness advice.
+        Start a conversation with your AI coach to get personalized workout
+        plans and fitness advice.
       </Text>
-      <TouchableOpacity style={styles.emptyButton} onPress={onNewChat} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={styles.emptyButton}
+        onPress={onNewChat}
+        activeOpacity={0.85}
+      >
         <Text style={styles.emptyButtonText}>Start First Chat</Text>
         <Ionicons name="arrow-forward" size={14} color={Colors.background} />
       </TouchableOpacity>
@@ -89,13 +104,12 @@ export default function ConversationListScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
       loadConversations();
-    }, [token])
+    }, [token]),
   );
 
   const loadConversations = async () => {
@@ -123,29 +137,23 @@ export default function ConversationListScreen() {
             try {
               await chatService.deleteConversation(token, item.conversation_id);
               setConversations((prev) =>
-                prev.filter((c) => c.conversation_id !== item.conversation_id)
+                prev.filter((c) => c.conversation_id !== item.conversation_id),
               );
             } catch (err) {
               console.error("Delete error:", err.message);
-              Alert.alert("Error", "Could not delete the chat. Please try again.");
+              Alert.alert(
+                "Error",
+                "Could not delete the chat. Please try again.",
+              );
             }
           },
         },
-      ]
+      ],
     );
   };
 
-  const handleNewChat = async () => {
-    if (creating) return;
-    setCreating(true);
-    try {
-      const conv = await chatService.startConversation(token);
-      router.push(`/coach/${conv.conversation_id}`);
-    } catch (err) {
-      console.error("New chat error:", err.message);
-    } finally {
-      setCreating(false);
-    }
+  const handleNewChat = () => {
+    router.push("/coach/new");
   };
 
   return (
@@ -163,19 +171,12 @@ export default function ConversationListScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.newChatBtn, creating && styles.newChatBtnDisabled]}
+            style={styles.newChatBtn}
             onPress={handleNewChat}
-            disabled={creating}
             activeOpacity={0.85}
           >
-            {creating ? (
-              <ActivityIndicator size="small" color={Colors.background} />
-            ) : (
-              <>
-                <Ionicons name="add" size={16} color={Colors.background} />
-                <Text style={styles.newChatBtnText}>New Chat</Text>
-              </>
-            )}
+            <Ionicons name="add" size={16} color={Colors.background} />
+            <Text style={styles.newChatBtnText}>New Chat</Text>
           </TouchableOpacity>
         </View>
 
@@ -196,9 +197,7 @@ export default function ConversationListScreen() {
             )}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-            ItemSeparatorComponent={() => (
-              <View style={styles.separator} />
-            )}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
             ListEmptyComponent={<EmptyState onNewChat={handleNewChat} />}
           />
         )}

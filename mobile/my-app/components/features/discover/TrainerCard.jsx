@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -9,11 +10,60 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
-function Avatar({ firstName, lastName }) {
+function Avatar({ firstName, lastName, imageUrl }) {
+  if (imageUrl) {
+    return (
+      <Image
+        source={{ uri: imageUrl }}
+        style={styles.avatar}
+        resizeMode="cover"
+      />
+    );
+  }
   const initials = (firstName?.[0] ?? "") + (lastName?.[0] ?? "");
   return (
     <View style={styles.avatar}>
       <Text style={styles.avatarText}>{initials.toUpperCase()}</Text>
+    </View>
+  );
+}
+
+function BioSection({ bio }) {
+  const [expanded, setExpanded] = useState(false);
+  const [truncated, setTruncated] = useState(false);
+
+  const onTextLayout = useCallback((e) => {
+    setTruncated(e.nativeEvent.lines.length > 2);
+  }, []);
+
+  if (!bio) return null;
+
+  return (
+    <View style={styles.bioContainer}>
+      {!expanded && (
+        <Text
+          style={[styles.bio, styles.measurer]}
+          numberOfLines={0}
+          onTextLayout={onTextLayout}
+          aria-hidden
+        >
+          {bio}
+        </Text>
+      )}
+      <Text style={styles.bio} numberOfLines={expanded ? undefined : 2}>
+        {bio}
+      </Text>
+      {truncated && (
+        <TouchableOpacity
+          onPress={() => setExpanded((v) => !v)}
+          hitSlop={8}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.showMore}>
+            {expanded ? "show less" : "show more..."}
+          </Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -28,6 +78,7 @@ export function TrainerCard({
 }) {
   const isAccepted = requestStatus === "accepted";
   const isPending = requestStatus === "pending";
+  const profile = trainer.trainer_profile;
 
   const renderAction = () => {
     if (isAccepted) {
@@ -42,7 +93,11 @@ export function TrainerCard({
             <ActivityIndicator size="small" color={Colors.error} />
           ) : (
             <>
-              <Ionicons name="close-circle-outline" size={14} color={Colors.error} />
+              <Ionicons
+                name="close-circle-outline"
+                size={14}
+                color={Colors.error}
+              />
               <Text style={styles.endBtnText}>ÎNCHEIE COLABORAREA</Text>
             </>
           )}
@@ -53,7 +108,11 @@ export function TrainerCard({
     if (isPending) {
       return (
         <View style={styles.pendingBtn}>
-          <Ionicons name="hourglass-outline" size={14} color={Colors.tertiary} />
+          <Ionicons
+            name="hourglass-outline"
+            size={14}
+            color={Colors.tertiary}
+          />
           <Text style={styles.pendingBtnText}>REQUEST TRIMIS</Text>
         </View>
       );
@@ -85,15 +144,32 @@ export function TrainerCard({
   return (
     <View style={[styles.card, isAccepted && styles.cardActive]}>
       <View style={styles.row}>
-        <Avatar firstName={trainer.first_name} lastName={trainer.last_name} />
+        <Avatar
+          firstName={trainer.first_name}
+          lastName={trainer.last_name}
+          imageUrl={profile?.image_url ?? null}
+        />
 
         <View style={styles.info}>
           <Text style={styles.name}>
             {trainer.first_name} {trainer.last_name}
           </Text>
-          <Text style={styles.email} numberOfLines={1}>
-            {trainer.email}
-          </Text>
+          <Text style={styles.email}>{trainer.email}</Text>
+          {profile?.specialization ? (
+            <View style={styles.specRow}>
+              <Ionicons
+                name="barbell-outline"
+                size={11}
+                color={Colors.onSurfaceVariant}
+              />
+              <Text style={styles.specText} numberOfLines={1}>
+                {profile.specialization}
+                {profile.experience_years
+                  ? ` · ${profile.experience_years} ani exp.`
+                  : ""}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.badgeContainer}>
@@ -104,12 +180,18 @@ export function TrainerCard({
             </View>
           ) : (
             <View style={styles.trainerBadge}>
-              <Ionicons name="barbell-outline" size={10} color={Colors.secondary} />
+              <Ionicons
+                name="barbell-outline"
+                size={10}
+                color={Colors.secondary}
+              />
               <Text style={styles.trainerBadgeText}>TRAINER</Text>
             </View>
           )}
         </View>
       </View>
+
+      <BioSection bio={profile?.bio} />
 
       {renderAction()}
     </View>
@@ -142,6 +224,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
+    overflow: "hidden",
   },
   avatarText: {
     fontSize: 18,
@@ -165,6 +248,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.body,
     color: Colors.onSurfaceVariant,
+  },
+  specRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 1,
+  },
+  specText: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    flex: 1,
   },
   badgeContainer: { flexShrink: 0 },
   trainerBadge: {
@@ -204,6 +299,28 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.primary,
     letterSpacing: 1,
+  },
+
+  bioContainer: {
+    gap: 4,
+  },
+  bio: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 19,
+  },
+  measurer: {
+    position: "absolute",
+    opacity: 0,
+    pointerEvents: "none",
+  },
+  showMore: {
+    fontSize: 12,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    marginTop: 2,
   },
 
   requestBtn: {

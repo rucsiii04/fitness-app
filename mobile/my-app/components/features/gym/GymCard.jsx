@@ -12,7 +12,7 @@ function isGymOpen(opening_time, closing_time) {
   return cur >= oh * 60 + om && cur <= ch * 60 + cm;
 }
 
-export function GymCard({ gym, onPress }) {
+export function GymCard({ gym, onPress, onView }) {
   const open = isGymOpen(gym.opening_time, gym.closing_time);
 
   return (
@@ -55,14 +55,26 @@ export function GymCard({ gym, onPress }) {
 
         <View style={styles.bottomRow}>
           <View style={styles.hoursRow}>
-            <Ionicons name="time-outline" size={12} color={Colors.onSurfaceVariant} />
+            <Ionicons
+              name="time-outline"
+              size={12}
+              color={Colors.onSurfaceVariant}
+            />
             <Text style={styles.hoursText}>
               {gym.opening_time} – {gym.closing_time}
             </Text>
           </View>
-          <TouchableOpacity style={styles.viewBtn} onPress={onPress} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.viewBtn}
+            onPress={onView ?? onPress}
+            activeOpacity={0.85}
+          >
             <Text style={styles.viewBtnText}>VIEW</Text>
-            <Ionicons name="chevron-forward" size={12} color={Colors.background} />
+            <Ionicons
+              name="chevron-forward"
+              size={12}
+              color={Colors.background}
+            />
           </TouchableOpacity>
         </View>
       </View>

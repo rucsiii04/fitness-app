@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +19,7 @@ import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { ExerciseHeader } from "./ExerciseHeader";
 import { SetTable } from "./SetTable";
 import { RestTimer } from "./RestTimer";
+import { WorkoutNotesModal } from "./WorkoutNotesModal";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -105,6 +105,7 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
   const [showRest, setShowRest] = useState(false);
   const [restKey, setRestKey] = useState(0);
   const [setsMap, setSetsMap] = useState({});
+  const [notesModalVisible, setNotesModalVisible] = useState(false);
 
   const startedAtRef = useRef(
     activeSession?.started_at
@@ -291,23 +292,23 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
   };
 
   const handleFinish = () => {
-    Alert.alert("Termină antrenamentul", "Ești sigur că vrei să termini?", [
-      { text: "Anulează", style: "cancel" },
-      {
-        text: "Termină",
-        style: "destructive",
-        onPress: async () => {
-          if (sessionId) {
-            await fetch(`${API_BASE}/workout-sessions/${sessionId}/finish`, {
-              method: "PUT",
-              headers: { Authorization: `Bearer ${token}` },
-            }).catch(console.error);
-          }
-          setActiveSession(null);
-          router.back();
+    setNotesModalVisible(true);
+  };
+
+  const handleConfirmFinish = async (notes) => {
+    setNotesModalVisible(false);
+    if (sessionId) {
+      await fetch(`${API_BASE}/workout-sessions/${sessionId}/finish`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
-      },
-    ]);
+        body: JSON.stringify({ notes: notes || undefined }),
+      }).catch(console.error);
+    }
+    setActiveSession(null);
+    router.back();
   };
 
   if (!fontsLoaded) return null;
@@ -404,6 +405,11 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+      <WorkoutNotesModal
+        visible={notesModalVisible}
+        onConfirm={handleConfirmFinish}
+        onClose={() => setNotesModalVisible(false)}
+      />
     </ScreenBackground>
   );
 }

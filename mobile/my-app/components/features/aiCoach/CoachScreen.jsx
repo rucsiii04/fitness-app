@@ -30,20 +30,24 @@ const WELCOME_MESSAGE = {
   sent_at: new Date().toISOString(),
 };
 
-function ErrorCard({ item, onRetry }) {
+function ErrorCard({ onDismiss }) {
   return (
     <View style={styles.errorCard}>
       <View style={styles.errorHeader}>
         <Ionicons name="cloud-offline-outline" size={14} color={Colors.error} />
         <Text style={styles.errorTitle}>ASISTENT AI SUPRASOLICITAT</Text>
+        <TouchableOpacity
+          onPress={onDismiss}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{ marginLeft: "auto" }}
+        >
+          <Ionicons name="close" size={16} color={Colors.onSurfaceVariant} />
+        </TouchableOpacity>
       </View>
       <Text style={styles.errorBody}>
-        Serverele AI sunt momentan ocupate. Mesajul tău a fost salvat — apasă mai jos pentru a reîncerca.
+        Serverele AI sunt momentan ocupate. Încearcă din nou peste câteva
+        secunde.
       </Text>
-      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} activeOpacity={0.85}>
-        <Ionicons name="refresh-outline" size={14} color={Colors.primary} />
-        <Text style={styles.retryBtnText}>Retrimite mesajul</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -73,11 +77,12 @@ function PlanGeneratedCard({ item, onView }) {
   );
 }
 
-export default function CoachScreen({ conversationId }) {
+export default function CoachScreen({ conversationId: initialConvId }) {
   const { token } = useAuth();
   const router = useRouter();
   const flatListRef = useRef(null);
 
+  const [convId, setConvId] = useState(initialConvId);
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
@@ -87,15 +92,20 @@ export default function CoachScreen({ conversationId }) {
   const [showFormModal, setShowFormModal] = useState(false);
 
   useEffect(() => {
-    if (!token || !conversationId) return;
+    if (!token) return;
+    if (!convId) {
+      setShowWelcome(true);
+      setLoading(false);
+      return;
+    }
     loadMessages();
-  }, [token, conversationId]);
+  }, [token, convId]);
 
   const loadMessages = async () => {
     setLoading(true);
     try {
       const { messages: msgs, linked_plan_id } =
-        await chatService.getMessagesWithMeta(token, conversationId);
+        await chatService.getMessagesWithMeta(token, convId);
       setLinkedPlanId(linked_plan_id);
       if (msgs.length > 0) {
         setMessages(msgs);
@@ -111,24 +121,33 @@ export default function CoachScreen({ conversationId }) {
     }
   };
 
+  const ensureConversation = async () => {
+    if (convId) return convId;
+    const conv = await chatService.startConversation(token);
+    setConvId(conv.conversation_id);
+    return conv.conversation_id;
+  };
+
   const handleSend = useCallback(
     async (text) => {
-      if (!conversationId || sending) return;
+      if (sending) return;
       setShowWelcome(false);
 
       const tempId = `temp_${Date.now()}`;
-      const tempUserMsg = {
-        message_id: tempId,
-        sender: "user",
-        content: text,
-        sent_at: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, tempUserMsg]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          message_id: tempId,
+          sender: "user",
+          content: text,
+          sent_at: new Date().toISOString(),
+        },
+      ]);
       setSending(true);
 
       try {
-        const aiMsg = await chatService.sendMessage(token, conversationId, text);
+        const id = await ensureConversation();
+        const aiMsg = await chatService.sendMessage(token, id, text);
         setMessages((prev) => [...prev, aiMsg]);
       } catch (err) {
         console.error("Send error:", err.message);
@@ -137,7 +156,6 @@ export default function CoachScreen({ conversationId }) {
           {
             message_id: `error_${tempId}`,
             sender: "__error__",
-            retryText: text,
             prevMsgId: tempId,
             sent_at: new Date().toISOString(),
           },
@@ -146,18 +164,22 @@ export default function CoachScreen({ conversationId }) {
         setSending(false);
       }
     },
-    [conversationId, token, sending]
+    [convId, token, sending],
   );
 
   const handleGeneratePlan = useCallback(
     async (preferences = "") => {
-      if (!conversationId || generatingPlan || sending) return;
+      if (generatingPlan || sending) return;
       setShowFormModal(false);
       setGeneratingPlan(true);
 
       try {
-        const workout = await chatService.generatePlan(token, conversationId, preferences);
-        const { messages: msgs } = await chatService.getMessagesWithMeta(token, conversationId);
+        const id = await ensureConversation();
+        const workout = await chatService.generatePlan(token, id, preferences);
+        const { messages: msgs } = await chatService.getMessagesWithMeta(
+          token,
+          id,
+        );
         setLinkedPlanId(workout.workout_id);
         setMessages([
           ...(Array.isArray(msgs) ? msgs : []),
@@ -174,13 +196,13 @@ export default function CoachScreen({ conversationId }) {
         console.error("Generate plan error:", err.message);
         Alert.alert(
           "Could Not Generate Plan",
-          "Please chat with the coach a bit more so I can understand your goals, then try again."
+          "Please chat with the coach a bit more so I can understand your goals, then try again.",
         );
       } finally {
         setGeneratingPlan(false);
       }
     },
-    [conversationId, token, generatingPlan, sending]
+    [convId, token, generatingPlan, sending],
   );
 
   const scrollToBottom = () => {
@@ -195,15 +217,15 @@ export default function CoachScreen({ conversationId }) {
     if (item.sender === "__error__") {
       return (
         <ErrorCard
-          item={item}
-          onRetry={() => {
+          onDismiss={() =>
             setMessages((prev) =>
               prev.filter(
-                (m) => m.message_id !== item.message_id && m.message_id !== item.prevMsgId
-              )
-            );
-            handleSend(item.retryText);
-          }}
+                (m) =>
+                  m.message_id !== item.message_id &&
+                  m.message_id !== item.prevMsgId,
+              ),
+            )
+          }
         />
       );
     }
@@ -244,8 +266,13 @@ export default function CoachScreen({ conversationId }) {
             <View style={styles.headerIcon}>
               <Ionicons name="sparkles" size={12} color={Colors.background} />
             </View>
-            <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-              {messages.find((m) => m.sender === "user")?.content ?? "Conversație nouă"}
+            <Text
+              style={styles.headerTitle}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {messages.find((m) => m.sender === "user")?.content ??
+                "Conversație nouă"}
             </Text>
           </View>
 
@@ -255,12 +282,19 @@ export default function CoachScreen({ conversationId }) {
               onPress={() => router.replace("/(tabs)/workouts")}
               activeOpacity={0.85}
             >
-              <Ionicons name="barbell-outline" size={14} color={Colors.primary} />
+              <Ionicons
+                name="barbell-outline"
+                size={14}
+                color={Colors.primary}
+              />
               <Text style={styles.viewPlanBtnText}>Vezi planul</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.generateBtn, (generatingPlan || sending) && styles.generateBtnDisabled]}
+              style={[
+                styles.generateBtn,
+                (generatingPlan || sending) && styles.generateBtnDisabled,
+              ]}
               onPress={() => setShowFormModal(true)}
               disabled={generatingPlan || sending}
               activeOpacity={0.85}
@@ -298,7 +332,10 @@ export default function CoachScreen({ conversationId }) {
           />
 
           <View style={styles.inputBar}>
-            <ChatInput onSend={handleSend} disabled={sending || generatingPlan} />
+            <ChatInput
+              onSend={handleSend}
+              disabled={sending || generatingPlan}
+            />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -510,24 +547,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     color: Colors.onSurfaceVariant,
     lineHeight: 20,
-  },
-  retryBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    marginTop: 2,
-  },
-  retryBtnText: {
-    fontSize: 11,
-    fontFamily: Fonts.label,
-    fontWeight: "700",
-    color: Colors.primary,
-    letterSpacing: 0.5,
   },
 });

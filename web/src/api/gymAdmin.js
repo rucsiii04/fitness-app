@@ -21,6 +21,15 @@ export const updateTrainer = (trainerId, data) =>
 export const deleteTrainer = (trainerId) =>
   api.delete(`/gym-admin/trainers/${trainerId}`);
 
+export const createFrontDesk = (data) =>
+  api.post("/gym-admin/front-desk", data);
+
+export const updateFrontDesk = (userId, data) =>
+  api.put(`/gym-admin/front-desk/${userId}`, data);
+
+export const deleteFrontDesk = (userId) =>
+  api.delete(`/gym-admin/front-desk/${userId}`);
+
 export const setGymAlert = (gymId, data) =>
   api.put(`/gym-admin/gym/${gymId}/alert`, data);
 

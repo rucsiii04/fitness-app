@@ -46,7 +46,7 @@ export default function HomeScreen() {
         if (res.status === 401) {
           console.log("Token expirat → logout");
           await logout();
-          router.replace("/login");
+          router.replace("/(auth)/login");
           return;
         }
 
@@ -97,7 +97,13 @@ export default function HomeScreen() {
     const diffMs = Date.now() - new Date(attendance[0].entry_time);
     const mins = Math.round(diffMs / 60000);
     if (mins < 60) return { value: mins, unit: "Min Ago" };
-    return { value: Math.round(diffMs / 3600000), unit: "Hrs Ago" };
+    const hours = Math.round(diffMs / 3600000);
+    if (hours < 24)
+      return { value: hours, unit: hours === 1 ? "Hr Ago" : "Hrs Ago" };
+    const days = Math.round(diffMs / 86400000);
+    if (days <= 31)
+      return { value: days, unit: days === 1 ? "Day Ago" : "Days Ago" };
+    return { value: "30+", unit: "Days Ago" };
   })();
   const membershipDaysLeft = membership?.end_date
     ? Math.max(
@@ -182,7 +188,7 @@ export default function HomeScreen() {
 
           <MembershipCard membership={membership} />
 
-<View style={styles.statsGrid}>
+          <View style={styles.statsGrid}>
             <View style={styles.statsRow}>
               <StatCard
                 label="Workouts"

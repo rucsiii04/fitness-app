@@ -123,7 +123,7 @@ export default function KineticSplash() {
           <TouchableOpacity
             style={styles.secondaryButton}
             activeOpacity={0.85}
-            onPress={() => router.push("/login")}
+            onPress={() => router.push("/(auth)/login")}
           >
             <Text style={styles.secondaryButtonText}>LOGIN</Text>
           </TouchableOpacity>
