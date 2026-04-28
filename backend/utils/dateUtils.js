@@ -7,20 +7,18 @@ export const addMinutes = (date, minutes) => {
   return result;
 };
 
-export const getAttendanceWindow = (session) => ({
-  opensAt: addMinutes(
-    session.start_datetime,
-    -ATTENDANCE_OPEN_MINUTES_BEFORE_START,
-  ),
-  closesAt: addMinutes(
-    session.end_datetime,
-    ATTENDANCE_CLOSE_MINUTES_AFTER_END,
-  ),
-});
-
 export const isAttendanceWindowOpen = (session, now = new Date()) => {
   if (session.status === "cancelled") return false;
 
-  const { opensAt, closesAt } = getAttendanceWindow(session);
+  const opensAt = new Date(session.start_datetime);
+  opensAt.setMinutes(
+    opensAt.getMinutes() - ATTENDANCE_OPEN_MINUTES_BEFORE_START,
+  );
+
+  const closesAt = new Date(session.end_datetime);
+  closesAt.setMinutes(
+    closesAt.getMinutes() + ATTENDANCE_CLOSE_MINUTES_AFTER_END,
+  );
+
   return now >= opensAt && now <= closesAt;
 };

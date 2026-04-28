@@ -85,8 +85,10 @@ function buildSetsMapFromLogs(exerciseList, logs) {
 
 function buildFreshSetsMap(exerciseList) {
   const map = {};
-  exerciseList.forEach((_, i) => {
-    map[i] = [makeSet(0, 8), makeSet(0, 8), makeSet(0, 8)];
+  exerciseList.forEach((ex, i) => {
+    const count = ex.sets || 3;
+    const reps = ex.reps || 8;
+    map[i] = Array.from({ length: count }, () => makeSet(0, reps));
     if (i === 0) map[i][0].status = "active";
   });
   return map;

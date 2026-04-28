@@ -154,6 +154,10 @@ export const controller = {
         transaction: t,
       });
 
+      if (workout.original_workout_id !== null) {
+        await workout.update({ original_workout_id: null }, { transaction: t });
+      }
+
       const created = await Promise.all(
         exercises.map((ex, index) =>
           Workout_Exercise.create(

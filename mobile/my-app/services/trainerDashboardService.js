@@ -143,3 +143,26 @@ export async function createGymClassSession(data, token) {
   if (!res.ok) throw new Error(body.message ?? "Failed to create session");
   return body;
 }
+
+export async function fetchSessionEnrollments(sessionId, token) {
+  const res = await fetch(
+    `${API_BASE}/classes/class-sessions/${sessionId}/enrollments`,
+    { headers: authHeaders(token) },
+  );
+  if (!res.ok) throw new Error("Failed to load enrollments");
+  return res.json();
+}
+
+export async function markAttendance(enrollmentId, status, token) {
+  const res = await fetch(
+    `${API_BASE}/classes/enrollments/${enrollmentId}/attendance`,
+    {
+      method: "PATCH",
+      headers: authHeaders(token),
+      body: JSON.stringify({ status }),
+    },
+  );
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message ?? "Failed to mark attendance");
+  return body;
+}

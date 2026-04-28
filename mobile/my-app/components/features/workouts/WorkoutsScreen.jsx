@@ -30,9 +30,9 @@ const TABS = [
 
 const DIFFICULTIES = [
   { key: "all", label: "All" },
-  { key: "beginner", label: "Easy" },
-  { key: "intermediate", label: "Medium" },
-  { key: "advanced", label: "Hard" },
+  { key: "beginner", label: "Beginner" },
+  { key: "intermediate", label: "Intermediate" },
+  { key: "advanced", label: "Advanced" },
 ];
 
 function TabBar({ active, onChange }) {
@@ -151,7 +151,6 @@ function FreestyleButton({ token, router }) {
   const { activeSession, setActiveSession } = useActiveSession();
 
   const handlePress = async () => {
-   
     if (activeSession?.session_id) {
       router.push(`/session/${activeSession.session_id}`);
       return;
@@ -263,7 +262,11 @@ export default function WorkoutsScreen() {
       "Delete Workout",
       `Are you sure you want to delete "${selectedWorkout.name}"?`,
       [
-        { text: "No", style: "cancel", onPress: () => setSelectedWorkout(null) },
+        {
+          text: "No",
+          style: "cancel",
+          onPress: () => setSelectedWorkout(null),
+        },
         {
           text: "Yes",
           style: "destructive",
@@ -281,7 +284,7 @@ export default function WorkoutsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -314,9 +317,9 @@ export default function WorkoutsScreen() {
 
         <DifficultyFilter active={difficulty} onChange={setDifficulty} />
 
-        <View style={styles.freestyleRow}>
-          <FreestyleButton token={token} router={router} />
-          {activeTab === "mine" && (
+        {activeTab === "mine" && (
+          <View style={styles.freestyleRow}>
+            <FreestyleButton token={token} router={router} />
             <TouchableOpacity
               style={styles.createBtn}
               onPress={() => router.push("/workout/create")}
@@ -325,8 +328,8 @@ export default function WorkoutsScreen() {
               <Ionicons name="add" size={16} color={Colors.onSurfaceVariant} />
               <Text style={styles.createBtnText}>CREATE A NEW WORKOUT</Text>
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
 
         {loading ? (
           <View style={styles.loadingBox}>
@@ -336,13 +339,31 @@ export default function WorkoutsScreen() {
           <FlatList
             data={filtered}
             keyExtractor={(w) => String(w.workout_id)}
-            renderItem={({ item }) => (
-              <WorkoutCard
-                workout={item}
-                onStart={() => router.push(`/workout/${item.workout_id}`)}
-                onLongPress={() => setSelectedWorkout(item)}
-              />
-            )}
+            renderItem={({ item }) =>
+              activeTab === "explore" ? (
+                <WorkoutCard
+                  workout={item}
+                  onPress={() => {
+                    const already = workouts.some((w) => w.original_workout_id === item.workout_id);
+                    router.push(`/workout/detail?id=${item.workout_id}&saved=${already}`);
+                  }}
+                  onLongPress={() => {
+                    const already = workouts.some((w) => w.original_workout_id === item.workout_id);
+                    router.push(`/workout/detail?id=${item.workout_id}&saved=${already}`);
+                  }}
+                  onStart={() => {
+                    const already = workouts.some((w) => w.original_workout_id === item.workout_id);
+                    router.push(`/workout/detail?id=${item.workout_id}&saved=${already}`);
+                  }}
+                />
+              ) : (
+                <WorkoutCard
+                  workout={item}
+                  onStart={() => router.push(`/workout/${item.workout_id}`)}
+                  onLongPress={() => setSelectedWorkout(item)}
+                />
+              )
+            }
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -384,7 +405,11 @@ export default function WorkoutsScreen() {
                 setEditWorkout(w);
               }}
             >
-              <Ionicons name="create-outline" size={20} color={Colors.textPrimary} />
+              <Ionicons
+                name="create-outline"
+                size={20}
+                color={Colors.textPrimary}
+              />
               <Text style={styles.actionLabel}>Edit</Text>
             </TouchableOpacity>
 
@@ -396,7 +421,9 @@ export default function WorkoutsScreen() {
               onPress={handleDeleteConfirm}
             >
               <Ionicons name="trash-outline" size={20} color={Colors.error} />
-              <Text style={[styles.actionLabel, { color: Colors.error }]}>Delete</Text>
+              <Text style={[styles.actionLabel, { color: Colors.error }]}>
+                Delete
+              </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -408,7 +435,9 @@ export default function WorkoutsScreen() {
         onClose={() => setEditWorkout(null)}
         onSaved={(updated) => {
           setWorkouts((prev) =>
-            prev.map((w) => (w.workout_id === updated.workout_id ? updated : w))
+            prev.map((w) =>
+              w.workout_id === updated.workout_id ? { ...w, ...updated } : w,
+            ),
           );
           setEditWorkout(null);
         }}

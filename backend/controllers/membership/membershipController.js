@@ -96,7 +96,9 @@ export const controller = {
 
       return res.status(200).json(types);
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching membership types: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error fetching membership types: " + err });
     }
   },
 
@@ -146,7 +148,9 @@ export const controller = {
         Number(price) < 0 ||
         Number(freeze_days) < 0
       ) {
-        return res.status(400).json({ message: "Invalid membership type values" });
+        return res
+          .status(400)
+          .json({ message: "Invalid membership type values" });
       }
 
       const canManage = await canManageGym(req.user, gym_id);
@@ -169,7 +173,9 @@ export const controller = {
 
       return res.status(201).json(type);
     } catch (err) {
-      return res.status(500).json({ message: "Error creating membership type: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error creating membership type: " + err });
     }
   },
 
@@ -212,14 +218,18 @@ export const controller = {
         (updates.price !== undefined && Number(updates.price) < 0) ||
         (updates.freeze_days !== undefined && Number(updates.freeze_days) < 0)
       ) {
-        return res.status(400).json({ message: "Invalid membership type values" });
+        return res
+          .status(400)
+          .json({ message: "Invalid membership type values" });
       }
 
       await type.update(updates);
 
       return res.status(200).json(type);
     } catch (err) {
-      return res.status(500).json({ message: "Error updating membership type: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error updating membership type: " + err });
     }
   },
 
@@ -283,7 +293,8 @@ export const controller = {
             {
               status: "cancelled",
               end_date: new Date(),
-              cancelled_reason: "Replaced by a new membership issued at reception",
+              cancelled_reason:
+                "Replaced by a new membership issued at reception",
             },
             { transaction: t },
           );
@@ -329,7 +340,9 @@ export const controller = {
         throw err;
       }
     } catch (err) {
-      return res.status(500).json({ message: "Error issuing membership: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error issuing membership: " + err });
     }
   },
 
@@ -359,7 +372,9 @@ export const controller = {
 
       return res.status(200).json(membership);
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching current membership: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error fetching current membership: " + err });
     }
   },
 
@@ -380,7 +395,9 @@ export const controller = {
 
       return res.status(200).json(memberships);
     } catch (err) {
-      return res.status(500).json({ message: "Error fetching membership history: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error fetching membership history: " + err });
     }
   },
 
@@ -389,7 +406,9 @@ export const controller = {
       const { pause_days } = req.body;
 
       if (!pause_days || Number(pause_days) <= 0) {
-        return res.status(400).json({ message: "pause_days must be a positive number" });
+        return res
+          .status(400)
+          .json({ message: "pause_days must be a positive number" });
       }
 
       await syncMembershipStatuses(req.user.user_id);
@@ -414,7 +433,9 @@ export const controller = {
 
       const pauseDays = Number(pause_days);
       if (pauseDays > membership.remaining_freeze_days) {
-        return res.status(400).json({ message: "Not enough remaining freeze days" });
+        return res
+          .status(400)
+          .json({ message: "Not enough remaining freeze days" });
       }
 
       const now = new Date();
@@ -443,7 +464,9 @@ export const controller = {
 
       return res.status(200).json(pausedMembership);
     } catch (err) {
-      return res.status(500).json({ message: "Error pausing membership: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error pausing membership: " + err });
     }
   },
 
@@ -492,105 +515,118 @@ export const controller = {
         });
       }
 
-      return res.status(200).json({ message: `Paused ${memberships.length} memberships` });
+      return res
+        .status(200)
+        .json({ message: `Paused ${memberships.length} memberships` });
     } catch (err) {
-      return res.status(500).json({ message: "Error pausing gym memberships: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error pausing gym memberships: " + err });
     }
   },
- cancelMembership: async (req, res) => {
-  try {
-    const { membershipId } = req.params;
-    const membership = await Membership.findByPk(membershipId, {
-      include: [{ model: Membership_Type, attributes: ["gym_id"] }],
-    });
+  cancelMembership: async (req, res) => {
+    try {
+      const { membershipId } = req.params;
+      const membership = await Membership.findByPk(membershipId, {
+        include: [{ model: Membership_Type, attributes: ["gym_id"] }],
+      });
 
-    if (!membership) {
-      return res.status(404).json({ message: "Membership not found" });
+      if (!membership) {
+        return res.status(404).json({ message: "Membership not found" });
+      }
+
+      const canManage = await canManageGym(
+        req.user,
+        membership.Membership_Type.gym_id,
+      );
+      if (!canManage) {
+        return res
+          .status(403)
+          .json({ message: "You cannot manage memberships for this gym" });
+      }
+
+      if (!ACTIVE_MEMBERSHIP_STATUSES.includes(membership.status)) {
+        return res
+          .status(400)
+          .json({ message: "Membership is already cancelled or expired" });
+      }
+
+      await membership.update({
+        status: "cancelled",
+        end_date: new Date(),
+        cancelled_reason: req.body.reason || "Cancelled by gym staff",
+      });
+
+      return res.status(200).json(membership);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error cancelling membership: " + err });
     }
+  },
 
-    const canManage = await canManageGym(req.user, membership.Membership_Type.gym_id);
-    if (!canManage) {
-      return res.status(403).json({ message: "You cannot manage memberships for this gym" });
-    }
+  resumeMyMembership: async (req, res) => {
+    try {
+      await syncMembershipStatuses(req.user.user_id);
 
-    if (!ACTIVE_MEMBERSHIP_STATUSES.includes(membership.status)) {
-      return res.status(400).json({ message: "Membership is already cancelled or expired" });
-    }
-
-    await membership.update({
-      status: "cancelled",
-      end_date: new Date(),
-      cancelled_reason: req.body.reason || "Cancelled by gym staff",
-    });
-
-    return res.status(200).json(membership);
-  } catch (err) {
-    return res.status(500).json({ message: "Error cancelling membership: " + err });
-  }
-},
-
- resumeMyMembership: async (req, res) => {
-  try {
-
-    await syncMembershipStatuses(req.user.user_id);
-
-    const membership = await Membership.findOne({
-      where: {
-        client_id: req.user.user_id,
-        status: "paused"
-      },
-      include: [
-        {
-          model: Membership_Type,
-          include: [{ model: Gym }]
-        }
-      ],
-      order: [["start_date", "DESC"]],
-    });
-
-    if (!membership) {
-      return res.status(404).json({ message: "No paused membership found" });
-    }
-
-    const now = new Date();
-
-    let remainingPauseDays = Math.ceil(
-      (new Date(membership.pause_end_date) - now) / (1000 * 60 * 60 * 24)
-    );
-
-    if (remainingPauseDays < 0) remainingPauseDays = 0;
-
-    const newEndDate = addDays(membership.end_date, -remainingPauseDays);
-
-    await membership.update({
-      status: "active",
-      pause_reason: null,
-      pause_start_date: null,
-      pause_end_date: null,
-      end_date: newEndDate,
-
-      remaining_freeze_days:
-        membership.remaining_freeze_days + remainingPauseDays
-    });
-
-    const resumedMembership = await Membership.findByPk(
-      membership.membership_id,
-      {
+      const membership = await Membership.findOne({
+        where: {
+          client_id: req.user.user_id,
+          status: "paused",
+        },
         include: [
           {
             model: Membership_Type,
-            include: [{ model: Gym }]
-          }
+            include: [{ model: Gym }],
+          },
         ],
+        order: [["start_date", "DESC"]],
+      });
+
+      if (!membership) {
+        return res.status(404).json({ message: "No paused membership found" });
       }
-    );
 
-    return res.status(200).json(resumedMembership);
+      const now = new Date();
 
-  } catch (err) {
-    return res.status(500).json({ message: "Error resuming membership: " + err });
-  }
-},
+      let remainingPauseDays = Math.ceil(
+        (new Date(membership.pause_end_date) - now) / (1000 * 60 * 60 * 24),
+      );
+
+      if (remainingPauseDays < 0) remainingPauseDays = 0;
+
+      const newEndDate = addDays(membership.end_date, -remainingPauseDays);
+
+      await membership.update({
+        status: "active",
+        pause_reason: null,
+        pause_start_date: null,
+        pause_end_date: null,
+        end_date: newEndDate,
+
+        remaining_freeze_days:
+          membership.remaining_freeze_days + remainingPauseDays,
+      });
+
+      const resumedMembership = await Membership.findByPk(
+        membership.membership_id,
+        {
+          include: [
+            {
+              model: Membership_Type,
+              include: [{ model: Gym }],
+            },
+          ],
+        },
+      );
+
+      return res.status(200).json(resumedMembership);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error resuming membership: " + err });
+    }
+  },
 
   searchClients: async (req, res) => {
     try {
@@ -616,7 +652,9 @@ export const controller = {
 
       return res.status(200).json(clients);
     } catch (err) {
-      return res.status(500).json({ message: "Error searching clients: " + err });
+      return res
+        .status(500)
+        .json({ message: "Error searching clients: " + err });
     }
   },
 };

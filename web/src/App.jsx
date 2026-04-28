@@ -14,8 +14,9 @@ import AdminAttendance from "./pages/admin/Attendance.jsx";
 import AdminSettings from "./pages/admin/Settings.jsx";
 import ReceptionScan from "./pages/reception/Scan.jsx";
 import ReceptionIssueMembership from "./pages/reception/IssueMembership.jsx";
+import TrainerClasses from "./pages/trainer/Classes.jsx";
 
-const ALLOWED_ROLES = ["gym_admin", "front_desk"];
+const ALLOWED_ROLES = ["gym_admin", "front_desk", "trainer"];
 
 function ProtectedApp() {
   const { user, loading } = useAuth();
@@ -94,6 +95,7 @@ function ProtectedApp() {
   }
 
   const isAdmin = user.role === "gym_admin";
+  const isTrainer = user.role === "trainer";
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
@@ -115,6 +117,18 @@ function ProtectedApp() {
               <Route
                 path="*"
                 element={<Navigate to="/admin/dashboard" replace />}
+              />
+            </>
+          ) : isTrainer ? (
+            <>
+              <Route
+                path="/"
+                element={<Navigate to="/trainer/classes" replace />}
+              />
+              <Route path="/trainer/classes" element={<TrainerClasses />} />
+              <Route
+                path="*"
+                element={<Navigate to="/trainer/classes" replace />}
               />
             </>
           ) : (

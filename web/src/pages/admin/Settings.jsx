@@ -65,6 +65,18 @@ export default function AdminSettings() {
   }, []);
 
   const handleSave = async () => {
+    if (!gym) {
+      if (!form.name || !form.address) {
+        toast("Please fill in your gym name and address", "coral");
+        setSection("Profile");
+        return;
+      }
+      if (!form.max_capacity) {
+        toast("Please set your gym capacity before saving", "coral");
+        setSection("Capacity & Safety");
+        return;
+      }
+    }
     setSaving(true);
     try {
       if (gym) {
@@ -189,27 +201,77 @@ export default function AdminSettings() {
             }}
           >
             {section === "Profile" && (
-              <Panel title="Gym Profile" eyebrow="Public information">
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 14 }}
-                >
-                  <Field label="Gym Name">
-                    <Input
-                      value={form.name}
-                      onChange={(e) => upd("name", e.target.value)}
-                      placeholder="Stayfit Titulescu"
-                    />
-                  </Field>
-                  <Field label="Address">
-                    <Input
-                      icon={<I.pin />}
-                      value={form.address}
-                      onChange={(e) => upd("address", e.target.value)}
-                      placeholder="Str. Exemplu nr. 1"
-                    />
-                  </Field>
-                </div>
-              </Panel>
+              <>
+                {!gym && (
+                  <div
+                    style={{
+                      padding: "12px 16px",
+                      background: "rgba(224,251,76,.06)",
+                      border: "1px solid rgba(224,251,76,.2)",
+                      borderRadius: 10,
+                      fontSize: 13,
+                      color: "var(--text-muted)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <span style={{ color: "var(--accent)", fontWeight: 600 }}>
+                      First time setup —{" "}
+                    </span>
+                    fill in{" "}
+                    <button
+                      onClick={() => setSection("Hours & Access")}
+                      style={{
+                        color: "var(--accent)",
+                        background: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontSize: 13,
+                      }}
+                    >
+                      Hours & Access
+                    </button>{" "}
+                    and{" "}
+                    <button
+                      onClick={() => setSection("Capacity & Safety")}
+                      style={{
+                        color: "var(--accent)",
+                        background: "none",
+                        padding: 0,
+                        cursor: "pointer",
+                        fontSize: 13,
+                      }}
+                    >
+                      Capacity & Safety
+                    </button>{" "}
+                    before saving.
+                  </div>
+                )}
+                <Panel title="Gym Profile" eyebrow="Public information">
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 14,
+                    }}
+                  >
+                    <Field label="Gym Name">
+                      <Input
+                        value={form.name}
+                        onChange={(e) => upd("name", e.target.value)}
+                        placeholder="Stayfit Titulescu"
+                      />
+                    </Field>
+                    <Field label="Address">
+                      <Input
+                        icon={<I.pin />}
+                        value={form.address}
+                        onChange={(e) => upd("address", e.target.value)}
+                        placeholder="Str. Exemplu nr. 1"
+                      />
+                    </Field>
+                  </div>
+                </Panel>
+              </>
             )}
 
             {section === "Hours & Access" && (

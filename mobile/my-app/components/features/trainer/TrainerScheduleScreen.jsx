@@ -159,7 +159,7 @@ const tpStyles = StyleSheet.create({
   },
 });
 
-function SessionCard({ session, userId }) {
+function SessionCard({ session, userId, onPress }) {
   const isMine = session.trainer_id === userId;
   const typeName = session.Class_Type?.name ?? "Clasă";
   const trainer = session.Trainer;
@@ -169,8 +169,8 @@ function SessionCard({ session, userId }) {
       ? `${trainer.first_name} ${trainer.last_name}`
       : "—";
 
-  return (
-    <View style={scStyles.card}>
+  const inner = (
+    <View style={[scStyles.card, isMine && scStyles.cardMine]}>
       <View style={scStyles.timeCol}>
         <Text style={scStyles.timeStart}>
           {fmtTime(session.start_datetime)}
@@ -202,8 +202,20 @@ function SessionCard({ session, userId }) {
           </Text>
         </View>
       </View>
+      {isMine && (
+        <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
+      )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
+        {inner}
+      </TouchableOpacity>
+    );
+  }
+  return inner;
 }
 
 const scStyles = StyleSheet.create({
@@ -216,6 +228,9 @@ const scStyles = StyleSheet.create({
     padding: 14,
     gap: 12,
     alignItems: "center",
+  },
+  cardMine: {
+    borderColor: "rgba(209,255,0,0.25)",
   },
   timeCol: { alignItems: "center", width: 44, gap: 3 },
   timeStart: {
@@ -937,13 +952,29 @@ export default function TrainerScheduleScreen() {
                   </Text>
                 </View>
               ) : (
-                daySessions.map((sess) => (
-                  <SessionCard
-                    key={sess.session_id}
-                    session={sess}
-                    userId={user?.user_id}
-                  />
-                ))
+                daySessions.map((sess) => {
+                  const isMine = sess.trainer_id === user?.user_id;
+                  return (
+                    <SessionCard
+                      key={sess.session_id}
+                      session={sess}
+                      userId={user?.user_id}
+                      onPress={
+                        isMine
+                          ? () =>
+                              router.push({
+                                pathname: `/class-session/${sess.session_id}`,
+                                params: {
+                                  name: sess.Class_Type?.name ?? "Clasă",
+                                  start: sess.start_datetime,
+                                  end: sess.end_datetime,
+                                },
+                              })
+                          : undefined
+                      }
+                    />
+                  );
+                })
               )}
             </View>
 

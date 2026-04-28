@@ -44,21 +44,23 @@ export const controller = {
         token_hash,
         expires_at: new Date(Date.now() + 1000 * 60 * 60),
       });
-      const resetLink = `${process.env.CLIENT_URL}/set-password?token=${token}&userId=${gymAdmin.user_id}`;
+      const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${gymAdmin.user_id}`;
       await transporter.sendMail({
-        to:gymAdmin.email,
-        subject:"Set your password - Fitness App",
-        html:`
+        to: gymAdmin.email,
+        subject: "Set your password - Fitness App",
+        html: `
          <p>Hello ${gymAdmin.first_name},</p>
         <p>Your gym admin account has been created.</p>
         <p>Click below to set your password:</p>
         <a href="${resetLink}">Set Password</a>
         <p>Link expires in 1 hour.</p>
-        `
+        `,
       });
-      return res.status(200).json({ message: "Gym admin created. Email sent." })
+      return res
+        .status(200)
+        .json({ message: "Gym admin created. Email sent." });
     } catch (err) {
-      return res.status(500).json({ message: "Error: "+err });
+      return res.status(500).json({ message: "Error: " + err });
     }
   },
 };

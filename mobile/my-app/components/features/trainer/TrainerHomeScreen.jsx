@@ -174,16 +174,6 @@ export default function TrainerHomeScreen() {
                 color={Colors.onSurfaceVariant}
               />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push("/(trainer)/profile")}
-              style={styles.headerIcon}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={Colors.onSurfaceVariant}
-              />
-            </TouchableOpacity>
           </View>
         </View>
 

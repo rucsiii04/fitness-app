@@ -31,6 +31,7 @@ export default function AdminStaff() {
     phone: "",
     role: "trainer",
   });
+  const [errors, setErrors] = useState({});
 
   const gymId = user?.gym_id;
 
@@ -49,8 +50,34 @@ export default function AdminStaff() {
     load();
   }, [gymId]);
 
+  const validate = () => {
+    const e = {};
+    const nameRe = /^[a-zA-ZăâîșțĂÂÎȘȚ\s-]+$/;
+    if (!form.first_name.trim() || form.first_name.trim().length < 2)
+      e.first_name = "Minim 2 caractere";
+    else if (!nameRe.test(form.first_name)) e.first_name = "Doar litere";
+    if (!form.last_name.trim() || form.last_name.trim().length < 2)
+      e.last_name = "Minim 2 caractere";
+    else if (!nameRe.test(form.last_name)) e.last_name = "Doar litere";
+    if (!form.email.trim()) e.email = "Email obligatoriu";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = "Email invalid";
+    if (
+      form.phone &&
+      !/^(\+40|0040|0)[2-9]\d{8}$/.test(form.phone.replace(/\s/g, ""))
+    )
+      e.phone = "Număr de telefon invalid (ex: 0740123456)";
+    return e;
+  };
+
   const handleInvite = async (e) => {
     e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      return;
+    }
+    setErrors({});
     try {
       const payload = { ...form, gym_id: gymId };
       if (form.role === "front_desk") {
@@ -60,10 +87,20 @@ export default function AdminStaff() {
       }
       toast("Invitație trimisă");
       setInviteOpen(false);
-      setForm({ email: "", first_name: "", last_name: "", phone: "", role: "trainer" });
+      setForm({
+        email: "",
+        first_name: "",
+        last_name: "",
+        phone: "",
+        role: "trainer",
+      });
+      setErrors({});
       load();
     } catch (err) {
-      toast(err.response?.data?.message || "Eroare la trimiterea invitației", "coral");
+      toast(
+        err.response?.data?.message || "Eroare la trimiterea invitației",
+        "coral",
+      );
     }
   };
 
@@ -285,7 +322,10 @@ export default function AdminStaff() {
 
       <Modal
         open={inviteOpen}
-        onClose={() => setInviteOpen(false)}
+        onClose={() => {
+          setInviteOpen(false);
+          setErrors({});
+        }}
         title="Adaugă angajat"
       >
         <form
@@ -300,26 +340,24 @@ export default function AdminStaff() {
           <div
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
           >
-            <Field label="Prenume">
+            <Field label="Prenume" error={errors.first_name}>
               <Input
                 value={form.first_name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, first_name: e.target.value }))
                 }
-                required
               />
             </Field>
-            <Field label="Nume">
+            <Field label="Nume" error={errors.last_name}>
               <Input
                 value={form.last_name}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, last_name: e.target.value }))
                 }
-                required
               />
             </Field>
           </div>
-          <Field label="Email">
+          <Field label="Email" error={errors.email}>
             <Input
               icon={<I.mail />}
               type="email"
@@ -327,10 +365,9 @@ export default function AdminStaff() {
               onChange={(e) =>
                 setForm((f) => ({ ...f, email: e.target.value }))
               }
-              required
             />
           </Field>
-          <Field label="Telefon">
+          <Field label="Telefon" error={errors.phone}>
             <Input
               icon={<I.phone />}
               value={form.phone}
@@ -358,8 +395,12 @@ export default function AdminStaff() {
                     fontFamily: "var(--display)",
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
-                    background: form.role === opt.value ? "var(--accent)" : "transparent",
-                    color: form.role === opt.value ? "var(--accent-ink)" : "var(--text-muted)",
+                    background:
+                      form.role === opt.value ? "var(--accent)" : "transparent",
+                    color:
+                      form.role === opt.value
+                        ? "var(--accent-ink)"
+                        : "var(--text-muted)",
                     border: `1px solid ${form.role === opt.value ? "var(--accent)" : "var(--border-strong)"}`,
                     cursor: "pointer",
                   }}

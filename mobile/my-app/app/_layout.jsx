@@ -75,6 +75,7 @@ function RootNavigator() {
       {token && <Stack.Screen name="workout" />}
       {token && <Stack.Screen name="coach" />}
       {token && <Stack.Screen name="membership" />}
+      {token && <Stack.Screen name="class-session" />}
     </Stack>
   );
 }

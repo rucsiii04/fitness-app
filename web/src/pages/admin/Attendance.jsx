@@ -67,23 +67,26 @@ function fmtDate(iso) {
 }
 
 function ScanContent({ gymId, onCheckedIn }) {
-  const [phase, setPhase] = useState("scanning"); 
+  const [phase, setPhase] = useState("scanning");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
-  const handleScan = useCallback(async (token) => {
-    setPhase("loading");
-    try {
-      const res = await scanQR(token);
-      setResult(res.data.client);
-      setError(null);
-      onCheckedIn?.();
-    } catch (err) {
-      setResult(null);
-      setError(err.response?.data?.message || "Scan failed");
-    }
-    setPhase("done");
-  }, [onCheckedIn]);
+  const handleScan = useCallback(
+    async (token) => {
+      setPhase("loading");
+      try {
+        const res = await scanQR(token);
+        setResult(res.data.client);
+        setError(null);
+        onCheckedIn?.();
+      } catch (err) {
+        setResult(null);
+        setError(err.response?.data?.message || "Scan failed");
+      }
+      setPhase("done");
+    },
+    [onCheckedIn],
+  );
 
   function reset() {
     setPhase("scanning");
@@ -235,7 +238,9 @@ export default function AdminAttendance() {
 
   function refetch(date) {
     if (!gymId) return;
-    getAttendanceStats(gymId, date).then((r) => setStats(r.data)).catch(() => {});
+    getAttendanceStats(gymId, date)
+      .then((r) => setStats(r.data))
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -248,6 +253,16 @@ export default function AdminAttendance() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [gymId]);
+
+  useEffect(() => {
+    if (!gymId || selectedDate !== todayStr()) return;
+    const id = setInterval(() => {
+      getAttendanceStats(gymId, selectedDate)
+        .then((r) => setStats(r.data))
+        .catch(() => {});
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [gymId, selectedDate]);
 
   function handleDateChange(e) {
     const d = e.target.value;
@@ -285,7 +300,12 @@ export default function AdminAttendance() {
         title="QR Check-in"
         width={480}
       >
-        {scanOpen && <ScanContent gymId={gymId} onCheckedIn={() => refetch(selectedDate)} />}
+        {scanOpen && (
+          <ScanContent
+            gymId={gymId}
+            onCheckedIn={() => refetch(selectedDate)}
+          />
+        )}
       </Modal>
 
       {loading ? (
@@ -430,10 +450,7 @@ export default function AdminAttendance() {
             </Panel>
           </div>
 
-          <Panel
-            title="Recent Check-ins"
-            eyebrow="Latest entries"
-          >
+          <Panel title="Recent Check-ins" eyebrow="Latest entries">
             {!stats?.recent || stats.recent.length === 0 ? (
               <div
                 style={{

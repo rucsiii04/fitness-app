@@ -186,7 +186,15 @@ export const initDatabase = async () => {
     await db.authenticate();
     console.log("Database connected");
   } catch (err) {
-    console.log("Database error: ", err);
+    console.log("Database connection error: ", err);
+    return;
+  }
+  try {
+    await db.query(
+      "ALTER TABLE `Workout` ADD COLUMN IF NOT EXISTS `original_workout_id` INT NULL DEFAULT NULL",
+    );
+  } catch (err) {
+    console.log("Migration warning (original_workout_id):", err.message);
   }
 };
 export {

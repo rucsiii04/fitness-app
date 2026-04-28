@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Pressable,
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,7 +24,7 @@ const SOURCE_ICON = {
   user: { icon: "create-outline", color: Colors.onSurfaceVariant },
 };
 
-export function WorkoutCard({ workout, onLongPress, onStart }) {
+export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
   const diff = DIFFICULTY[workout.difficulty_level] ?? DIFFICULTY.beginner;
   const src = SOURCE_ICON[workout.source] ?? SOURCE_ICON.user;
   const [expanded, setExpanded] = useState(false);
@@ -36,10 +35,12 @@ export function WorkoutCard({ workout, onLongPress, onStart }) {
   }, []);
 
   return (
-    <Pressable
+    <TouchableOpacity
       style={styles.card}
+      onPress={onPress}
       onLongPress={onLongPress}
       delayLongPress={350}
+      activeOpacity={0.85}
     >
       <View style={[styles.accent, { backgroundColor: diff.color }]} />
 
@@ -114,7 +115,7 @@ export function WorkoutCard({ workout, onLongPress, onStart }) {
           </>
         ) : null}
       </View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

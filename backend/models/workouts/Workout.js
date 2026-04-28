@@ -44,6 +44,12 @@ export const Workout = db.define(
       defaultValue: false,
     },
 
+    original_workout_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+    },
+
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,

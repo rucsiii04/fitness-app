@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 import { ExerciseRow } from "./ExerciseRow";
@@ -19,12 +20,34 @@ import { AddExerciseSheet } from "./AddExerciseSheet";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const DIFFICULTIES = [
-  { key: "beginner", label: "Beginner", icon: "leaf-outline", color: Colors.primary },
-  { key: "intermediate", label: "Intermediate", icon: "flash-outline", color: Colors.tertiary },
-  { key: "advanced", label: "Advanced", icon: "flame-outline", color: Colors.error },
+  {
+    key: "beginner",
+    label: "Beginner",
+    icon: "leaf-outline",
+    color: Colors.primary,
+  },
+  {
+    key: "intermediate",
+    label: "Intermediate",
+    icon: "flash-outline",
+    color: Colors.tertiary,
+  },
+  {
+    key: "advanced",
+    label: "Advanced",
+    icon: "flame-outline",
+    color: Colors.error,
+  },
 ];
 
-export default function EditWorkoutModal({ visible, workout, token, onClose, onSaved }) {
+export default function EditWorkoutModal({
+  visible,
+  workout,
+  token,
+  onClose,
+  onSaved,
+}) {
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState("beginner");
@@ -63,7 +86,14 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
   const handleExercisesConfirmed = (selectedExercises) => {
     const merged = selectedExercises.map((ex) => {
       const existing = exercises.find((e) => e.exercise_id === ex.exercise_id);
-      return existing ?? { exercise_id: ex.exercise_id, exercise: ex, sets: "3", reps: "10" };
+      return (
+        existing ?? {
+          exercise_id: ex.exercise_id,
+          exercise: ex,
+          sets: "3",
+          reps: "10",
+        }
+      );
     });
     setExercises(merged);
     setSheetVisible(false);
@@ -96,21 +126,32 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
     setSaving(true);
     setError(null);
     try {
-      const metaRes = await fetch(`${API_BASE}/workouts/${workout.workout_id}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim(),
-          difficulty_level: difficulty,
-        }),
-      });
+      const metaRes = await fetch(
+        `${API_BASE}/workouts/${workout.workout_id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            description: description.trim(),
+            difficulty_level: difficulty,
+            is_public: workout.is_public ?? false,
+          }),
+        },
+      );
       const metaData = await metaRes.json();
-      if (!metaRes.ok) throw new Error(metaData.message ?? "Eroare la salvare.");
+      if (!metaRes.ok)
+        throw new Error(metaData.message ?? "Eroare la salvare.");
 
       await fetch(`${API_BASE}/workouts/${workout.workout_id}/exercises`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           exercises: exercises.map((ex, index) => ({
             exercise_id: ex.exercise_id,
@@ -130,7 +171,12 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -139,11 +185,20 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>EDITEAZĂ WORKOUT</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={22} color={Colors.onSurfaceVariant} />
+              <Ionicons
+                name="close"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={{ paddingBottom: bottomInset + 16 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.label}>NUME</Text>
             <TextInput
               style={styles.input}
@@ -174,13 +229,25 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
                     key={d.key}
                     style={[
                       styles.diffChip,
-                      active && { borderColor: d.color, backgroundColor: `${d.color}18` },
+                      active && {
+                        borderColor: d.color,
+                        backgroundColor: `${d.color}18`,
+                      },
                     ]}
                     onPress={() => setDifficulty(d.key)}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name={d.icon} size={14} color={active ? d.color : Colors.onSurfaceVariant} />
-                    <Text style={[styles.diffChipText, active && { color: d.color }]}>
+                    <Ionicons
+                      name={d.icon}
+                      size={14}
+                      color={active ? d.color : Colors.onSurfaceVariant}
+                    />
+                    <Text
+                      style={[
+                        styles.diffChipText,
+                        active && { color: d.color },
+                      ]}
+                    >
                       {d.label}
                     </Text>
                   </TouchableOpacity>
@@ -189,7 +256,9 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
             </View>
 
             <View style={styles.exercisesHeader}>
-              <Text style={styles.label}>EXERCIȚII {exercises.length > 0 ? `(${exercises.length})` : ""}</Text>
+              <Text style={styles.label}>
+                EXERCIȚII {exercises.length > 0 ? `(${exercises.length})` : ""}
+              </Text>
             </View>
 
             {exercises.map((item, index) => (
@@ -208,13 +277,21 @@ export default function EditWorkoutModal({ visible, workout, token, onClose, onS
               onPress={() => setSheetVisible(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={Colors.primary}
+              />
               <Text style={styles.addExText}>ADAUGĂ EXERCIȚIU</Text>
             </TouchableOpacity>
 
             {error && (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle-outline" size={14} color={Colors.error} />
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={14}
+                  color={Colors.error}
+                />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             )}

@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
-import { Workout, User } from "../../models/index.js";
+import { Workout, User, Workout_Exercise } from "../../models/index.js";
 import { Trainer_Assignment } from "../../models/index.js";
+import { db } from "../../config/db.js";
 const canAssignToClient = async (trainerId, clientId) => {
   if (trainerId === clientId) return true;
 
@@ -209,6 +210,9 @@ export const controller = {
         difficulty_level,
         is_public: isTrainer ? !!is_public : false,
         assigned_to_user_id: assignedUserId,
+        ...(workout.original_workout_id !== null
+          ? { original_workout_id: null }
+          : {}),
       });
 
       return res.status(200).json(workout);
@@ -270,6 +274,78 @@ export const controller = {
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+  copy: async (req, res) => {
+    const t = await db.transaction();
+    try {
+      const { id } = req.params;
+      const userId = req.user.user_id;
+
+      const target = await Workout.findByPk(id, { transaction: t });
+      if (!target) {
+        await t.rollback();
+        return res.status(404).json({ message: "Workout not found" });
+      }
+      if (!target.is_public) {
+        await t.rollback();
+        return res.status(403).json({ message: "Workout is not public" });
+      }
+
+      const rootId = target.original_workout_id ?? target.workout_id;
+
+      const alreadySaved = await Workout.findOne({
+        where: { created_by_user_id: userId, original_workout_id: rootId },
+        transaction: t,
+      });
+      if (alreadySaved) {
+        await t.rollback();
+        return res.status(409).json({ message: "Already saved" });
+      }
+
+      const copy = await Workout.create(
+        {
+          name: target.name,
+          description: target.description,
+          difficulty_level: target.difficulty_level,
+          is_public: false,
+          source: "user",
+          created_by_user_id: userId,
+          assigned_to_user_id: userId,
+          original_workout_id: rootId,
+        },
+        { transaction: t },
+      );
+
+      const exercises = await Workout_Exercise.findAll({
+        where: { workout_id: id },
+        order: [["order_index", "ASC"]],
+        transaction: t,
+      });
+
+      await Promise.all(
+        exercises.map((ex, index) =>
+          Workout_Exercise.create(
+            {
+              workout_id: copy.workout_id,
+              exercise_id: ex.exercise_id,
+              order_index: index,
+              sets: ex.sets,
+              reps: ex.reps,
+              rest_time: ex.rest_time,
+              notes: ex.notes,
+            },
+            { transaction: t },
+          ),
+        ),
+      );
+
+      await t.commit();
+      return res.status(201).json(copy);
+    } catch (err) {
+      await t.rollback();
+      console.error(err);
+      return res.status(500).json({ message: "Error copying workout" });
     }
   },
   restore: async (req, res) => {
