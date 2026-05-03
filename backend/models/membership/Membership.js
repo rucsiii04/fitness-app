@@ -55,6 +55,11 @@ export const Membership = db.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    frozen_by_admin: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     freezeTableName: true,

@@ -33,6 +33,12 @@ export const deleteFrontDesk = (userId) =>
 export const setGymAlert = (gymId, data) =>
   api.put(`/gym-admin/gym/${gymId}/alert`, data);
 
+export const extendMemberships = (gymId) =>
+  api.post(`/gym-admin/gym/${gymId}/extend-memberships`);
+
+export const cancelAffectedClasses = (gymId) =>
+  api.post(`/gym-admin/gym/${gymId}/cancel-affected-classes`);
+
 export const getTrainersByGym = (gymId) =>
   api.get(`/trainer/gyms/${gymId}/trainers`);
 

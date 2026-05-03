@@ -59,6 +59,27 @@ router.post(
   requireRole("gym_admin"),
   controllers.membershipController.pauseGymMemberships,
 );
+
+router.get(
+  "/gyms/:gymId/admin-freeze/status",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.membershipController.getAdminFreezeStatus,
+);
+
+router.post(
+  "/gyms/:gymId/admin-freeze",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.membershipController.adminFreezeGymMemberships,
+);
+
+router.post(
+  "/gyms/:gymId/admin-unfreeze",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.membershipController.adminUnfreezeGymMemberships,
+);
 router.get(
   "/me/current",
   verifyToken,

@@ -36,6 +36,7 @@ const expireOutdatedMemberships = async (clientId = null) => {
 const reactivateCompletedPauses = async (clientId = null) => {
   const where = {
     status: "paused",
+    frozen_by_admin: false,
     pause_end_date: {
       [Op.lte]: new Date(),
     },
@@ -625,6 +626,123 @@ export const controller = {
       return res
         .status(500)
         .json({ message: "Error resuming membership: " + err });
+    }
+  },
+
+  getAdminFreezeStatus: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const canManage = await canManageGym(req.user, gymId);
+      if (!canManage) {
+        return res.status(403).json({ message: "You cannot manage this gym" });
+      }
+
+      const frozenCount = await Membership.count({
+        where: { status: "paused", frozen_by_admin: true },
+        include: {
+          model: Membership_Type,
+          where: { gym_id: gymId },
+          attributes: [],
+        },
+      });
+
+      return res.status(200).json({ frozen_count: frozenCount });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error fetching freeze status: " + err });
+    }
+  },
+
+  adminFreezeGymMemberships: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const canManage = await canManageGym(req.user, gymId);
+      if (!canManage) {
+        return res.status(403).json({ message: "You cannot manage this gym" });
+      }
+
+      const memberships = await Membership.findAll({
+        where: { status: "active" },
+        include: {
+          model: Membership_Type,
+          where: { gym_id: gymId },
+          attributes: [],
+        },
+      });
+
+      if (!memberships.length) {
+        return res
+          .status(404)
+          .json({ message: "No active memberships to freeze" });
+      }
+
+      const now = new Date();
+      for (const membership of memberships) {
+        await membership.update({
+          status: "paused",
+          frozen_by_admin: true,
+          pause_start_date: now,
+          pause_end_date: null,
+          pause_reason: null,
+        });
+      }
+
+      return res
+        .status(200)
+        .json({ message: `Frozen ${memberships.length} memberships` });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error freezing gym memberships: " + err });
+    }
+  },
+
+  adminUnfreezeGymMemberships: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const canManage = await canManageGym(req.user, gymId);
+      if (!canManage) {
+        return res.status(403).json({ message: "You cannot manage this gym" });
+      }
+
+      const memberships = await Membership.findAll({
+        where: { status: "paused", frozen_by_admin: true },
+        include: {
+          model: Membership_Type,
+          where: { gym_id: gymId },
+          attributes: [],
+        },
+      });
+
+      if (!memberships.length) {
+        return res
+          .status(404)
+          .json({ message: "No admin-frozen memberships found" });
+      }
+
+      const now = new Date();
+      for (const membership of memberships) {
+        const daysFrozen = Math.ceil(
+          (now - new Date(membership.pause_start_date)) / (1000 * 60 * 60 * 24),
+        );
+        await membership.update({
+          status: "active",
+          frozen_by_admin: false,
+          pause_start_date: null,
+          pause_end_date: null,
+          pause_reason: null,
+          end_date: addDays(membership.end_date, daysFrozen),
+        });
+      }
+
+      return res
+        .status(200)
+        .json({ message: `Unfrozen ${memberships.length} memberships` });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error unfreezing gym memberships: " + err });
     }
   },
 

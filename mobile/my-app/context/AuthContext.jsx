@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api from "@/services/api";
+import { connectSocket, disconnectSocket } from "@/services/socket";
 
 const AuthContext = createContext(null);
 
@@ -8,6 +9,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.user_id) connectSocket(user.user_id);
+  }, [user?.user_id]);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -53,6 +58,7 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
+      disconnectSocket();
       await AsyncStorage.multiRemove(["token", "user"]);
 
       setToken(null);

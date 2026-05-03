@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -21,6 +21,7 @@ import {
   fetchClientWorkouts,
   endTrainingWithClient,
 } from "@/services/trainerDashboardService";
+import { ClientDetailModal } from "./ClientDetailModal";
 
 const GOAL_LABELS = {
   lose_weight: "Slăbire",
@@ -60,7 +61,7 @@ function WorkoutRow({ workout }) {
   );
 }
 
-function ClientCard({ item, token, onEnd }) {
+function ClientCard({ item, token, onEnd, onDetail }) {
   const router = useRouter();
   const { client, last_session } = item;
   const profile = client.Client_Profile;
@@ -113,6 +114,9 @@ function ClientCard({ item, token, onEnd }) {
             </View>
           ) : null}
         </View>
+        <TouchableOpacity style={styles.detailBtn} onPress={() => onDetail(client, client.Client_Profile)} activeOpacity={0.8}>
+          <Ionicons name="person-circle-outline" size={22} color={Colors.primary} />
+        </TouchableOpacity>
       </View>
 
       {client.email ? (
@@ -175,6 +179,8 @@ export default function TrainerClientsScreen() {
   const fontsLoaded = useAppFonts();
   const { token } = useAuth();
   const [clients, setClients] = useState([]);
+  const [detailClient, setDetailClient] = useState(null);
+  const [detailProfile, setDetailProfile] = useState(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -186,7 +192,7 @@ export default function TrainerClientsScreen() {
     }
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleEnd = (clientId, name) => {
     Alert.alert(
@@ -232,11 +238,24 @@ export default function TrainerClientsScreen() {
             </View>
           ) : (
             clients.map((item) => (
-              <ClientCard key={item.assignment_id} item={item} token={token} onEnd={handleEnd} />
+              <ClientCard
+                key={item.assignment_id}
+                item={item}
+                token={token}
+                onEnd={handleEnd}
+                onDetail={(client, profile) => { setDetailClient(client); setDetailProfile(profile); }}
+              />
             ))
           )}
           <View style={styles.bottomPadding} />
         </ScrollView>
+
+        <ClientDetailModal
+          visible={!!detailClient}
+          client={detailClient}
+          profile={detailProfile}
+          onClose={() => { setDetailClient(null); setDetailProfile(null); }}
+        />
       </SafeAreaView>
     </ScreenBackground>
   );
@@ -340,6 +359,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontFamily: Fonts.label,
     color: Colors.onSurfaceVariant,
+  },
+  detailBtn: {
+    padding: 4,
   },
   workoutsSection: {
     borderTopWidth: 1,

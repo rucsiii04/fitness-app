@@ -9,6 +9,27 @@ import {
   Workout_Session,
   Trainer_Profile,
 } from "../../models/index.js";
+import { getIO } from "../../socket.js";
+
+const emitNewRequest = async (assignmentId, trainerId) => {
+  const io = getIO();
+  if (!io) return;
+  const full = await Trainer_Assignment.findByPk(assignmentId, {
+    include: [
+      {
+        model: User,
+        as: "Client",
+        attributes: ["user_id", "first_name", "last_name", "email", "phone"],
+        include: [{ model: Client_Profile }],
+      },
+    ],
+  });
+  if (!full) return;
+  io.to(`user_${trainerId}`).emit("new_trainer_request", {
+    ...full.toJSON(),
+    age_ms: 0,
+  });
+};
 
 export const controller = {
   sendRequest: async (req, res) => {
@@ -79,6 +100,7 @@ export const controller = {
         existing.status = "pending";
         existing.requested_by = requester.user_id;
         await existing.save();
+        emitNewRequest(existing.id, trainerId).catch(() => {});
         return res.status(201).json(existing);
       }
 
@@ -88,6 +110,7 @@ export const controller = {
         requested_by: requester.user_id,
         status: "pending",
       });
+      emitNewRequest(request.id, trainerId).catch(() => {});
       return res.status(201).json(request);
     } catch (err) {
       return res
@@ -381,11 +404,20 @@ export const controller = {
               "email",
               "phone",
             ],
+            include: [{ model: Client_Profile }],
           },
         ],
         order: [["createdAt", "DESC"]],
       });
-      return res.status(200).json(requests);
+      const now = Date.now();
+      return res
+        .status(200)
+        .json(
+          requests.map((r) => ({
+            ...r.toJSON(),
+            age_ms: now - new Date(r.createdAt).getTime(),
+          })),
+        );
     } catch (err) {
       return res.status(500).json({ message: "Error:" + err });
     }

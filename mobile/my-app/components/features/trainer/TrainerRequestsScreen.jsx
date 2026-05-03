@@ -11,22 +11,25 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
 import { fetchTrainerInbox, respondToRequest } from "@/services/trainerDashboardService";
+import { getSocket } from "@/services/socket";
+import { ClientDetailModal } from "./ClientDetailModal";
 
-function timeAgo(dateStr) {
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.round(diffMs / 60000);
+function timeAgo(ageMs) {
+  const ms = Math.max(0, ageMs);
+  const mins = Math.round(ms / 60000);
   if (mins < 60) return `acum ${mins} min`;
-  const hrs = Math.round(diffMs / 3600000);
+  const hrs = Math.round(ms / 3600000);
   if (hrs < 24) return `acum ${hrs}h`;
-  return `acum ${Math.round(diffMs / 86400000)}z`;
+  return `acum ${Math.round(ms / 86400000)}z`;
 }
 
-function RequestCard({ request, onRespond, responding }) {
+function RequestCard({ request, onRespond, responding, onDetail }) {
   const client = request.Client;
   const initials = `${client?.first_name?.[0] ?? ""}${client?.last_name?.[0] ?? ""}`.toUpperCase();
 
@@ -38,7 +41,7 @@ function RequestCard({ request, onRespond, responding }) {
         </View>
         <View style={styles.clientInfo}>
           <Text style={styles.clientName}>{client?.first_name} {client?.last_name}</Text>
-          <Text style={styles.timeAgo}>{timeAgo(request.createdAt)}</Text>
+          <Text style={styles.timeAgo}>{timeAgo(request.age_ms)}</Text>
         </View>
         <View style={styles.pendingBadge}>
           <Text style={styles.pendingText}>În așteptare</Text>
@@ -57,6 +60,11 @@ function RequestCard({ request, onRespond, responding }) {
           <Text style={styles.detailText}>{client.phone}</Text>
         </View>
       ) : null}
+
+      <TouchableOpacity style={styles.detailBtn} onPress={() => onDetail(client, client?.Client_Profile)} activeOpacity={0.8}>
+        <Ionicons name="person-circle-outline" size={15} color={Colors.primary} />
+        <Text style={styles.detailBtnText}>Detalii client</Text>
+      </TouchableOpacity>
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -91,6 +99,8 @@ export default function TrainerRequestsScreen() {
   const { token } = useAuth();
   const [requests, setRequests] = useState([]);
   const [responding, setResponding] = useState(null);
+  const [detailClient, setDetailClient] = useState(null);
+  const [detailProfile, setDetailProfile] = useState(null);
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -103,6 +113,20 @@ export default function TrainerRequestsScreen() {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const socket = getSocket();
+      if (!socket) return;
+      const handler = (data) => {
+        setRequests((prev) =>
+          prev.some((r) => r.id === data.id) ? prev : [data, ...prev]
+        );
+      };
+      socket.on("new_trainer_request", handler);
+      return () => socket.off("new_trainer_request", handler);
+    }, [])
+  );
 
   const handleRespond = async (requestId, action) => {
     setResponding(`${requestId}-${action}`);
@@ -145,11 +169,19 @@ export default function TrainerRequestsScreen() {
                 request={r}
                 onRespond={handleRespond}
                 responding={responding}
+                onDetail={(client, profile) => { setDetailClient(client); setDetailProfile(profile); }}
               />
             ))
           )}
           <View style={styles.bottomPadding} />
         </ScrollView>
+
+        <ClientDetailModal
+          visible={!!detailClient}
+          client={detailClient}
+          profile={detailProfile}
+          onClose={() => { setDetailClient(null); setDetailProfile(null); }}
+        />
       </SafeAreaView>
     </ScreenBackground>
   );
@@ -221,6 +253,22 @@ const styles = StyleSheet.create({
   pendingText: { fontSize: 10, color: Colors.tertiaryDim, fontFamily: Fonts.label },
   detailRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   detailText: { fontSize: 13, color: Colors.onSurfaceVariant, fontFamily: Fonts.body },
+  detailBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: Colors.primaryDimAlphaLight,
+    alignSelf: "flex-start",
+  },
+  detailBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.primary,
+  },
   actions: { flexDirection: "row", gap: 10, marginTop: 4 },
   acceptBtn: {
     flex: 1,

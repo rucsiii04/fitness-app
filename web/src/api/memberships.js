@@ -20,3 +20,12 @@ export const cancelMembership = (membershipId) =>
 
 export const pauseGymMemberships = (gymId, data) =>
   api.post(`/memberships/gyms/${gymId}/pause-memberships`, data);
+
+export const getAdminFreezeStatus = (gymId) =>
+  api.get(`/memberships/gyms/${gymId}/admin-freeze/status`);
+
+export const adminFreezeGymMemberships = (gymId) =>
+  api.post(`/memberships/gyms/${gymId}/admin-freeze`);
+
+export const adminUnfreezeGymMemberships = (gymId) =>
+  api.post(`/memberships/gyms/${gymId}/admin-unfreeze`);

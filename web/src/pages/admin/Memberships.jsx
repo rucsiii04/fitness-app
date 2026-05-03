@@ -5,6 +5,9 @@ import {
   createMembershipType,
   updateMembershipType,
   issueMembership,
+  getAdminFreezeStatus,
+  adminFreezeGymMemberships,
+  adminUnfreezeGymMemberships,
 } from "../../api/memberships.js";
 import { searchClients } from "../../api/reception.js";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -164,6 +167,11 @@ export default function AdminMemberships() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
+  const [frozenCount, setFrozenCount] = useState(0);
+  const [freezeOpen, setFreezeOpen] = useState(false);
+  const [unfreezeOpen, setUnfreezeOpen] = useState(false);
+  const [freezeWorking, setFreezeWorking] = useState(false);
+
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueClient, setIssueClient] = useState(null);
   const [issueQuery, setIssueQuery] = useState("");
@@ -180,8 +188,14 @@ export default function AdminMemberships() {
       setLoading(false);
       return;
     }
-    getMembershipTypesForAdmin(gymId)
-      .then((r) => setPlans(r.data))
+    Promise.all([
+      getMembershipTypesForAdmin(gymId),
+      getAdminFreezeStatus(gymId),
+    ])
+      .then(([plansRes, freezeRes]) => {
+        setPlans(plansRes.data);
+        setFrozenCount(freezeRes.data.frozen_count);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   };
@@ -240,6 +254,34 @@ export default function AdminMemberships() {
     setIssuePlanId("");
     setIssuePayment("cash");
   }
+
+  const handleAdminFreeze = async () => {
+    setFreezeWorking(true);
+    try {
+      const r = await adminFreezeGymMemberships(gymId);
+      toast(r.data.message);
+      setFreezeOpen(false);
+      load();
+    } catch (err) {
+      toast(err.response?.data?.message || "Failed to freeze", "coral");
+    } finally {
+      setFreezeWorking(false);
+    }
+  };
+
+  const handleAdminUnfreeze = async () => {
+    setFreezeWorking(true);
+    try {
+      const r = await adminUnfreezeGymMemberships(gymId);
+      toast(r.data.message);
+      setUnfreezeOpen(false);
+      load();
+    } catch (err) {
+      toast(err.response?.data?.message || "Failed to unfreeze", "coral");
+    } finally {
+      setFreezeWorking(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -336,6 +378,100 @@ export default function AdminMemberships() {
             }}
           >
             No gym assigned.
+          </div>
+        )}
+
+        {gymId && !loading && (
+          <div
+            className="card"
+            style={{
+              padding: 20,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              borderColor:
+                frozenCount > 0
+                  ? "rgba(147,197,253,.4)"
+                  : "var(--border)",
+              background:
+                frozenCount > 0
+                  ? "linear-gradient(180deg, rgba(147,197,253,.06), var(--surface))"
+                  : "var(--surface)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background:
+                    frozenCount > 0
+                      ? "rgba(147,197,253,.15)"
+                      : "var(--surface-2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {frozenCount > 0 ? (
+                  <I.snowflake
+                    width={18}
+                    height={18}
+                    style={{ color: "#93c5fd" }}
+                  />
+                ) : (
+                  <I.building
+                    width={18}
+                    height={18}
+                    style={{ color: "var(--text-dim)" }}
+                  />
+                )}
+              </div>
+              <div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color:
+                      frozenCount > 0 ? "#93c5fd" : "var(--text)",
+                    marginBottom: 2,
+                  }}
+                >
+                  {frozenCount > 0
+                    ? `Gym closed — ${frozenCount} membership${frozenCount !== 1 ? "s" : ""} frozen`
+                    : "Gym is open"}
+                </div>
+                <div
+                  style={{ fontSize: 12, color: "var(--text-dim)" }}
+                >
+                  {frozenCount > 0
+                    ? "Members are not losing days. Unfreeze when you reopen."
+                    : "Freeze all active memberships when the gym closes."}
+                </div>
+              </div>
+            </div>
+            <div>
+              {frozenCount > 0 ? (
+                <Btn
+                  variant="outline"
+                  icon={<I.unlock />}
+                  onClick={() => setUnfreezeOpen(true)}
+                >
+                  Reopen gym
+                </Btn>
+              ) : (
+                <Btn
+                  variant="outline"
+                  icon={<I.snowflake />}
+                  onClick={() => setFreezeOpen(true)}
+                >
+                  Close gym
+                </Btn>
+              )}
+            </div>
           </div>
         )}
 
@@ -544,6 +680,100 @@ export default function AdminMemberships() {
             </Btn>
           </div>
         </form>
+      </Modal>
+
+      {/* Freeze memberships modal */}
+      <Modal
+        open={freezeOpen}
+        onClose={() => setFreezeOpen(false)}
+        title="Close Gym & Freeze Memberships"
+      >
+        <div
+          style={{
+            padding: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <div style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.6 }}>
+            All active memberships will be frozen. Members will not lose any
+            days while the gym is closed. Their expiry dates will be extended
+            automatically when you reopen.
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              justifyContent: "flex-end",
+            }}
+          >
+            <Btn
+              variant="outline"
+              type="button"
+              onClick={() => setFreezeOpen(false)}
+              disabled={freezeWorking}
+            >
+              Cancel
+            </Btn>
+            <Btn
+              variant="primary"
+              onClick={handleAdminFreeze}
+              disabled={freezeWorking}
+              icon={<I.snowflake />}
+            >
+              {freezeWorking ? "Freezing…" : "Freeze all memberships"}
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Unfreeze memberships modal */}
+      <Modal
+        open={unfreezeOpen}
+        onClose={() => setUnfreezeOpen(false)}
+        title="Reopen Gym & Unfreeze Memberships"
+      >
+        <div
+          style={{
+            padding: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <div style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.6 }}>
+            {frozenCount} frozen membership{frozenCount !== 1 ? "s" : ""} will
+            be reactivated. Each member's expiry date will be extended by the
+            exact number of days the gym was closed. Only admin-frozen
+            memberships are affected — any memberships paused by members
+            themselves remain unchanged.
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              justifyContent: "flex-end",
+            }}
+          >
+            <Btn
+              variant="outline"
+              type="button"
+              onClick={() => setUnfreezeOpen(false)}
+              disabled={freezeWorking}
+            >
+              Cancel
+            </Btn>
+            <Btn
+              variant="primary"
+              onClick={handleAdminUnfreeze}
+              disabled={freezeWorking}
+              icon={<I.unlock />}
+            >
+              {freezeWorking ? "Unfreezing…" : "Reopen & unfreeze"}
+            </Btn>
+          </div>
+        </div>
       </Modal>
 
       {/* Issue membership modal */}

@@ -14,7 +14,19 @@ export function MembershipCard({ membership }) {
 
   const tierName = membership?.type_name || "Standard";
   const gymName = membership?.gym_name || "—";
-  const isActive = membership?.status === "active";
+  const status = membership?.status;
+  const badgeStyle =
+    status === "active" ? styles.badgeActive
+    : status === "paused" ? styles.badgePaused
+    : styles.badgeInactive;
+  const badgeTextStyle =
+    status === "active" ? styles.badgeTextActive
+    : status === "paused" ? styles.badgeTextPaused
+    : styles.badgeTextInactive;
+  const badgeLabel =
+    status === "active" ? "Active"
+    : status === "paused" ? "Paused"
+    : "Inactive";
 
   return (
     <View style={styles.card}>
@@ -22,9 +34,9 @@ export function MembershipCard({ membership }) {
         <View style={styles.iconBox}>
           <Ionicons name="diamond-outline" size={22} color={Colors.background} />
         </View>
-        <View style={[styles.badge, isActive ? styles.badgeActive : styles.badgeInactive]}>
-          <Text style={[styles.badgeText, isActive ? styles.badgeTextActive : styles.badgeTextInactive]}>
-            {isActive ? "Active" : "Inactive"}
+        <View style={[styles.badge, badgeStyle]}>
+          <Text style={[styles.badgeText, badgeTextStyle]}>
+            {badgeLabel}
           </Text>
         </View>
       </View>
@@ -80,6 +92,10 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(209,255,0,0.08)",
     borderColor: "rgba(209,255,0,0.25)",
   },
+  badgePaused: {
+    backgroundColor: "rgba(255,238,171,0.12)",
+    borderColor: "rgba(255,238,171,0.35)",
+  },
   badgeInactive: {
     backgroundColor: "rgba(255,115,81,0.08)",
     borderColor: "rgba(255,115,81,0.25)",
@@ -92,6 +108,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
   },
   badgeTextActive: { color: Colors.primary },
+  badgeTextPaused: { color: Colors.tertiary ?? "#FFEEAB" },
   badgeTextInactive: { color: Colors.error },
   middle: {
     gap: 4,

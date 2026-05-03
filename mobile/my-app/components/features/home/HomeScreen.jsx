@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
@@ -32,7 +32,8 @@ export default function HomeScreen() {
   const [alert, setAlert] = useState(null);
   const [attendance, setAttendance] = useState([]);
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
 
@@ -49,6 +50,8 @@ export default function HomeScreen() {
           router.replace("/(auth)/login");
           return;
         }
+
+        if (!res.ok) return;
 
         let data;
         try {
@@ -82,7 +85,8 @@ export default function HomeScreen() {
     safeFetch(`${API_BASE}/qr/my-attendance`, setAttendance, (data) =>
       Array.isArray(data) ? data : [],
     );
-  }, [token]);
+  }, [token])
+  );
 
   const getGreeting = () => {
     const hour = new Date().getHours();

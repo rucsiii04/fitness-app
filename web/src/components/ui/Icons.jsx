@@ -39,4 +39,6 @@ export {
   Download      as download,
   Pencil        as edit,
   Zap           as bolt,
+  Snowflake     as snowflake,
+  Unlock        as unlock,
 } from "lucide-react";
