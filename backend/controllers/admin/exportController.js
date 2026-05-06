@@ -1,17 +1,26 @@
-import { User, Gym, Membership, Membership_Type, Gym_Attendance } from "../../models/index.js";
+import {
+  User,
+  Gym,
+  Membership,
+  Membership_Type,
+  Gym_Attendance,
+} from "../../models/index.js";
 import { Op } from "sequelize";
 
-function esc(val) {
-  if (val === null || val === undefined) return "";
-  const s = String(val);
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return `"${s.replace(/"/g, '""')}"`;
+function escapeCSV(value) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  const needsQuoting = str.includes(",") || str.includes('"') || str.includes("\n");
+  if (needsQuoting) {
+    return `"${str.replace(/"/g, '""')}"`;
   }
-  return s;
+  return str;
 }
 
 function toCSV(headers, rows) {
-  return [headers.join(","), ...rows.map((r) => r.map(esc).join(","))].join("\n");
+  const headerLine = headers.join(",");
+  const dataLines = rows.map((row) => row.map(escapeCSV).join(","));
+  return [headerLine, ...dataLines].join("\n");
 }
 
 function fmtDate(d) {
@@ -20,7 +29,10 @@ function fmtDate(d) {
 
 function fmtTime(d) {
   return d
-    ? new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(d).toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : "";
 }
 
@@ -53,7 +65,15 @@ export const controller = {
         order: [["start_date", "DESC"]],
       });
 
-      const headers = ["Client Name", "Email", "Membership Type", "Price", "Start Date", "End Date", "Status"];
+      const headers = [
+        "Client Name",
+        "Email",
+        "Membership Type",
+        "Price",
+        "Start Date",
+        "End Date",
+        "Status",
+      ];
       const data = rows.map((r) => [
         r.User ? `${r.User.first_name} ${r.User.last_name}` : "",
         r.User?.email || "",
@@ -66,7 +86,10 @@ export const controller = {
 
       const csv = toCSV(headers, data);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="memberships_${todayStr()}.csv"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="memberships_${todayStr()}.csv"`,
+      );
       return res.send(csv);
     } catch (err) {
       return res.status(500).json({ message: "Export failed: " + err.message });
@@ -82,11 +105,25 @@ export const controller = {
 
       const users = await User.findAll({
         where: { gym_id: gymId },
-        attributes: ["first_name", "last_name", "email", "phone", "role", "is_active"],
+        attributes: [
+          "first_name",
+          "last_name",
+          "email",
+          "phone",
+          "role",
+          "is_active",
+        ],
         order: [["first_name", "ASC"]],
       });
 
-      const headers = ["First Name", "Last Name", "Email", "Phone", "Role", "Active"];
+      const headers = [
+        "First Name",
+        "Last Name",
+        "Email",
+        "Phone",
+        "Role",
+        "Active",
+      ];
       const data = users.map((u) => [
         u.first_name,
         u.last_name,
@@ -98,7 +135,10 @@ export const controller = {
 
       const csv = toCSV(headers, data);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="users_${todayStr()}.csv"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="users_${todayStr()}.csv"`,
+      );
       return res.send(csv);
     } catch (err) {
       return res.status(500).json({ message: "Export failed: " + err.message });
@@ -127,7 +167,9 @@ export const controller = {
 
       const rows = await Gym_Attendance.findAll({
         where,
-        include: [{ model: User, attributes: ["first_name", "last_name", "email"] }],
+        include: [
+          { model: User, attributes: ["first_name", "last_name", "email"] },
+        ],
         order: [["entry_time", "DESC"]],
       });
 
@@ -141,7 +183,10 @@ export const controller = {
 
       const csv = toCSV(headers, data);
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="checkins_${todayStr()}.csv"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="checkins_${todayStr()}.csv"`,
+      );
       return res.send(csv);
     } catch (err) {
       return res.status(500).json({ message: "Export failed: " + err.message });

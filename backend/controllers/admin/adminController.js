@@ -95,21 +95,18 @@ export const controller = {
       transporter.sendMail({
         from: "Kinetic Fitness",
         to: trainer.email,
-        subject: "You've been invited as a trainer — set your password",
+        subject: "Ai fost invitat ca antrenor — setează-ți parola",
         html: `
-          <p>Hi ${trainer.first_name},</p>
-          <p>Your trainer account on <strong>Kinetic</strong> has been created.</p>
-
-          <p>If you're using the <strong>mobile app</strong>, enter this code when prompted:</p>
+          <p>Salut ${trainer.first_name},</p>
+          <p>Contul tău de <strong>antrenor</strong> pe <strong>Kinetic</strong> a fost creat.</p>
+          <p>Dacă folosești <strong>aplicația mobilă</strong>, introdu acest cod când ți se solicită:</p>
           <p style="font-size:36px; font-weight:bold; letter-spacing:10px; margin:16px 0;">${otp}</p>
-          <p>The code is valid for <strong>1 hour</strong>.</p>
-
+          <p>Codul este valabil <strong>1 oră</strong>.</p>
           <hr style="margin:24px 0; border:none; border-top:1px solid #eee;" />
-
-          <p>If you're on <strong>web</strong>, click the link below to set your password:</p>
-          <p><a href="${resetLink}" style="font-weight:bold;">Set my password</a></p>
+          <p>Dacă ești pe <strong>web</strong>, apasă linkul de mai jos pentru a-ți seta parola:</p>
+          <p><a href="${resetLink}" style="font-weight:bold;">Setează parola</a></p>
         `,
-      }).catch((err) => console.error("Failed to send trainer invite email:", err));
+      }).catch((err) => console.error("Eroare la trimiterea emailului de invitație antrenor:", err));
 
       return res
         .status(201)

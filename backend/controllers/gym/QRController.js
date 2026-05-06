@@ -118,46 +118,22 @@ export const controller = {
         return res.status(400).json({ message: "Token is required" });
       }
 
-      const token_hash = crypto
-        .createHash("sha256")
-        .update(token)
-        .digest("hex");
+      const token_hash = crypto.createHash("sha256").update(token).digest("hex");
 
       const qrRecord = await QR_Code.findOne({ where: { token_hash } });
 
-      if (!qrRecord) {
-        return res.status(404).json({ message: "Invalid QR code" });
-      }
-
-      if (qrRecord.is_used) {
-        return res.status(400).json({ message: "QR code already used" });
-      }
-
-      if (qrRecord.expires_at < new Date()) {
-        return res.status(400).json({ message: "QR code expired" });
-      }
+      if (!qrRecord) return res.status(404).json({ message: "Invalid QR code" });
+      if (qrRecord.is_used) return res.status(400).json({ message: "QR code already used" });
+      if (qrRecord.expires_at < new Date()) return res.status(400).json({ message: "QR code expired" });
 
       const gym_id = req.user.gym_id;
 
       const membership = await Membership.findOne({
-        where: {
-          client_id: qrRecord.user_id,
-          status: "active",
-        },
-        include: [
-          {
-            model: Membership_Type,
-            where: { gym_id },
-            attributes: ["name", "gym_id"],
-          },
-        ],
+        where: { client_id: qrRecord.user_id, status: "active" },
+        include: [{ model: Membership_Type, where: { gym_id }, attributes: ["name", "gym_id"] }],
       });
 
-      if (!membership) {
-        return res
-          .status(403)
-          .json({ message: "No active membership for this gym" });
-      }
+      if (!membership) return res.status(403).json({ message: "No active membership for this gym" });
 
       await qrRecord.update({ is_used: true });
 

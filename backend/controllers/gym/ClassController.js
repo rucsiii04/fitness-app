@@ -77,21 +77,17 @@ export const controller = {
         ],
         transaction: t,
       });
-
       if (!activeMembership) {
         await t.rollback();
         return res.status(403).json({ message: "No active membership" });
       }
-
       if (!activeMembership.Membership_Type.includes_group_classes) {
         await t.rollback();
         return res
           .status(403)
           .json({ message: "Your membership does not include group classes" });
       }
-
       await syncExpiredNoShows({ clientId, transaction: t });
-
       const noShowCount = await Class_Enrollment.count({
         where: {
           client_id: clientId,
@@ -99,14 +95,12 @@ export const controller = {
         },
         transaction: t,
       });
-
       if (noShowCount >= 3) {
         await t.rollback();
         return res
           .status(403)
           .json({ message: "Booking blocked due to repeated no-shows" });
       }
-
       const existingEnrollment = await Class_Enrollment.findOne({
         where: {
           session_id: sessionId,
@@ -117,12 +111,10 @@ export const controller = {
         },
         transaction: t,
       });
-
       if (existingEnrollment) {
         await t.rollback();
         return res.status(400).json({ message: "Already enrolled" });
       }
-
       const overlapping = await Class_Enrollment.findOne({
         where: {
           client_id: clientId,
@@ -274,11 +266,10 @@ export const controller = {
               subject: "Ai fost confirmat din lista de așteptare!",
               html: `
       <p>Bună, ${promotedUser.first_name},</p>
-       <p>Vești bune! </p>
-  <p>Un loc s-a eliberat și ai fost mutat(ă) din lista de așteptare în clasa <strong>${classType?.name ?? "selectată"}</strong>, care va avea loc <strong>${sessionDate}</strong>.</p>
-  <p>Ne bucurăm să te avem alături!</p>
-  <p>— Echipa Kinetic Fitness </p>
-`,
+      <p>Vești bune!</p>
+      <p>Un loc s-a eliberat și ai fost mutat(ă) din lista de așteptare în clasa <strong>${classType?.name ?? "selectată"}</strong>, care va avea loc <strong>${sessionDate}</strong>.</p>
+      <p>Ne bucurăm să te avem alături!</p>
+      <p>— Echipa Kinetic Fitness </p>`,
             })
             .catch(console.error);
         }

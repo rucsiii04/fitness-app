@@ -119,7 +119,7 @@ export const controller = {
       const webLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${user.user_id}`;
 
       await transporter.sendMail({
-        from: "Fitness App",
+        from: "Kinetic Fitness",
         to: user.email,
         subject: "Resetare parola",
         html: `

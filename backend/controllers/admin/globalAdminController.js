@@ -46,14 +46,15 @@ export const controller = {
       });
       const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${token}&userId=${gymAdmin.user_id}`;
       await transporter.sendMail({
+        from: "Kinetic Fitness",
         to: gymAdmin.email,
-        subject: "Set your password - Fitness App",
+        subject: "Contul tău de administrator a fost creat — setează-ți parola",
         html: `
-         <p>Hello ${gymAdmin.first_name},</p>
-        <p>Your gym admin account has been created.</p>
-        <p>Click below to set your password:</p>
-        <a href="${resetLink}">Set Password</a>
-        <p>Link expires in 1 hour.</p>
+          <p>Salut ${gymAdmin.first_name},</p>
+          <p>Contul tău de <strong>administrator de sală</strong> pe <strong>Kinetic</strong> a fost creat.</p>
+          <p>Apasă linkul de mai jos pentru a-ți seta parola:</p>
+          <p><a href="${resetLink}" style="font-weight:bold;">Setează parola</a></p>
+          <p>Linkul este valabil <strong>1 oră</strong>.</p>
         `,
       });
       return res

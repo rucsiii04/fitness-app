@@ -10,27 +10,28 @@ import {
 } from "../../models/index.js";
 import { geminiModel } from "../../config/gemini.js";
 
+const normalize = (str) =>
+  str
+    .toLowerCase()
+    .replace(/[ăâ]/g, "a")
+    .replace(/î/g, "i")
+    .replace(/[șş]/g, "s")
+    .replace(/[țţ]/g, "t");
+
 const GENERATION_VERBS = [
-  "genereaz",
-  "creeaz",
-  "creaz",
-  "fă-mi",
+  "genereaza",
+  "creeaza",
   "fa-mi",
-  "fă mi",
   "fa mi",
+  "alcatuieste",
+  "propune-mi",
   "vreau un plan",
-  "vreau sa",
-  "vreau să",
-  "fă-mi",
-  "make me",
   "generate",
   "create",
+  "make me",
   "build me",
-  "give me a",
-  "pot avea",
-  "poți face",
-  "poti face",
 ];
+
 const GENERATION_NOUNS = [
   "antrenament",
   "workout",
@@ -39,36 +40,24 @@ const GENERATION_NOUNS = [
   "program de antrenament",
   "plan de fitness",
   "rutina",
-  "rutină",
 ];
 
 const isWorkoutGenerationRequest = (message) => {
-  const lower = message.toLowerCase();
-  const hasVerb = GENERATION_VERBS.some((v) => lower.includes(v));
-  const hasNoun = GENERATION_NOUNS.some((n) => lower.includes(n));
+  const norm = normalize(message);
+  const hasVerb = GENERATION_VERBS.some((v) => norm.includes(v));
+  const hasNoun = GENERATION_NOUNS.some((n) => norm.includes(n));
   return hasVerb && hasNoun;
 };
 
 const MODIFICATION_KEYWORDS = [
-  "schimbă",
   "schimba",
-  "înlocuiește",
   "inlocuieste",
-  "înlocuieste",
   "scoate",
-  "elimină",
   "elimina",
-  "șterge",
   "sterge",
-  "adaugă",
   "adauga",
-  "adăuga",
-  "modifică",
   "modifica",
-  "actualizează",
   "actualizeaza",
-  "renumește",
-  "redenumește",
   "redenumeste",
   "change",
   "replace",
@@ -82,8 +71,8 @@ const MODIFICATION_KEYWORDS = [
 ];
 
 const isWorkoutModificationRequest = (message) => {
-  const lower = message.toLowerCase();
-  return MODIFICATION_KEYWORDS.some((k) => lower.includes(k));
+  const norm = normalize(message);
+  return MODIFICATION_KEYWORDS.some((k) => norm.includes(k));
 };
 
 const buildSystemPrompt = (profile, user, recentSessions) => {
@@ -109,24 +98,15 @@ const buildSystemPrompt = (profile, user, recentSessions) => {
 
   return `You are a personal fitness assistant inside a gym management app.
 
-Client profile:
-- Name: ${name}
-- Gender: ${gender}
-- Weight: ${weight}
-- Height: ${height}
-- Main goal: ${goal}
-- Activity level: ${activity}
-- Medical restrictions: ${restrictions}
-
+Client profile:Name: ${name}, gender: ${gender}, weight: ${weight}, height: ${height}, main goal: ${goal}, activity level: 
+${activity}, medical restrictions: ${restrictions}
 Recent workout sessions (last 5):
 ${sessionLines}
-
 Guidelines:
 - Be specific and practical. Tailor every answer to this client's profile.
 - If medical restrictions are listed, always respect them.
 - Keep responses concise and friendly.
 - Do not recommend exercises that conflict with medical restrictions.
-
 STRICT RULES:
 - Only answer questions related to fitness, workouts, health, or fitness-related nutrition.
 - If the user asks something unrelated (e.g. general recipes, desserts, non-fitness topics), DO NOT answer it.
@@ -670,7 +650,6 @@ export const controller = {
           );
           tools = WORKOUT_TOOLS;
 
-          // Force function calling when the user clearly wants to modify the workout
           if (isWorkoutModificationRequest(content)) {
             toolConfig = {
               functionCallingConfig: { mode: "ANY" },
@@ -699,7 +678,6 @@ export const controller = {
       let result = await chat.sendMessage(content);
       let response = result.response;
 
-      // Execute function calls until the model returns a text response
       while (response.functionCalls()?.length) {
         const calls = response.functionCalls();
         const functionResponses = await Promise.all(
@@ -749,7 +727,6 @@ export const controller = {
         return res.status(404).json({ message: "Conversation not found" });
       }
 
-      // The linked workout (linked_plan_id) is intentionally left intact.
       await Message.destroy({ where: { conversation_id: conversationId } });
       await conversation.destroy();
 

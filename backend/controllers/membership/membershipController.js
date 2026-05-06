@@ -267,7 +267,6 @@ export const controller = {
         return res.status(400).json({ message: "Invalid start date" });
       }
 
-      // sync before transaction — idempotent, safe outside
       await syncMembershipStatuses(client_id);
 
       const startDate = start_date ? new Date(start_date) : new Date();
@@ -317,7 +316,7 @@ export const controller = {
         if (isChangingGym) {
           await Trainer_Assignment.update(
             { status: "ended" },
-            { where: { client_id, status: "accepted" }, transaction: t },
+            { where: { client_id, status: ["accepted", "pending"] }, transaction: t },
           );
         }
 

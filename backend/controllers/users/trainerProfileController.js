@@ -18,7 +18,7 @@ export const controller = {
       ) {
         return res
           .status(400)
-          .json({ message: "Invalid experience years value. Value must be between 1 and 40" }); //dc are 60 de ani si a inceput f devreme? idk
+          .json({ message: "Invalid experience years value. Value must be between 1 and 50" }); 
       }
       const existingProfile = await Trainer_Profile.findByPk(userId);
       if (existingProfile) {
