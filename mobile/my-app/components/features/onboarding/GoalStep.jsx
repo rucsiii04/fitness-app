@@ -7,23 +7,23 @@ import { SelectionCard } from "@/components/ui/SelectionCard";
 const GOALS = [
   {
     value: "lose_weight",
-    label: "Lose Weight",
+    label: "Slăbit",
     description:
-      "Metabolic conditioning optimized for fat oxidation and endurance.",
+      "Condiționare metabolică optimizată pentru arderea grăsimilor și rezistență.",
     icon: "scale-outline",
   },
   {
     value: "gain_weight",
-    label: "Gain Muscle",
+    label: "Masă musculară",
     description:
-      "Hypertrophy-focused training designed for elite strength and volume.",
+      "Antrenament axat pe hipertrofie, conceput pentru forță și volum de elită.",
     icon: "barbell-outline",
   },
   {
     value: "maintain",
-    label: "Build Endurance",
+    label: "Rezistență",
     description:
-      "High-performance aerobic programming for stamina and cardiovascular power.",
+      "Program aerobic de înaltă performanță pentru anduranță și putere cardiovasculară.",
     icon: "flash-outline",
   },
 ];
@@ -37,7 +37,7 @@ export function GoalStep({ data, onChange, onNext }) {
         if (!data.main_goal) return;
         onNext();
       }}
-      nextLabel="Next"
+      nextLabel="Continuă"
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -45,11 +45,11 @@ export function GoalStep({ data, onChange, onNext }) {
       >
         <View style={styles.hero}>
           <Text style={styles.title}>
-            CHOOSE YOUR <Text style={styles.titleAccent}>TARGET</Text>
+            ALEGE-ȚI <Text style={styles.titleAccent}>OBIECTIVUL</Text>
           </Text>
           <Text style={styles.subtitle}>
-            Define your primary objective. Our system will architect a precision
-            program tailored to your profile.
+            Definește-ți scopul principal. Sistemul nostru va construi un program
+            precis adaptat profilului tău.
           </Text>
         </View>
 

@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileComplete, setProfileComplete] = useState(null);
 
   useEffect(() => {
     if (user?.user_id) connectSocket(user.user_id);
@@ -30,12 +31,27 @@ export function AuthProvider({ children }) {
 
             await AsyncStorage.setItem("user", JSON.stringify(freshUser));
             setUser(freshUser);
+
+            if (freshUser.role === "client") {
+              try {
+                await api.get("/profile");
+                setProfileComplete(true);
+              } catch (e) {
+                setProfileComplete(e?.response?.status === 404 ? false : true);
+              }
+            } else {
+              setProfileComplete(true);
+            }
           } catch (err) {
             if (storedUser) setUser(JSON.parse(storedUser));
+            setProfileComplete(true);
           }
+        } else {
+          setProfileComplete(true);
         }
       } catch (err) {
         console.error("Failed to load session", err);
+        setProfileComplete(true);
       } finally {
         setLoading(false);
       }
@@ -51,6 +67,17 @@ export function AuthProvider({ children }) {
 
       setToken(tokenValue);
       setUser(userData);
+
+      if (userData.role === "client") {
+        try {
+          await api.get("/profile");
+          setProfileComplete(true);
+        } catch (e) {
+          setProfileComplete(e?.response?.status === 404 ? false : true);
+        }
+      } else {
+        setProfileComplete(true);
+      }
     } catch (err) {
       console.error("Login error:", err);
     }
@@ -63,10 +90,13 @@ export function AuthProvider({ children }) {
 
       setToken(null);
       setUser(null);
+      setProfileComplete(null);
     } catch (err) {
       console.error("Logout error:", err);
     }
   };
+
+  const markProfileComplete = () => setProfileComplete(true);
 
   const refreshUser = async () => {
     if (!token) return;
@@ -85,7 +115,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, loading, refreshUser }}
+      value={{ user, token, login, logout, loading, refreshUser, profileComplete, markProfileComplete }}
     >
       {children}
     </AuthContext.Provider>

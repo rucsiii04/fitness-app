@@ -10,11 +10,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 const STATUS_CONFIG = {
-  confirmed:    { label: "Confirmed",   color: Colors.primary,  icon: "checkmark-circle",  bg: "rgba(209,255,0,0.08)" },
-  waiting_list: { label: "Waitlisted",  color: Colors.tertiary, icon: "hourglass-outline", bg: "rgba(255,238,171,0.08)" },
-  attended:     { label: "Attended",    color: Colors.secondary,icon: "ribbon-outline",     bg: "rgba(0,227,253,0.08)" },
-  no_show:      { label: "No Show",     color: Colors.error,    icon: "close-circle-outline",bg: "rgba(255,115,81,0.08)" },
-  cancelled:    { label: "Cancelled",   color: Colors.onSurfaceVariant, icon: "ban-outline", bg: Colors.surfaceContainerHigh },
+  confirmed:    { label: "Confirmat",          color: Colors.primary,  icon: "checkmark-circle",  bg: "rgba(209,255,0,0.08)" },
+  waiting_list: { label: "Listă așteptare",    color: Colors.tertiary, icon: "hourglass-outline", bg: "rgba(255,238,171,0.08)" },
+  attended:     { label: "Prezent",            color: Colors.secondary,icon: "ribbon-outline",     bg: "rgba(0,227,253,0.08)" },
+  no_show:      { label: "Absent",             color: Colors.error,    icon: "close-circle-outline",bg: "rgba(255,115,81,0.08)" },
+  cancelled:    { label: "Anulat",             color: Colors.onSurfaceVariant, icon: "ban-outline", bg: Colors.surfaceContainerHigh },
 };
 
 const formatDateTime = (dateString) => {
@@ -67,7 +67,7 @@ export function EnrollmentCard({ enrollment, onCancel, busy, dimmed }) {
             <ActivityIndicator size="small" color={Colors.error} />
           ) : (
             <Text style={styles.cancelBtnText}>
-              {enrollment.status === "waiting_list" ? "Leave Waitlist" : "Cancel Enrollment"}
+              {enrollment.status === "waiting_list" ? "Renunță la lista de așteptare" : "Anulează înscrierea"}
             </Text>
           )}
         </TouchableOpacity>

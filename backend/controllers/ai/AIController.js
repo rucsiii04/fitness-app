@@ -25,11 +25,22 @@ const GENERATION_VERBS = [
   "fa mi",
   "alcatuieste",
   "propune-mi",
+  "propune",
   "vreau un plan",
+  "vreau un",
+  "vreau sa",
+  "as vrea",
+  "doresc",
+  "poti sa-mi",
+  "poti sa mi",
+  "da-mi",
+  "da mi",
   "generate",
   "create",
   "make me",
   "build me",
+  "give me",
+  "design me",
 ];
 
 const GENERATION_NOUNS = [
@@ -114,6 +125,7 @@ STRICT RULES:
 - Never invent information outside the fitness domain.
 - If you are unsure, say you are not sure instead of guessing.
 - Always respond in the same language as the user's message.
+- NEVER generate a complete workout plan or training program as text, even if asked directly. If the user wants a new workout plan created, always tell them to use the ✦ button in the top right corner of the screen. This applies even if you already have a linked workout plan in this conversation.
 `;
 };
 
@@ -605,7 +617,7 @@ export const controller = {
         sent_at: now,
       });
 
-      // Only redirect to plan generation when there's no linked plan yet
+      // Redirect to plan generation when there's no linked plan yet
       if (!conversation.linked_plan_id && isWorkoutGenerationRequest(content)) {
         const redirect =
           "Folosește butonul ✦ din colțul din dreapta sus pentru a genera un antrenament personalizat. Îți pot răspunde la orice întrebări despre antrenamentele tale după ce le generezi.";

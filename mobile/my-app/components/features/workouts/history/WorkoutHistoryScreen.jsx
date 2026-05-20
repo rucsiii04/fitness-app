@@ -23,9 +23,9 @@ function EmptyState() {
       <View style={styles.emptyIcon}>
         <Ionicons name="time-outline" size={28} color={Colors.outlineVariant} />
       </View>
-      <Text style={styles.emptyTitle}>No history yet</Text>
+      <Text style={styles.emptyTitle}>Niciun istoric</Text>
       <Text style={styles.emptySubtitle}>
-        Complete a workout session and it will appear here.
+        Finalizează o sesiune de antrenament și va apărea aici.
       </Text>
     </View>
   );
@@ -49,7 +49,7 @@ export default function WorkoutHistoryScreen() {
       const data = await fetchSessionHistory(token);
       setSessions(data);
     } catch (err) {
-      Alert.alert("Error", err.message ?? "Could not load history.");
+      Alert.alert("Eroare", err.message ?? "Nu s-a putut încărca istoricul.");
     } finally {
       setLoading(false);
     }
@@ -67,8 +67,8 @@ export default function WorkoutHistoryScreen() {
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerTitle}>TRAINING HISTORY</Text>
-            <Text style={styles.headerSub}>Last 10 completed sessions</Text>
+            <Text style={styles.headerTitle}>ISTORIC ANTRENAMENTE</Text>
+            <Text style={styles.headerSub}>Ultimele 10 sesiuni finalizate</Text>
           </View>
           <View style={{ width: 34 }} />
         </View>

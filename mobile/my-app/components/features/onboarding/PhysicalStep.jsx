@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 import { OnboardingLayout } from "@/components/ui/OnboardingLayout";
 
-export function PhysicalStep({ data, onChange, onNext }) {
+export function PhysicalStep({ data, onChange, onNext, onBack }) {
   return (
     <OnboardingLayout
       step={2}
@@ -20,7 +20,8 @@ export function PhysicalStep({ data, onChange, onNext }) {
         if (!data.gender || !data.height || !data.current_weight) return;
         onNext();
       }}
-      nextLabel="Next"
+      onBack={onBack}
+      nextLabel="Continuă"
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -29,13 +30,13 @@ export function PhysicalStep({ data, onChange, onNext }) {
       >
         <View style={styles.hero}>
           <Text style={styles.title}>
-            PHYSICAL{"\n"}
-            <Text style={styles.titleAccent}>PROFILE</Text>
+            PROFIL{"\n"}
+            <Text style={styles.titleAccent}>FIZIC</Text>
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Biological Sex</Text>
+          <Text style={styles.sectionLabel}>Sex biologic</Text>
           <View style={styles.genderRow}>
             {["male", "female"].map((g) => (
               <TouchableOpacity
@@ -62,7 +63,7 @@ export function PhysicalStep({ data, onChange, onNext }) {
                     data.gender === g && styles.genderLabelSelected,
                   ]}
                 >
-                  {g.toUpperCase()}
+                  {g === "male" ? "MASCULIN" : "FEMININ"}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -70,7 +71,7 @@ export function PhysicalStep({ data, onChange, onNext }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Height</Text>
+          <Text style={styles.sectionLabel}>Înălțime</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.bigInput}
@@ -86,7 +87,7 @@ export function PhysicalStep({ data, onChange, onNext }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Weight</Text>
+          <Text style={styles.sectionLabel}>Greutate</Text>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.bigInput}

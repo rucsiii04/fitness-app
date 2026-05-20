@@ -21,6 +21,21 @@ import GymAlertModal from "./GymAlertModal";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
+const RESTRICTION_LABELS = {
+  heart: "Afecțiune cardiacă",
+  asthma: "Astm / Respirație",
+  joint: "Dureri articulare",
+  blood_pressure: "Tensiune arterială",
+};
+
+function translateRestrictions(raw) {
+  if (!raw) return raw;
+  return raw
+    .split(", ")
+    .map((part) => RESTRICTION_LABELS[part.trim()] || part.trim())
+    .join(", ");
+}
+
 function MetricCard({ label, value, unit, icon, iconColor }) {
   return (
     <View style={styles.metricCard}>
@@ -105,11 +120,11 @@ export default function ProfileScreen() {
   const formatActivity = (level) => {
     if (!level) return "—";
     const map = {
-      sedentary: "Sedentary",
-      light: "Light",
-      moderate: "Moderate",
-      active: "Active",
-      very_active: "Very Active",
+      sedentary: "Sedentar",
+      light: "Ușor",
+      moderate: "Moderat",
+      active: "Activ",
+      very_active: "Foarte activ",
     };
     return map[level] || level;
   };
@@ -152,7 +167,7 @@ export default function ProfileScreen() {
               },
             ]}
           >
-            <Text style={styles.sectionTitle}>VITAL METRICS</Text>
+            <Text style={styles.sectionTitle}>METRICI VITALE</Text>
             <TouchableOpacity
               onPress={() => setEditVisible(true)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -167,27 +182,27 @@ export default function ProfileScreen() {
 
           <View style={styles.metricsGrid}>
             <MetricCard
-              label="Weight"
+              label="Greutate"
               value={profile?.current_weight ?? "—"}
               unit={profile?.current_weight ? "KG" : ""}
               icon="scale-outline"
               iconColor={Colors.primaryDim}
             />
             <MetricCard
-              label="Height"
+              label="Înălțime"
               value={profile?.height ?? "—"}
               unit={profile?.height ? "CM" : ""}
               icon="body-outline"
               iconColor={Colors.secondary}
             />
             <MetricCard
-              label="Activity"
+              label="Activitate"
               value={formatActivity(profile?.activity_level)}
               icon="flash-outline"
               iconColor={Colors.tertiary}
             />
             <MetricCard
-              label="Goal"
+              label="Obiectiv"
               value={formatGoal(profile?.main_goal)}
               icon="flag-outline"
               iconColor={Colors.primary}
@@ -202,21 +217,21 @@ export default function ProfileScreen() {
                   size={16}
                   color={Colors.errorDim}
                 />
-                <Text style={styles.medicalTitle}>Medical Restrictions</Text>
+                <Text style={styles.medicalTitle}>Restricții medicale</Text>
               </View>
               <Text style={styles.medicalText}>
-                {profile.medical_restriction}
+                {translateRestrictions(profile.medical_restriction)}
               </Text>
             </View>
           )}
 
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>PREFERENCES</Text>
+            <Text style={styles.sectionTitle}>PREFERINȚE</Text>
           </View>
           <View style={styles.settingsCard}>
             <SettingsRow
               icon="card-outline"
-              label="Membership"
+              label="Abonament"
               onPress={() => router.push("/membership")}
             />
             <View style={styles.settingsDivider} />
@@ -254,7 +269,7 @@ export default function ProfileScreen() {
               size={20}
               color={Colors.onSurfaceVariant}
             />
-            <Text style={styles.logoutText}>LOG OUT</Text>
+            <Text style={styles.logoutText}>DECONECTARE</Text>
           </TouchableOpacity>
 
           <View style={styles.bottomPadding} />

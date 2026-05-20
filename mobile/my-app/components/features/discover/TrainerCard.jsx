@@ -60,7 +60,7 @@ function BioSection({ bio }) {
           activeOpacity={0.7}
         >
           <Text style={styles.showMore}>
-            {expanded ? "show less" : "show more..."}
+            {expanded ? "mai puțin" : "mai mult..."}
           </Text>
         </TouchableOpacity>
       )}
@@ -106,6 +106,7 @@ export function TrainerCard({
     }
 
     if (isPending) {
+      if (hasActiveTrainer) return null;
       return (
         <View style={styles.pendingBtn}>
           <Ionicons
@@ -113,7 +114,7 @@ export function TrainerCard({
             size={14}
             color={Colors.tertiary}
           />
-          <Text style={styles.pendingBtnText}>REQUEST TRIMIS</Text>
+          <Text style={styles.pendingBtnText}>CERERE TRIMISĂ</Text>
         </View>
       );
     }

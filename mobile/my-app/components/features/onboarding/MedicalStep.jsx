@@ -14,31 +14,31 @@ import { OnboardingLayout } from "@/components/ui/OnboardingLayout";
 const RESTRICTIONS = [
   {
     value: "heart",
-    label: "Heart Condition",
+    label: "Afecțiune cardiacă",
     icon: "heart-outline",
     color: Colors.errorDim,
   },
   {
     value: "asthma",
-    label: "Asthma / Breathing",
+    label: "Astm / Respirație",
     icon: "wind-outline",
     color: Colors.secondary,
   },
   {
     value: "joint",
-    label: "Joint or Bone Pain",
+    label: "Dureri articulare",
     icon: "body-outline",
     color: Colors.tertiaryDim,
   },
   {
     value: "blood_pressure",
-    label: "High Blood Pressure",
+    label: "Tensiune arterială",
     icon: "speedometer-outline",
     color: Colors.primaryDim,
   },
 ];
 
-export function MedicalStep({ data, onChange, onSubmit, loading }) {
+export function MedicalStep({ data, onChange, onSubmit, loading, onBack }) {
   const selected = data.restrictions || [];
 
   const toggleRestriction = (value) => {
@@ -48,13 +48,12 @@ export function MedicalStep({ data, onChange, onSubmit, loading }) {
     onChange({ restrictions: current });
   };
 
-  const noRestrictions = data.no_restrictions || false;
-
   return (
     <OnboardingLayout
       step={4}
       onNext={onSubmit}
-      nextLabel="Complete"
+      onBack={onBack}
+      nextLabel="Finalizează"
       loading={loading}
     >
       <ScrollView
@@ -64,64 +63,39 @@ export function MedicalStep({ data, onChange, onSubmit, loading }) {
       >
         <View style={styles.hero}>
           <Text style={styles.title}>
-            MEDICAL{"\n"}
-            <Text style={styles.titleAccent}>RESTRICTIONS</Text>
+            RESTRICȚII{"\n"}
+            <Text style={styles.titleAccent}>MEDICALE</Text>
           </Text>
-          <View style={styles.progressPct}>
-            <Text style={styles.pctText}>100%</Text>
-          </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.toggleRow}
-          onPress={() =>
-            onChange({ no_restrictions: !noRestrictions, restrictions: [] })
-          }
-          activeOpacity={0.85}
-        >
-          <View style={styles.toggleText}>
-            <Text style={styles.toggleLabel}>No medical restrictions</Text>
-            <Text style={styles.toggleSub}>
-              I am cleared for high-intensity activity
-            </Text>
-          </View>
-          <View style={[styles.toggle, noRestrictions && styles.toggleActive]}>
-            {noRestrictions && (
-              <Ionicons name="checkmark" size={16} color={Colors.background} />
-            )}
-          </View>
-        </TouchableOpacity>
-
-        {!noRestrictions && (
-          <View style={styles.grid}>
-            {RESTRICTIONS.map((item) => {
-              const isSelected = selected.includes(item.value);
-              return (
-                <TouchableOpacity
-                  key={item.value}
-                  style={[
-                    styles.restrictionCard,
-                    isSelected && styles.restrictionCardSelected,
-                  ]}
-                  onPress={() => toggleRestriction(item.value)}
-                  activeOpacity={0.85}
-                >
-                  {isSelected && (
-                    <View style={styles.checkBadge}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={16}
-                        color={Colors.primaryDim}
-                      />
-                    </View>
-                  )}
-                  <Ionicons name={item.icon} size={24} color={item.color} />
-                  <Text style={styles.restrictionLabel}>{item.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
+        <View style={styles.grid}>
+          {RESTRICTIONS.map((item) => {
+            const isSelected = selected.includes(item.value);
+            return (
+              <TouchableOpacity
+                key={item.value}
+                style={[
+                  styles.restrictionCard,
+                  isSelected && styles.restrictionCardSelected,
+                ]}
+                onPress={() => toggleRestriction(item.value)}
+                activeOpacity={0.85}
+              >
+                {isSelected && (
+                  <View style={styles.checkBadge}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color={Colors.primaryDim}
+                    />
+                  </View>
+                )}
+                <Ionicons name={item.icon} size={24} color={item.color} />
+                <Text style={styles.restrictionLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         <View style={styles.notesSection}>
           <View style={styles.notesLabel}>
@@ -131,12 +105,12 @@ export function MedicalStep({ data, onChange, onSubmit, loading }) {
               color={Colors.secondary}
             />
             <Text style={styles.notesSectionLabel}>
-              Other details or surgeries
+              Alte detalii sau intervenții chirurgicale
             </Text>
           </View>
           <TextInput
             style={styles.textArea}
-            placeholder="Describe any other conditions or recent injuries..."
+            placeholder="Descrie alte afecțiuni sau accidentări recente..."
             placeholderTextColor={Colors.outlineVariant}
             multiline
             numberOfLines={4}
@@ -153,9 +127,9 @@ export function MedicalStep({ data, onChange, onSubmit, loading }) {
             color={Colors.error}
           />
           <Text style={styles.disclaimerText}>
-            <Text style={styles.disclaimerBold}>Safety First: </Text>
-            By continuing, you acknowledge that you have consulted a medical
-            professional before beginning a new exercise program.
+            <Text style={styles.disclaimerBold}>Siguranță pe primul loc: </Text>
+            Continuând, confirmi că ai consultat un medic înainte de a începe
+            un nou program de exerciții.
           </Text>
         </View>
       </ScrollView>
@@ -171,9 +145,6 @@ const styles = StyleSheet.create({
   },
   hero: {
     paddingTop: 24,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
   },
   title: {
     fontSize: 42,
@@ -186,50 +157,6 @@ const styles = StyleSheet.create({
   },
   titleAccent: {
     color: Colors.primaryFixed,
-  },
-  progressPct: {
-    paddingTop: 8,
-  },
-  pctText: {
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: Fonts.headline,
-    color: Colors.secondary,
-    letterSpacing: -1,
-  },
-  toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-  },
-  toggleText: { gap: 4, flex: 1 },
-  toggleLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    fontFamily: Fonts.headline,
-    color: Colors.textPrimary,
-  },
-  toggleSub: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    fontFamily: Fonts.body,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 999,
-    backgroundColor: Colors.surfaceContainerHighest,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 16,
-  },
-  toggleActive: {
-    backgroundColor: Colors.primaryDim,
   },
   grid: {
     flexDirection: "row",

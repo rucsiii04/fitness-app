@@ -180,17 +180,17 @@ export default function AdminDashboard() {
               verticalAlign: "middle",
             }}
           />
-          Operations Active
+          Operațiuni Active
         </div>
         <div
           className="display"
           style={{ fontSize: 28, lineHeight: 1.05, marginBottom: 4 }}
         >
-          {gym?.name || "Your Gym"} —{" "}
+          {gym?.name || "Sala ta"} —{" "}
           <span style={{ color: "var(--accent)" }}>Dashboard</span>
         </div>
         <div style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-          {gym?.address || "Manage your gym's operations below."}
+          {gym?.address || "Gestionează operațiunile sălii mai jos."}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn
@@ -198,14 +198,14 @@ export default function AdminDashboard() {
             icon={<I.users />}
             onClick={() => navigate("/admin/staff")}
           >
-            Manage Staff
+            Gestionează personal
           </Btn>
           <Btn
             variant="outline"
             icon={<I.calendar />}
             onClick={() => navigate("/admin/classes")}
           >
-            View Schedule
+            Vezi programul
           </Btn>
         </div>
       </div>
@@ -218,25 +218,25 @@ export default function AdminDashboard() {
         }}
       >
         <KPICard
-          label="Membership Plans"
+          label="Planuri abonament"
           value={memberships.length}
-          delta="Active tiers"
+          delta="Tipuri active"
         />
         <KPICard
-          label="Today's Classes"
+          label="Clase azi"
           value={todaySessions.length}
-          delta="Scheduled today"
+          delta="Programate azi"
           tone="accent"
         />
         <KPICard
-          label="Check-ins Today"
+          label="Check-in-uri azi"
           value={attendance?.today ?? 0}
-          delta="Via QR scanner"
+          delta="Prin scanner QR"
         />
         <KPICard
-          label="MRR (est.)"
+          label="Venit lunar (est.)"
           value={`RON ${mrr.toLocaleString()}`}
-          delta="Active memberships"
+          delta="Abonamente active"
           data={monthly}
           tone="coral"
         />
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
       <div
         style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}
       >
-        <Panel title="Check-ins · Today by hour" eyebrow="Peak traffic">
+        <Panel title="Check-in-uri · Azi pe oră" eyebrow="Trafic maxim">
           <div style={{ padding: "12px 0 4px" }}>
             <BarChart
               data={hourly}
@@ -262,9 +262,9 @@ export default function AdminDashboard() {
               borderTop: "1px solid var(--border-soft)",
             }}
           >
-            <KV label="Today" value={attendance?.today ?? 0} />
+            <KV label="Azi" value={attendance?.today ?? 0} />
             <KV
-              label="Peak Hour"
+              label="Ora de vârf"
               value={
                 hourly.some(Boolean)
                   ? `${String(peakHour).padStart(2, "0")}:00`
@@ -272,7 +272,7 @@ export default function AdminDashboard() {
               }
             />
             <KV
-              label="This Week"
+              label="Săptămâna aceasta"
               value={attendance?.thisWeek ?? 0}
               tone="accent"
             />
@@ -280,15 +280,15 @@ export default function AdminDashboard() {
         </Panel>
 
         <Panel
-          title="Revenue"
-          eyebrow="Last 6 months"
+          title="Venituri"
+          eyebrow="Ultimele 6 luni"
           action={
             <Btn
               variant="ghost"
               size="sm"
               onClick={() => navigate("/admin/memberships")}
             >
-              Plans →
+              Planuri →
             </Btn>
           }
         >
@@ -330,7 +330,7 @@ export default function AdminDashboard() {
               }}
             >
               <div className="eyebrow" style={{ fontSize: 10 }}>
-                Est. MRR
+                Venit lunar est.
               </div>
               <div
                 className="display"
@@ -347,7 +347,7 @@ export default function AdminDashboard() {
               }}
             >
               <div className="eyebrow" style={{ fontSize: 10 }}>
-                Active Members
+                Membri activi
               </div>
               <div
                 className="display"
@@ -363,7 +363,7 @@ export default function AdminDashboard() {
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}
       >
-        <Panel title="Today's Classes" eyebrow="Live schedule">
+        <Panel title="Clase azi" eyebrow="Program live">
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {todaySessions.length === 0 ? (
               <div
@@ -374,7 +374,7 @@ export default function AdminDashboard() {
                   fontSize: 12,
                 }}
               >
-                No classes today.
+                Nicio clasă azi.
               </div>
             ) : (
               todaySessions.slice(0, 5).map((s, i) => (
@@ -424,15 +424,15 @@ export default function AdminDashboard() {
         </Panel>
 
         <Panel
-          title="Membership Plans"
-          eyebrow="Tiers"
+          title="Planuri abonament"
+          eyebrow="Tipuri"
           action={
             <Btn
               variant="ghost"
               size="sm"
               onClick={() => navigate("/admin/memberships")}
             >
-              Manage →
+              Gestionează →
             </Btn>
           }
         >
@@ -446,7 +446,7 @@ export default function AdminDashboard() {
                   fontSize: 12,
                 }}
               >
-                No plans yet.
+                Niciun plan încă.
               </div>
             ) : (
               memberships.map((m, i) => (
@@ -485,7 +485,7 @@ export default function AdminDashboard() {
           </div>
         </Panel>
 
-        <Panel title="Gym Info" eyebrow="Your profile">
+        <Panel title="Info sală" eyebrow="Profilul tău">
           {gym ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div>
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
                   className="eyebrow"
                   style={{ fontSize: 9, marginBottom: 4 }}
                 >
-                  Name
+                  Nume
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{gym.name}</div>
               </div>
@@ -502,7 +502,7 @@ export default function AdminDashboard() {
                   className="eyebrow"
                   style={{ fontSize: 9, marginBottom: 4 }}
                 >
-                  Address
+                  Adresă
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   {gym.address}
@@ -513,7 +513,7 @@ export default function AdminDashboard() {
                   className="eyebrow"
                   style={{ fontSize: 9, marginBottom: 4 }}
                 >
-                  City
+                  Oraș
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   {gym.city}
@@ -526,7 +526,7 @@ export default function AdminDashboard() {
                 onClick={() => navigate("/admin/settings")}
                 style={{ marginTop: 4 }}
               >
-                Edit settings
+                Editează setările
               </Btn>
             </div>
           ) : (
@@ -538,7 +538,7 @@ export default function AdminDashboard() {
                   marginBottom: 12,
                 }}
               >
-                No gym set up yet.
+                Nicio sală configurată.
               </div>
               <Btn
                 variant="primary"
@@ -546,7 +546,7 @@ export default function AdminDashboard() {
                 icon={<I.plus />}
                 onClick={() => navigate("/admin/settings")}
               >
-                Create gym
+                Creează sala
               </Btn>
             </div>
           )}

@@ -23,6 +23,44 @@ import { PrimaryButton } from "@/components/ui/PrimaryButton";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
+const PASSWORD_RULES = [
+  { id: "length",  label: "Minim 8 caractere",    test: (p) => p.length >= 8 },
+  { id: "upper",   label: "O literă mare (A-Z)",  test: (p) => /[A-Z]/.test(p) },
+  { id: "lower",   label: "O literă mică (a-z)",  test: (p) => /[a-z]/.test(p) },
+  { id: "number",  label: "O cifră (0-9)",         test: (p) => /[0-9]/.test(p) },
+  { id: "symbol",  label: "Un simbol (!@#$…)",     test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+function PasswordRules({ password }) {
+  if (!password) return null;
+  const allOk = PASSWORD_RULES.every((r) => r.test(password));
+  return (
+    <View style={ruleStyles.container}>
+      {PASSWORD_RULES.map((rule) => {
+        const ok = rule.test(password);
+        return (
+          <View key={rule.id} style={ruleStyles.row}>
+            <Ionicons
+              name={ok ? "checkmark-circle" : "ellipse-outline"}
+              size={14}
+              color={ok ? Colors.primary : Colors.onSurfaceVariant}
+            />
+            <Text style={[ruleStyles.text, ok && ruleStyles.textOk]}>
+              {rule.label}
+            </Text>
+          </View>
+        );
+      })}
+      {allOk && (
+        <View style={ruleStyles.strongRow}>
+          <Ionicons name="shield-checkmark" size={13} color={Colors.primary} />
+          <Text style={ruleStyles.strongText}>Parolă puternică</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function RegisterScreen() {
   const fontsLoaded = useAppFonts();
   const router = useRouter();
@@ -39,7 +77,11 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !phone || !email || !password) {
-      setError("Please fill in all fields.");
+      setError("Completează toate câmpurile.");
+      return;
+    }
+    if (!PASSWORD_RULES.every((r) => r.test(password))) {
+      setError("Parola nu îndeplinește toate cerințele de mai jos.");
       return;
     }
 
@@ -67,15 +109,15 @@ export default function RegisterScreen() {
           const messages = data.errors.map((e) => e.message).join("\n");
           setError(messages);
         } else {
-          setError(data.message || "Registration failed.");
+          setError(data.message || "Înregistrare eșuată.");
         }
         return;
       }
 
       await login(data.token, data.user);
-      router.replace("/(tabs)/home");
+      router.replace("/(onboarding)");
     } catch (err) {
-      setError("Something went wrong. Check your connection.");
+      setError("Ceva a mers greșit. Verifică conexiunea.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -169,6 +211,8 @@ export default function RegisterScreen() {
                     </TouchableOpacity>
                   }
                 />
+
+                <PasswordRules password={password} />
 
                 {error ? (
                   <View style={styles.errorBox}>
@@ -325,5 +369,41 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     textTransform: "uppercase",
     letterSpacing: 1,
+  },
+});
+
+const ruleStyles = StyleSheet.create({
+  container: {
+    gap: 7,
+    paddingHorizontal: 4,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  text: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+  },
+  textOk: {
+    color: Colors.primary,
+  },
+  strongRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(209,255,0,0.15)",
+  },
+  strongText: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: 0.5,
   },
 });

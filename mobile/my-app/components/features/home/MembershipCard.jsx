@@ -1,9 +1,40 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Colors, Fonts } from "@/constants/theme";
 
 export function MembershipCard({ membership }) {
+  const router = useRouter();
+
+  if (!membership) {
+    return (
+      <TouchableOpacity
+        style={[styles.card, styles.emptyCard]}
+        onPress={() => router.push("/(tabs)/gym")}
+        activeOpacity={0.85}
+      >
+        <View style={styles.emptyIconRow}>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="card-outline" size={22} color={Colors.onSurfaceVariant} />
+          </View>
+          <View style={styles.emptyArrow}>
+            <Ionicons name="arrow-forward" size={16} color={Colors.background} />
+          </View>
+        </View>
+        <View style={styles.emptyBody}>
+          <Text style={styles.emptyTitle}>Niciun abonament activ</Text>
+          <Text style={styles.emptySubtitle}>
+            Descoperă sălile disponibile și alege un abonament potrivit pentru tine.
+          </Text>
+        </View>
+        <View style={styles.emptyFooter}>
+          <Ionicons name="location-outline" size={13} color={Colors.onSurfaceVariant} />
+          <Text style={styles.emptyFooterText}>Vezi sălile disponibile</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
   const validUntil = membership?.end_date
     ? new Date(membership.end_date).toLocaleDateString("en-US", {
         month: "short",
@@ -24,9 +55,9 @@ export function MembershipCard({ membership }) {
     : status === "paused" ? styles.badgeTextPaused
     : styles.badgeTextInactive;
   const badgeLabel =
-    status === "active" ? "Active"
-    : status === "paused" ? "Paused"
-    : "Inactive";
+    status === "active" ? "Activ"
+    : status === "paused" ? "Pauzat"
+    : "Inactiv";
 
   return (
     <View style={styles.card}>
@@ -42,15 +73,15 @@ export function MembershipCard({ membership }) {
       </View>
 
       <View style={styles.middle}>
-        <Text style={styles.sectionLabel}>Membership Tier</Text>
+        <Text style={styles.sectionLabel}>Tip Abonament</Text>
         <Text style={styles.tierName}>{tierName}</Text>
-        <Text style={styles.sectionLabel}>Primary Club</Text>
+        <Text style={styles.sectionLabel}>Sala Principală</Text>
         <Text style={styles.gymName}>{gymName}</Text>
       </View>
 
       <View style={styles.footer}>
         <View>
-          <Text style={styles.validLabel}>Valid Until</Text>
+          <Text style={styles.validLabel}>Valabil până la</Text>
           <Text style={styles.validDate}>{validUntil}</Text>
         </View>
         <Ionicons name="wifi-outline" size={22} color={Colors.outlineVariant} />
@@ -155,5 +186,70 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: Colors.textPrimary,
     fontFamily: Fonts.body,
+  },
+
+  emptyCard: {
+    borderStyle: "dashed",
+    borderColor: Colors.borderSubtle,
+    gap: 14,
+  },
+  emptyIconRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  emptyIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.surfaceContainerHighest,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emptyBody: {
+    gap: 6,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 19,
+  },
+  emptyFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderSubtle,
+  },
+  emptyFooterText: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 0.5,
   },
 });

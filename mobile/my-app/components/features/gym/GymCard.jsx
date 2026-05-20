@@ -48,7 +48,7 @@ export function GymCard({ gym, onPress, onView }) {
                 { color: open ? Colors.primary : Colors.error },
               ]}
             >
-              {open ? "OPEN" : "CLOSED"}
+              {open ? "DESCHIS" : "ÎNCHIS"}
             </Text>
           </View>
         </View>
@@ -69,7 +69,7 @@ export function GymCard({ gym, onPress, onView }) {
             onPress={onView ?? onPress}
             activeOpacity={0.85}
           >
-            <Text style={styles.viewBtnText}>VIEW</Text>
+            <Text style={styles.viewBtnText}>DETALII</Text>
             <Ionicons
               name="chevron-forward"
               size={12}

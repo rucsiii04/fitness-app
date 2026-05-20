@@ -5,9 +5,6 @@ import {
   createMembershipType,
   updateMembershipType,
   issueMembership,
-  getAdminFreezeStatus,
-  adminFreezeGymMemberships,
-  adminUnfreezeGymMemberships,
 } from "../../api/memberships.js";
 import { searchClients } from "../../api/reception.js";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -83,7 +80,7 @@ function Toggle({ checked, onChange }) {
           color: checked ? "var(--accent)" : "var(--text-dim)",
         }}
       >
-        {checked ? "Yes — included" : "No — not included"}
+        {checked ? "Da — inclusă" : "Nu — neinclusă"}
       </span>
     </button>
   );
@@ -92,16 +89,16 @@ function Toggle({ checked, onChange }) {
 function PlanFormFields({ form, setForm }) {
   return (
     <>
-      <Field label="Plan Name">
+      <Field label="Nume plan">
         <Input
-          placeholder="e.g. Monthly Elite"
+          placeholder="ex: Lunar Elite"
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           required
         />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <Field label="Price (RON)">
+        <Field label="Preț (RON)">
           <Input
             type="number"
             placeholder="199"
@@ -111,7 +108,7 @@ function PlanFormFields({ form, setForm }) {
             min={0}
           />
         </Field>
-        <Field label="Duration (days)">
+        <Field label="Durată (zile)">
           <Input
             type="number"
             value={form.duration_days}
@@ -124,8 +121,8 @@ function PlanFormFields({ form, setForm }) {
         </Field>
       </div>
       <Field
-        label="Freeze Days"
-        hint="Days a member can pause their membership"
+        label="Zile de pauză"
+        hint="Zile în care membrul poate pausa abonamentul"
       >
         <Input
           type="number"
@@ -136,7 +133,7 @@ function PlanFormFields({ form, setForm }) {
           min={0}
         />
       </Field>
-      <Field label="Group Classes">
+      <Field label="Clase de grup">
         <Toggle
           checked={form.includes_group_classes}
           onChange={(v) =>
@@ -144,9 +141,9 @@ function PlanFormFields({ form, setForm }) {
           }
         />
       </Field>
-      <Field label="Description" hint="Optional — shown to members">
+      <Field label="Descriere" hint="Opțional — vizibil pentru membri">
         <Input
-          placeholder="Unlimited access to all classes..."
+          placeholder="Acces nelimitat la toate clasele..."
           value={form.description}
           onChange={(e) =>
             setForm((f) => ({ ...f, description: e.target.value }))
@@ -167,11 +164,6 @@ export default function AdminMemberships() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const [frozenCount, setFrozenCount] = useState(0);
-  const [freezeOpen, setFreezeOpen] = useState(false);
-  const [unfreezeOpen, setUnfreezeOpen] = useState(false);
-  const [freezeWorking, setFreezeWorking] = useState(false);
-
   const [issueOpen, setIssueOpen] = useState(false);
   const [issueClient, setIssueClient] = useState(null);
   const [issueQuery, setIssueQuery] = useState("");
@@ -188,13 +180,9 @@ export default function AdminMemberships() {
       setLoading(false);
       return;
     }
-    Promise.all([
-      getMembershipTypesForAdmin(gymId),
-      getAdminFreezeStatus(gymId),
-    ])
-      .then(([plansRes, freezeRes]) => {
+    getMembershipTypesForAdmin(gymId)
+      .then((plansRes) => {
         setPlans(plansRes.data);
-        setFrozenCount(freezeRes.data.frozen_count);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -255,34 +243,6 @@ export default function AdminMemberships() {
     setIssuePayment("cash");
   }
 
-  const handleAdminFreeze = async () => {
-    setFreezeWorking(true);
-    try {
-      const r = await adminFreezeGymMemberships(gymId);
-      toast(r.data.message);
-      setFreezeOpen(false);
-      load();
-    } catch (err) {
-      toast(err.response?.data?.message || "Failed to freeze", "coral");
-    } finally {
-      setFreezeWorking(false);
-    }
-  };
-
-  const handleAdminUnfreeze = async () => {
-    setFreezeWorking(true);
-    try {
-      const r = await adminUnfreezeGymMemberships(gymId);
-      toast(r.data.message);
-      setUnfreezeOpen(false);
-      load();
-    } catch (err) {
-      toast(err.response?.data?.message || "Failed to unfreeze", "coral");
-    } finally {
-      setFreezeWorking(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
@@ -296,15 +256,15 @@ export default function AdminMemberships() {
     try {
       if (editingId) {
         await updateMembershipType(editingId, payload);
-        toast("Plan updated");
+        toast("Plan actualizat");
       } else {
         await createMembershipType({ ...payload, gym_id: gymId });
-        toast("Plan created");
+        toast("Plan creat");
       }
       closeForm();
       load();
     } catch (err) {
-      toast(err.response?.data?.message || "Failed to save", "coral");
+      toast(err.response?.data?.message || "Eroare la salvare", "coral");
     }
   };
 
@@ -317,19 +277,19 @@ export default function AdminMemberships() {
         membership_type_id: parseInt(issuePlanId),
         payment_method: issuePayment,
       });
-      toast("Membership issued");
+      toast("Abonament emis");
       setIssueOpen(false);
       resetIssue();
     } catch (err) {
-      toast(err.response?.data?.message || "Failed to issue", "coral");
+      toast(err.response?.data?.message || "Eroare la emitere", "coral");
     }
   };
 
   return (
     <>
       <TopBar
-        title="Memberships"
-        eyebrow={`${plans.length} plans · Manage tiers`}
+        title="Abonamente"
+        eyebrow={`${plans.length} planuri · Gestionează niveluri`}
         actions={
           <div style={{ display: "flex", gap: 8 }}>
             <ExportMenu gymId={gymId} />
@@ -338,10 +298,10 @@ export default function AdminMemberships() {
               icon={<I.card />}
               onClick={() => setIssueOpen(true)}
             >
-              Issue
+              Emite
             </Btn>
             <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
-              New plan
+              Plan nou
             </Btn>
           </div>
         }
@@ -365,7 +325,7 @@ export default function AdminMemberships() {
               padding: "40px 0",
             }}
           >
-            Loading...
+            Se încarcă...
           </div>
         )}
 
@@ -377,108 +337,14 @@ export default function AdminMemberships() {
               color: "var(--text-dim)",
             }}
           >
-            No gym assigned.
-          </div>
-        )}
-
-        {gymId && !loading && (
-          <div
-            className="card"
-            style={{
-              padding: 20,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              borderColor:
-                frozenCount > 0
-                  ? "rgba(147,197,253,.4)"
-                  : "var(--border)",
-              background:
-                frozenCount > 0
-                  ? "linear-gradient(180deg, rgba(147,197,253,.06), var(--surface))"
-                  : "var(--surface)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background:
-                    frozenCount > 0
-                      ? "rgba(147,197,253,.15)"
-                      : "var(--surface-2)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {frozenCount > 0 ? (
-                  <I.snowflake
-                    width={18}
-                    height={18}
-                    style={{ color: "#93c5fd" }}
-                  />
-                ) : (
-                  <I.building
-                    width={18}
-                    height={18}
-                    style={{ color: "var(--text-dim)" }}
-                  />
-                )}
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color:
-                      frozenCount > 0 ? "#93c5fd" : "var(--text)",
-                    marginBottom: 2,
-                  }}
-                >
-                  {frozenCount > 0
-                    ? `Gym closed — ${frozenCount} membership${frozenCount !== 1 ? "s" : ""} frozen`
-                    : "Gym is open"}
-                </div>
-                <div
-                  style={{ fontSize: 12, color: "var(--text-dim)" }}
-                >
-                  {frozenCount > 0
-                    ? "Members are not losing days. Unfreeze when you reopen."
-                    : "Freeze all active memberships when the gym closes."}
-                </div>
-              </div>
-            </div>
-            <div>
-              {frozenCount > 0 ? (
-                <Btn
-                  variant="outline"
-                  icon={<I.unlock />}
-                  onClick={() => setUnfreezeOpen(true)}
-                >
-                  Reopen gym
-                </Btn>
-              ) : (
-                <Btn
-                  variant="outline"
-                  icon={<I.snowflake />}
-                  onClick={() => setFreezeOpen(true)}
-                >
-                  Close gym
-                </Btn>
-              )}
-            </div>
+            Nicio sală atribuită.
           </div>
         )}
 
         {plans.length > 0 && (
           <div>
             <div className="eyebrow" style={{ marginBottom: 14 }}>
-              Active Plans
+              Planuri active
             </div>
             <div
               style={{
@@ -558,11 +424,11 @@ export default function AdminMemberships() {
                       }}
                     >
                       {m.includes_group_classes ? (
-                        <Pill tone="teal">Group classes</Pill>
+                        <Pill tone="teal">Clase de grup</Pill>
                       ) : (
-                        <Pill tone="muted">No group classes</Pill>
+                        <Pill tone="muted">Fără clase de grup</Pill>
                       )}
-                      <Pill tone="muted">{m.freeze_days ?? 0} freeze days</Pill>
+                      <Pill tone="muted">{m.freeze_days ?? 0} zile pauză</Pill>
                     </div>
 
                     {m.description && (
@@ -585,7 +451,7 @@ export default function AdminMemberships() {
                         style={{ flex: 1 }}
                         onClick={() => openEdit(m)}
                       >
-                        Edit
+                        Editează
                       </Btn>
                     </div>
                   </div>
@@ -618,7 +484,7 @@ export default function AdminMemberships() {
                 )}
               >
                 <I.plus width={24} height={24} />
-                <div className="eyebrow">New Plan</div>
+                <div className="eyebrow">Plan nou</div>
               </button>
             </div>
           </div>
@@ -639,10 +505,10 @@ export default function AdminMemberships() {
                 marginBottom: 12,
               }}
             >
-              No plans yet
+              Niciun plan încă
             </div>
             <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
-              Create first plan
+              Creează primul plan
             </Btn>
           </div>
         )}
@@ -652,7 +518,7 @@ export default function AdminMemberships() {
       <Modal
         open={formOpen}
         onClose={closeForm}
-        title={editingId ? "Edit Plan" : "New Membership Plan"}
+        title={editingId ? "Editează planul" : "Plan de abonament nou"}
       >
         <form
           onSubmit={handleSubmit}
@@ -673,107 +539,13 @@ export default function AdminMemberships() {
             }}
           >
             <Btn variant="outline" type="button" onClick={closeForm}>
-              Cancel
+              Anulează
             </Btn>
             <Btn variant="primary" type="submit">
-              {editingId ? "Save changes" : "Create Plan"}
+              {editingId ? "Salvează modificările" : "Creează planul"}
             </Btn>
           </div>
         </form>
-      </Modal>
-
-      {/* Freeze memberships modal */}
-      <Modal
-        open={freezeOpen}
-        onClose={() => setFreezeOpen(false)}
-        title="Close Gym & Freeze Memberships"
-      >
-        <div
-          style={{
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
-          <div style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.6 }}>
-            All active memberships will be frozen. Members will not lose any
-            days while the gym is closed. Their expiry dates will be extended
-            automatically when you reopen.
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              justifyContent: "flex-end",
-            }}
-          >
-            <Btn
-              variant="outline"
-              type="button"
-              onClick={() => setFreezeOpen(false)}
-              disabled={freezeWorking}
-            >
-              Cancel
-            </Btn>
-            <Btn
-              variant="primary"
-              onClick={handleAdminFreeze}
-              disabled={freezeWorking}
-              icon={<I.snowflake />}
-            >
-              {freezeWorking ? "Freezing…" : "Freeze all memberships"}
-            </Btn>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Unfreeze memberships modal */}
-      <Modal
-        open={unfreezeOpen}
-        onClose={() => setUnfreezeOpen(false)}
-        title="Reopen Gym & Unfreeze Memberships"
-      >
-        <div
-          style={{
-            padding: 24,
-            display: "flex",
-            flexDirection: "column",
-            gap: 16,
-          }}
-        >
-          <div style={{ fontSize: 14, color: "var(--text-dim)", lineHeight: 1.6 }}>
-            {frozenCount} frozen membership{frozenCount !== 1 ? "s" : ""} will
-            be reactivated. Each member's expiry date will be extended by the
-            exact number of days the gym was closed. Only admin-frozen
-            memberships are affected — any memberships paused by members
-            themselves remain unchanged.
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              justifyContent: "flex-end",
-            }}
-          >
-            <Btn
-              variant="outline"
-              type="button"
-              onClick={() => setUnfreezeOpen(false)}
-              disabled={freezeWorking}
-            >
-              Cancel
-            </Btn>
-            <Btn
-              variant="primary"
-              onClick={handleAdminUnfreeze}
-              disabled={freezeWorking}
-              icon={<I.unlock />}
-            >
-              {freezeWorking ? "Unfreezing…" : "Reopen & unfreeze"}
-            </Btn>
-          </div>
-        </div>
       </Modal>
 
       {/* Issue membership modal */}
@@ -783,7 +555,7 @@ export default function AdminMemberships() {
           setIssueOpen(false);
           resetIssue();
         }}
-        title="Issue Membership"
+        title="Emite abonament"
       >
         <form
           onSubmit={handleIssue}
@@ -794,7 +566,7 @@ export default function AdminMemberships() {
             gap: 14,
           }}
         >
-          <Field label="Member">
+          <Field label="Membru">
             {issueClient ? (
               <div
                 style={{
@@ -855,7 +627,7 @@ export default function AdminMemberships() {
                   <input
                     value={issueQuery}
                     onChange={(e) => setIssueQuery(e.target.value)}
-                    placeholder="Search by email…"
+                    placeholder="Caută după email…"
                     style={{
                       flex: 1,
                       background: "none",
@@ -948,7 +720,7 @@ export default function AdminMemberships() {
                         textAlign: "center",
                       }}
                     >
-                      No members found
+                      Niciun membru găsit
                     </div>
                   )}
               </div>
@@ -971,7 +743,7 @@ export default function AdminMemberships() {
               }}
               required
             >
-              <option value="">— Select plan —</option>
+              <option value="">— Selectează planul —</option>
               {plans.map((p) => (
                 <option key={p.membership_type_id} value={p.membership_type_id}>
                   {p.name} — RON {p.price}
@@ -980,7 +752,7 @@ export default function AdminMemberships() {
             </select>
           </Field>
 
-          <Field label="Payment Method">
+          <Field label="Metodă de plată">
             <div style={{ display: "flex", gap: 8 }}>
               {["cash", "card"].map((method) => (
                 <button
@@ -1029,14 +801,14 @@ export default function AdminMemberships() {
                 resetIssue();
               }}
             >
-              Cancel
+              Anulează
             </Btn>
             <Btn
               variant="primary"
               type="submit"
               disabled={!issueClient || !issuePlanId}
             >
-              Issue
+              Emite
             </Btn>
           </div>
         </form>

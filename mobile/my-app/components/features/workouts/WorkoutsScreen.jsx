@@ -24,15 +24,15 @@ import EditWorkoutModal from "./EditWorkoutModal";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const TABS = [
-  { key: "mine", label: "MY WORKOUTS" },
-  { key: "explore", label: "EXPLORE" },
+  { key: "mine", label: "ANTRENAMENTELE MELE" },
+  { key: "explore", label: "EXPLOREAZĂ" },
 ];
 
 const DIFFICULTIES = [
-  { key: "all", label: "All" },
-  { key: "beginner", label: "Beginner" },
-  { key: "intermediate", label: "Intermediate" },
-  { key: "advanced", label: "Advanced" },
+  { key: "all", label: "Toate" },
+  { key: "beginner", label: "Începător" },
+  { key: "intermediate", label: "Intermediar" },
+  { key: "advanced", label: "Avansat" },
 ];
 
 function TabBar({ active, onChange }) {
@@ -83,7 +83,7 @@ function DifficultyFilter({ active, onChange }) {
               isFiltered && styles.filterBtnTextActive,
             ]}
           >
-            {isFiltered ? selected.label : "Difficulty"}
+            {isFiltered ? selected.label : "Dificultate"}
           </Text>
           <Ionicons
             name="chevron-down"
@@ -105,7 +105,7 @@ function DifficultyFilter({ active, onChange }) {
           onPress={() => setOpen(false)}
         >
           <View style={styles.dropdown}>
-            <Text style={styles.dropdownTitle}>DIFFICULTY</Text>
+            <Text style={styles.dropdownTitle}>DIFICULTATE</Text>
             {DIFFICULTIES.map((d) => {
               const isActive = active === d.key;
               return (
@@ -193,7 +193,7 @@ function FreestyleButton({ token, router }) {
             size={18}
             color={Colors.primary}
           />
-          <Text style={styles.freestyleBtnText}>START FREESTYLE</Text>
+          <Text style={styles.freestyleBtnText}>SESIUNE LIBERĂ</Text>
         </>
       )}
     </TouchableOpacity>
@@ -210,9 +210,9 @@ function EmptyState({ onCreatePress }) {
           color={Colors.outlineVariant}
         />
       </View>
-      <Text style={styles.emptyTitle}>No workouts yet</Text>
+      <Text style={styles.emptyTitle}>Niciun antrenament</Text>
       <Text style={styles.emptySubtitle}>
-        Create your first workout to get started
+        Creează primul tău antrenament pentru a începe
       </Text>
       {onCreatePress && (
         <TouchableOpacity
@@ -220,7 +220,7 @@ function EmptyState({ onCreatePress }) {
           onPress={onCreatePress}
           activeOpacity={0.85}
         >
-          <Text style={styles.emptyBtnText}>CREATE WORKOUT</Text>
+          <Text style={styles.emptyBtnText}>CREEAZĂ ANTRENAMENT</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -259,16 +259,16 @@ export default function WorkoutsScreen() {
 
   const handleDeleteConfirm = () => {
     Alert.alert(
-      "Delete Workout",
-      `Are you sure you want to delete "${selectedWorkout.name}"?`,
+      "Șterge antrenamentul",
+      `Ești sigur că vrei să ștergi "${selectedWorkout.name}"?`,
       [
         {
-          text: "No",
+          text: "Nu",
           style: "cancel",
           onPress: () => setSelectedWorkout(null),
         },
         {
-          text: "Yes",
+          text: "Da",
           style: "destructive",
           onPress: async () => {
             const id = selectedWorkout.workout_id;
@@ -300,7 +300,7 @@ export default function WorkoutsScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>WORKOUTS</Text>
+          <Text style={styles.headerTitle}>ANTRENAMENTE</Text>
           <TouchableOpacity
             style={styles.headerIconBtn}
             onPress={() => router.push("/workout/history")}
@@ -326,7 +326,7 @@ export default function WorkoutsScreen() {
               activeOpacity={0.85}
             >
               <Ionicons name="add" size={16} color={Colors.onSurfaceVariant} />
-              <Text style={styles.createBtnText}>CREATE A NEW WORKOUT</Text>
+              <Text style={styles.createBtnText}>CREEAZĂ UN ANTRENAMENT</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -410,7 +410,7 @@ export default function WorkoutsScreen() {
                 size={20}
                 color={Colors.textPrimary}
               />
-              <Text style={styles.actionLabel}>Edit</Text>
+              <Text style={styles.actionLabel}>Editează</Text>
             </TouchableOpacity>
 
             <View style={styles.actionDivider} />
@@ -422,7 +422,7 @@ export default function WorkoutsScreen() {
             >
               <Ionicons name="trash-outline" size={20} color={Colors.error} />
               <Text style={[styles.actionLabel, { color: Colors.error }]}>
-                Delete
+                Șterge
               </Text>
             </TouchableOpacity>
           </View>

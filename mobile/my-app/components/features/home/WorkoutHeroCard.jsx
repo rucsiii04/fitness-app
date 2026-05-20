@@ -15,16 +15,58 @@ const { width } = Dimensions.get("window");
 
 export function WorkoutHeroCard({ workout }) {
   const router = useRouter();
-  const name = workout?.name || "No Workout Planned";
-  const exerciseCount = workout?.exercise_count || 0;
+
+  if (!workout) {
+    return (
+      <TouchableOpacity
+        activeOpacity={0.92}
+        onPress={() => router.push("/(tabs)/workouts")}
+        style={styles.card}
+      >
+        <ImageBackground
+          source={require("@/assets/images/splashImg.png")}
+          style={styles.image}
+          resizeMode="cover"
+          imageStyle={styles.imageStyle}
+        >
+          <View
+            style={[styles.overlay, { backgroundColor: "rgba(0,0,0,0.65)" }]}
+          />
+          <View style={styles.content}>
+            <View style={styles.activePill}>
+              <Ionicons
+                name="barbell-outline"
+                size={12}
+                color={Colors.primary}
+              />
+              <Text style={styles.pillText}>Antrenamente</Text>
+            </View>
+            <Text style={styles.workoutName}>Încă nu ai început?</Text>
+            <View style={styles.emptyRow}>
+              <Text style={styles.emptyHint}>
+                Descoperă antrenamente noi sau creează-ți propriul program!
+              </Text>
+              <View style={styles.arrowBtn}>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={Colors.background}
+                />
+              </View>
+            </View>
+          </View>
+        </ImageBackground>
+      </TouchableOpacity>
+    );
+  }
+
+  const name = workout.name;
+  const exerciseCount = workout.exercise_count || 0;
 
   return (
     <TouchableOpacity
       activeOpacity={0.92}
-      onPress={() => {
-        if (!workout?.workout_id) return;
-        router.push(`/workout/${workout.workout_id}`);
-      }}
+      onPress={() => router.push(`/workout/${workout.workout_id}`)}
       style={styles.card}
     >
       <ImageBackground
@@ -37,19 +79,19 @@ export function WorkoutHeroCard({ workout }) {
         <View style={styles.content}>
           <View style={styles.activePill}>
             <View style={styles.dot} />
-            <Text style={styles.pillText}>Latest Workout</Text>
+            <Text style={styles.pillText}>Ultimul antrenament</Text>
           </View>
           <Text style={styles.workoutName}>{name}</Text>
           <View style={styles.meta}>
             <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>Exercises</Text>
+              <Text style={styles.metaLabel}>Exerciții</Text>
               <Text style={styles.metaValue}>{exerciseCount}</Text>
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
               <Text style={styles.metaLabel}>Status</Text>
               <Text style={[styles.metaValue, { color: Colors.secondary }]}>
-                Ready
+                Gata
               </Text>
             </View>
             <TouchableOpacity style={styles.playButton}>
@@ -145,5 +187,30 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  emptyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  emptyHint: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: "rgba(255,255,255,0.6)",
+    lineHeight: 18,
+  },
+  arrowBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });

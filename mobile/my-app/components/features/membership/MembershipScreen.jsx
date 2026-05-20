@@ -30,10 +30,10 @@ const formatDate = (dateString) => {
 };
 
 const STATUS_CONFIG = {
-  active:  { label: "Active",  color: Colors.primary,    bg: "rgba(209,255,0,0.12)" },
-  paused:  { label: "Paused",  color: Colors.tertiary,   bg: "rgba(255,238,171,0.12)" },
-  expired: { label: "Expired", color: Colors.onSurfaceVariant, bg: Colors.surfaceContainerHigh },
-  cancelled:{ label: "Cancelled", color: Colors.error,  bg: "rgba(255,115,81,0.1)" },
+  active:  { label: "Activ",    color: Colors.primary,    bg: "rgba(209,255,0,0.12)" },
+  paused:  { label: "Pauzat",   color: Colors.tertiary,   bg: "rgba(255,238,171,0.12)" },
+  expired: { label: "Expirat",  color: Colors.onSurfaceVariant, bg: Colors.surfaceContainerHigh },
+  cancelled:{ label: "Anulat",  color: Colors.error,  bg: "rgba(255,115,81,0.1)" },
 };
 
 function StatusBadge({ status }) {
@@ -51,7 +51,7 @@ function FreezeDaysModal({ visible, maxDays, onConfirm, onClose }) {
   const handleConfirm = () => {
     const n = parseInt(days, 10);
     if (!n || n < 1 || n > maxDays) {
-      Alert.alert("Invalid", `Enter a number between 1 and ${maxDays}.`);
+      Alert.alert("Eroare", `Introdu un număr între 1 și ${maxDays}.`);
       return;
     }
     onConfirm(n);
@@ -66,11 +66,11 @@ function FreezeDaysModal({ visible, maxDays, onConfirm, onClose }) {
             <View style={styles.modalIconWrap}>
               <Ionicons name="snow-outline" size={18} color={Colors.secondary} />
             </View>
-            <Text style={styles.modalTitle}>Freeze Membership</Text>
+            <Text style={styles.modalTitle}>Îngheață abonamentul</Text>
           </View>
           <Text style={styles.modalBody}>
-            You have <Text style={styles.modalHighlight}>{maxDays} freeze days</Text> remaining.
-            How many days would you like to pause?
+            Ai <Text style={styles.modalHighlight}>{maxDays} zile de îngheț</Text> rămase.
+            Câte zile vrei să pauzi?
           </Text>
           <TextInput
             style={styles.modalInput}
@@ -83,10 +83,10 @@ function FreezeDaysModal({ visible, maxDays, onConfirm, onClose }) {
           />
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.modalCancel} onPress={onClose} activeOpacity={0.8}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text style={styles.modalCancelText}>Anulează</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalConfirm} onPress={handleConfirm} activeOpacity={0.85}>
-              <Text style={styles.modalConfirmText}>Freeze</Text>
+              <Text style={styles.modalConfirmText}>Îngheață</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -172,7 +172,7 @@ export default function MembershipScreen() {
       if (!res.ok) throw new Error(data.message);
       setCurrent(data);
     } catch (err) {
-      Alert.alert("Error", err.message ?? "Could not freeze membership.");
+      Alert.alert("Eroare", err.message ?? "Nu s-a putut îngheța abonamentul.");
     } finally {
       setActionLoading(false);
     }
@@ -180,12 +180,12 @@ export default function MembershipScreen() {
 
   const handleResume = () => {
     Alert.alert(
-      "Resume Membership",
-      "Resume your membership now? Unused freeze days will be returned.",
+      "Reactivare abonament",
+      "Reactivezi abonamentul acum? Zilele de îngheț neutilizate vor fi returnate.",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Anulează", style: "cancel" },
         {
-          text: "Resume",
+          text: "Reactivează",
           onPress: async () => {
             setActionLoading(true);
             try {
@@ -197,7 +197,7 @@ export default function MembershipScreen() {
               if (!res.ok) throw new Error(data.message);
               setCurrent(data);
             } catch (err) {
-              Alert.alert("Error", err.message ?? "Could not resume membership.");
+              Alert.alert("Eroare", err.message ?? "Nu s-a putut reactiva abonamentul.");
             } finally {
               setActionLoading(false);
             }
@@ -218,7 +218,7 @@ export default function MembershipScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
             <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Membership</Text>
+          <Text style={styles.headerTitle}>Abonamentul meu</Text>
           <View style={{ width: 36 }} />
         </View>
 
@@ -252,12 +252,12 @@ export default function MembershipScreen() {
 
                 <View style={styles.cardDates}>
                   <View style={styles.cardDateItem}>
-                    <Text style={styles.cardDateLabel}>Start Date</Text>
+                    <Text style={styles.cardDateLabel}>Data începerii</Text>
                     <Text style={styles.cardDateValue}>{formatDate(current.start_date)}</Text>
                   </View>
                   <View style={styles.cardDateItem}>
                     <Text style={styles.cardDateLabel}>
-                      {current.status === "paused" ? "Paused Until" : "Renewal Date"}
+                      {current.status === "paused" ? "Pauzat până la" : "Data reînnoirii"}
                     </Text>
                     <Text style={styles.cardDateValue}>
                       {current.status === "paused"
@@ -273,7 +273,7 @@ export default function MembershipScreen() {
                     <Ionicons name="snow-outline" size={14} color={Colors.secondary} />
                     <Text style={styles.freezeInfoText}>
                       <Text style={styles.freezeInfoNum}>{current.remaining_freeze_days}</Text>
-                      {" "}freeze days remaining
+                      {" "}zile de îngheț rămase
                     </Text>
                   </View>
                 )}
@@ -281,9 +281,9 @@ export default function MembershipScreen() {
             ) : (
               <View style={styles.noMembershipCard}>
                 <Ionicons name="card-outline" size={36} color={Colors.outlineVariant} />
-                <Text style={styles.noMembershipTitle}>No Active Membership</Text>
+                <Text style={styles.noMembershipTitle}>Niciun abonament activ</Text>
                 <Text style={styles.noMembershipSub}>
-                  Visit the gym reception to get a membership plan.
+                  Vizitează recepția sălii pentru a obține un abonament.
                 </Text>
               </View>
             )}
@@ -302,8 +302,8 @@ export default function MembershipScreen() {
                       <Ionicons name="snow-outline" size={24} color={Colors.secondary} />
                       <Text style={styles.actionNum}>{current.remaining_freeze_days}</Text>
                     </View>
-                    <Text style={styles.actionTitle}>Freeze</Text>
-                    <Text style={styles.actionSub}>days left this month</Text>
+                    <Text style={styles.actionTitle}>Îngheț</Text>
+                    <Text style={styles.actionSub}>zile rămase luna aceasta</Text>
                   </TouchableOpacity>
                 )}
 
@@ -322,9 +322,9 @@ export default function MembershipScreen() {
                           <Ionicons name="play-circle-outline" size={24} color={Colors.background} />
                           <Ionicons name="arrow-forward" size={18} color={Colors.background} />
                         </View>
-                        <Text style={[styles.actionTitle, { color: Colors.background }]}>Resume</Text>
+                        <Text style={[styles.actionTitle, { color: Colors.background }]}>Reactivează</Text>
                         <Text style={[styles.actionSub, { color: "rgba(14,14,14,0.6)" }]}>
-                          reactivate now
+                          reactivează acum
                         </Text>
                       </>
                     )}
@@ -340,9 +340,9 @@ export default function MembershipScreen() {
                       color={type?.includes_group_classes ? Colors.primary : Colors.outlineVariant}
                     />
                   </View>
-                  <Text style={styles.actionTitle}>Classes</Text>
+                  <Text style={styles.actionTitle}>Cursuri</Text>
                   <Text style={styles.actionSub}>
-                    {type?.includes_group_classes ? "included" : "not included"}
+                    {type?.includes_group_classes ? "incluse" : "neincluse"}
                   </Text>
                 </View>
               </View>
@@ -352,7 +352,7 @@ export default function MembershipScreen() {
             {history.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>History</Text>
+                  <Text style={styles.sectionTitle}>Istoric</Text>
                   <Ionicons name="time-outline" size={16} color={Colors.outlineVariant} />
                 </View>
                 <View style={styles.historyCard}>

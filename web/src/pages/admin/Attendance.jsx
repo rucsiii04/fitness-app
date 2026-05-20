@@ -14,7 +14,7 @@ import Modal from "../../components/ui/Modal.jsx";
 import QrScanner from "../../components/ui/QrScanner.jsx";
 import * as I from "../../components/ui/Icons.jsx";
 
-const DAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS_SHORT = ["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"];
 
 function KPICard({ label, value, delta, tone = "neutral" }) {
   const colors = {
@@ -53,7 +53,7 @@ function fmtTime(iso) {
 function timeSince(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "just now";
+  if (mins < 1) return "acum";
   if (mins < 60) return `${mins}m`;
   return `${Math.floor(mins / 60)}h`;
 }
@@ -81,7 +81,7 @@ function ScanContent({ gymId, onCheckedIn }) {
         onCheckedIn?.();
       } catch (err) {
         setResult(null);
-        setError(err.response?.data?.message || "Scan failed");
+        setError(err.response?.data?.message || "Scanare eșuată");
       }
       setPhase("done");
     },
@@ -128,7 +128,7 @@ function ScanContent({ gymId, onCheckedIn }) {
               letterSpacing: 0.1,
             }}
           >
-            Validating…
+            Se verifică…
           </div>
         </div>
       )}
@@ -190,7 +190,7 @@ function ScanContent({ gymId, onCheckedIn }) {
                 style={{ display: "flex", gap: 8, justifyContent: "center" }}
               >
                 <Pill tone="green">{result.membership_type}</Pill>
-                <Pill tone="muted">Expires {fmtDate(result.expires_at)}</Pill>
+                <Pill tone="muted">Expiră {fmtDate(result.expires_at)}</Pill>
               </div>
             </div>
           ) : (
@@ -205,7 +205,7 @@ function ScanContent({ gymId, onCheckedIn }) {
                   marginBottom: 6,
                 }}
               >
-                Access Denied
+                Acces refuzat
               </div>
               <div style={{ color: "var(--text-muted)", fontSize: 13 }}>
                 {error}
@@ -214,7 +214,7 @@ function ScanContent({ gymId, onCheckedIn }) {
           )}
 
           <Btn variant="outline" size="sm" icon={<I.qr />} onClick={reset}>
-            Scan Another
+            Scanează altul
           </Btn>
         </div>
       )}
@@ -278,8 +278,8 @@ export default function AdminAttendance() {
   return (
     <>
       <TopBar
-        title="Attendance"
-        eyebrow="Check-in analytics"
+        title="Prezență"
+        eyebrow="Statistici check-in"
         actions={
           <div style={{ display: "flex", gap: 8 }}>
             <ExportMenu gymId={gymId} />
@@ -297,7 +297,7 @@ export default function AdminAttendance() {
       <Modal
         open={scanOpen}
         onClose={() => setScanOpen(false)}
-        title="QR Check-in"
+        title="Check-in QR"
         width={480}
       >
         {scanOpen && (
@@ -318,7 +318,7 @@ export default function AdminAttendance() {
             fontSize: 12,
           }}
         >
-          Loading...
+          Se încarcă...
         </div>
       ) : !gymId ? (
         <div
@@ -328,7 +328,7 @@ export default function AdminAttendance() {
             color: "var(--text-dim)",
           }}
         >
-          No gym assigned.
+          Nicio sală atribuită.
         </div>
       ) : (
         <div
@@ -347,26 +347,26 @@ export default function AdminAttendance() {
             }}
           >
             <KPICard
-              label="Today"
+              label="Azi"
               value={stats?.today ?? 0}
-              delta="Check-ins today"
+              delta="Check-in-uri azi"
               tone="accent"
             />
             <KPICard
-              label="This Week"
+              label="Săptămâna aceasta"
               value={stats?.thisWeek ?? 0}
-              delta="Total this week"
+              delta="Total săptămâna aceasta"
             />
             <KPICard
-              label="Unique Members"
+              label="Membri unici"
               value={stats?.uniqueThisWeek ?? 0}
-              delta="This week"
+              delta="Săptămâna aceasta"
               tone="coral"
             />
             <KPICard
-              label="Avg / Day"
+              label="Medie / zi"
               value={stats?.avgPerDay ?? 0}
-              delta="This week"
+              delta="Săptămâna aceasta"
             />
           </div>
 
@@ -378,8 +378,8 @@ export default function AdminAttendance() {
             }}
           >
             <Panel
-              title={`Hourly Check-ins · ${selectedDate === todayStr() ? "Today" : fmtDate(selectedDate + "T00:00:00")}`}
-              eyebrow={`${stats?.hourlyTotal ?? 0} check-ins · 00:00 – 23:59`}
+              title={`Check-in-uri pe oră · ${selectedDate === todayStr() ? "Azi" : fmtDate(selectedDate + "T00:00:00")}`}
+              eyebrow={`${stats?.hourlyTotal ?? 0} check-in-uri · 00:00 – 23:59`}
               action={
                 <input
                   type="date"
@@ -409,7 +409,7 @@ export default function AdminAttendance() {
               </div>
             </Panel>
 
-            <Panel title="Peak Days" eyebrow="This week">
+            <Panel title="Zile de vârf" eyebrow="Săptămâna aceasta">
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 12 }}
               >
@@ -450,7 +450,7 @@ export default function AdminAttendance() {
             </Panel>
           </div>
 
-          <Panel title="Recent Check-ins" eyebrow="Latest entries">
+          <Panel title="Check-in-uri recente" eyebrow="Ultimele intrări">
             {!stats?.recent || stats.recent.length === 0 ? (
               <div
                 style={{
@@ -460,7 +460,7 @@ export default function AdminAttendance() {
                   fontSize: 13,
                 }}
               >
-                No check-ins recorded yet.
+                Niciun check-in înregistrat.
               </div>
             ) : (
               <div
@@ -542,12 +542,12 @@ export default function AdminAttendance() {
             >
               <I.qr width={20} height={20} style={{ color: "var(--accent)" }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>QR Check-in</div>
+                <div style={{ fontSize: 13, fontWeight: 500 }}>Check-in QR</div>
                 <div
                   className="mono"
                   style={{ fontSize: 11, color: "var(--text-dim)" }}
                 >
-                  Scan a member's QR code to check in
+                  Scanează codul QR al unui membru
                 </div>
               </div>
               <Btn
@@ -556,7 +556,7 @@ export default function AdminAttendance() {
                 icon={<I.qr />}
                 onClick={() => setScanOpen(true)}
               >
-                Scan QR
+                Scanează QR
               </Btn>
             </div>
           </Panel>

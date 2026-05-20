@@ -6,6 +6,7 @@ import {
   Class_Session,
   Class_Enrollment,
 } from "../../models/index.js";
+import { getIO } from "../../socket.js";
 
 const addDays = (date, days) => {
   const result = new Date(date);
@@ -77,17 +78,34 @@ export const controller = {
           .status(404)
           .json({ message: "Gym not found or you do not manage it" });
 
-      if (!message) {
-        await gym.update({ alert_message: null, alert_expires_at: null });
-        return res.json({ message: null, expires_at: null });
-      }
+      const alertExpiresAt = message ? (end_at ? new Date(end_at) : null) : null;
 
-      const alertExpiresAt = end_at ? new Date(end_at) : null;
       await gym.update({
-        alert_message: message,
+        alert_message: message || null,
         alert_expires_at: alertExpiresAt,
       });
-      return res.json({ message, expires_at: alertExpiresAt });
+
+      const memberships = await Membership.findAll({
+        attributes: ["client_id"],
+        where: { status: { [Op.in]: ["active", "paused"] } },
+        include: {
+          model: Membership_Type,
+          where: { gym_id: gymId },
+          attributes: [],
+        },
+      });
+
+      const io = getIO();
+      if (io) {
+        for (const m of memberships) {
+          io.to(`user_${m.client_id}`).emit("gym_alert", {
+            message: message || null,
+            expires_at: alertExpiresAt,
+          });
+        }
+      }
+
+      return res.json({ message: message || null, expires_at: alertExpiresAt });
     } catch (err) {
       return res.status(500).json({ message: err.message });
     }

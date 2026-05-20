@@ -78,7 +78,17 @@ export const controller = {
         transaction: t,
       });
       if (!activeMembership) {
+        const frozenMembership = await Membership.findOne({
+          where: { client_id: clientId, status: "paused", frozen_by_admin: true },
+          include: [{ model: Membership_Type, where: { gym_id: session.gym_id } }],
+          transaction: t,
+        });
         await t.rollback();
+        if (frozenMembership) {
+          return res.status(403).json({
+            message: "Abonamentul tău este înghețat temporar de sală. Revino când sala redeschide.",
+          });
+        }
         return res.status(403).json({ message: "No active membership" });
       }
       if (!activeMembership.Membership_Type.includes_group_classes) {
@@ -408,6 +418,12 @@ export const controller = {
 
       if (new Date(start_datetime) >= new Date(end_datetime)) {
         return res.status(400).json({ message: "Invalid time interval" });
+      }
+
+      if (new Date(start_datetime) <= new Date()) {
+        return res
+          .status(400)
+          .json({ message: "Cannot create sessions in the past" });
       }
 
       if (!max_participants || max_participants <= 0) {

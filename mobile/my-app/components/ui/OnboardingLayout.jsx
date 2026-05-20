@@ -4,8 +4,9 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +26,7 @@ export function OnboardingLayout({
   loading = false,
 }) {
   const router = useRouter();
+  const canGoBack = step > 1 || !!onBack;
 
   return (
     <ScreenBackground>
@@ -32,12 +34,16 @@ export function OnboardingLayout({
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={onBack || (() => router.back())}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={22} color={Colors.primaryDim} />
-          </TouchableOpacity>
+          {canGoBack ? (
+            <TouchableOpacity
+              onPress={onBack || (() => router.back())}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={22} color={Colors.primaryDim} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.backButton} />
+          )}
           <AppLogo />
           <Text style={styles.stepText}>
             <Text style={styles.stepCurrent}>
@@ -64,20 +70,28 @@ export function OnboardingLayout({
           ))}
         </View>
 
-        <View style={styles.content}>{children}</View>
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.content}>{children}</View>
 
         <View style={styles.bottomNav}>
-          <TouchableOpacity
-            style={styles.backNav}
-            onPress={onBack || (() => router.back())}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={Colors.onSurfaceVariant}
-            />
-            <Text style={styles.backNavText}>Back</Text>
-          </TouchableOpacity>
+          {canGoBack ? (
+            <TouchableOpacity
+              style={styles.backNav}
+              onPress={onBack || (() => router.back())}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={20}
+                color={Colors.onSurfaceVariant}
+              />
+              <Text style={styles.backNavText}>Înapoi</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.backNav} />
+          )}
 
           <PrimaryButton
             label={loading ? "..." : nextLabel}
@@ -85,6 +99,7 @@ export function OnboardingLayout({
             style={styles.nextButton}
           />
         </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </ScreenBackground>
   );
@@ -92,6 +107,7 @@ export function OnboardingLayout({
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  flex: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",

@@ -561,7 +561,7 @@ export const controller = {
       const now = new Date();
 
       const activeMemberships = await Membership.findAll({
-        where: { status: "active" },
+        where: { status: { [Op.in]: ["active", "paused"] } },
         include: [{ model: Membership_Type, where: { gym_id: gymId }, attributes: ["price", "name", "duration_days"] }],
       });
 

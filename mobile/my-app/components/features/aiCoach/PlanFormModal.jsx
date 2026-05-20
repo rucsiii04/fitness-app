@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -8,34 +8,36 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 const GOALS = [
-  { id: "muscle_gain", label: "Muscle Gain" },
-  { id: "fat_loss", label: "Fat Loss" },
-  { id: "endurance", label: "Endurance" },
-  { id: "strength", label: "Strength" },
-  { id: "general", label: "General Fitness" },
+  { id: "muscle_gain", label: "Masă musculară" },
+  { id: "fat_loss", label: "Slăbit" },
+  { id: "endurance", label: "Rezistență" },
+  { id: "strength", label: "Forță" },
+  { id: "general", label: "Fitness general" },
 ];
 
 const MUSCLES = [
-  { id: "chest", label: "Chest" },
-  { id: "back", label: "Back" },
-  { id: "shoulders", label: "Shoulders" },
-  { id: "legs", label: "Legs" },
-  { id: "arms", label: "Arms" },
+  { id: "chest", label: "Piept" },
+  { id: "back", label: "Spate" },
+  { id: "shoulders", label: "Umeri" },
+  { id: "legs", label: "Picioare" },
+  { id: "arms", label: "Brațe" },
   { id: "core", label: "Core" },
-  { id: "full_body", label: "Full Body" },
+  { id: "full_body", label: "Corp întreg" },
 ];
 
 const EQUIPMENT = [
-  { id: "bodyweight", label: "Bodyweight" },
-  { id: "dumbbells", label: "Dumbbells" },
-  { id: "barbell", label: "Barbell" },
+  { id: "bodyweight", label: "Fără echipament" },
+  { id: "dumbbells", label: "Gantere" },
+  { id: "barbell", label: "Halteră" },
   { id: "kettlebell", label: "Kettlebell" },
-  { id: "machines", label: "Machines" },
+  { id: "machines", label: "Aparate" },
 ];
 
 function Chip({ label, selected, onPress }) {
@@ -66,6 +68,15 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
   const [muscles, setMuscles] = useState([]);
   const [equipment, setEquipment] = useState([]);
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (visible) {
+      setGoal(null);
+      setMuscles([]);
+      setEquipment([]);
+      setNotes("");
+    }
+  }, [visible]);
 
   const toggleMuscle = (id) =>
     setMuscles((prev) =>
@@ -101,12 +112,15 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Build Your Plan</Text>
-              <Text style={styles.subtitle}>Customize what the AI generates for you</Text>
+              <Text style={styles.title}>Construiește-ți planul</Text>
+              <Text style={styles.subtitle}>Personalizează ce generează AI-ul pentru tine</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.8}>
               <Ionicons name="close" size={18} color={Colors.textPrimary} />
@@ -118,7 +132,7 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Section title="Primary Goal">
+            <Section title="Obiectiv principal">
               {GOALS.map((g) => (
                 <Chip
                   key={g.id}
@@ -129,7 +143,7 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
               ))}
             </Section>
 
-            <Section title="Target Muscles">
+            <Section title="Grupe musculare">
               {MUSCLES.map((m) => (
                 <Chip
                   key={m.id}
@@ -140,7 +154,7 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
               ))}
             </Section>
 
-            <Section title="Available Equipment">
+            <Section title="Echipament disponibil">
               {EQUIPMENT.map((e) => (
                 <Chip
                   key={e.id}
@@ -152,12 +166,12 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
             </Section>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Extra Notes</Text>
+              <Text style={styles.sectionTitle}>Note suplimentare</Text>
               <TextInput
                 style={styles.notesInput}
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="e.g. avoid knee exercises, keep it under 45 min..."
+                placeholder="ex. evită exercițiile pentru genunchi, max. 45 min..."
                 placeholderTextColor={Colors.textMuted}
                 multiline
                 maxLength={300}
@@ -176,12 +190,12 @@ export function PlanFormModal({ visible, onClose, onGenerate, loading }) {
             ) : (
               <>
                 <Ionicons name="sparkles" size={15} color={Colors.background} />
-                <Text style={styles.generateBtnText}>Generate Plan</Text>
+                <Text style={styles.generateBtnText}>Generează planul</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

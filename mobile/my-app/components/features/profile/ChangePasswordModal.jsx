@@ -15,6 +15,44 @@ import { Colors, Fonts } from "@/constants/theme";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
+const PASSWORD_RULES = [
+  { id: "length", label: "Minim 8 caractere",   test: (p) => p.length >= 8 },
+  { id: "upper",  label: "O literă mare (A-Z)", test: (p) => /[A-Z]/.test(p) },
+  { id: "lower",  label: "O literă mică (a-z)", test: (p) => /[a-z]/.test(p) },
+  { id: "number", label: "O cifră (0-9)",        test: (p) => /[0-9]/.test(p) },
+  { id: "symbol", label: "Un simbol (!@#$…)",    test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+function PasswordRules({ password }) {
+  if (!password) return null;
+  const allOk = PASSWORD_RULES.every((r) => r.test(password));
+  return (
+    <View style={ruleStyles.container}>
+      {PASSWORD_RULES.map((rule) => {
+        const ok = rule.test(password);
+        return (
+          <View key={rule.id} style={ruleStyles.row}>
+            <Ionicons
+              name={ok ? "checkmark-circle" : "ellipse-outline"}
+              size={14}
+              color={ok ? Colors.primary : Colors.onSurfaceVariant}
+            />
+            <Text style={[ruleStyles.text, ok && ruleStyles.textOk]}>
+              {rule.label}
+            </Text>
+          </View>
+        );
+      })}
+      {allOk && (
+        <View style={ruleStyles.strongRow}>
+          <Ionicons name="shield-checkmark" size={13} color={Colors.primary} />
+          <Text style={ruleStyles.strongText}>Parolă puternică</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 function PasswordField({ label, value, onChangeText, placeholder }) {
   const [show, setShow] = useState(false);
   return (
@@ -75,8 +113,8 @@ export default function ChangePasswordModal({ visible, token, onClose }) {
       setError("Completează toate câmpurile.");
       return;
     }
-    if (newPassword.length < 6) {
-      setError("Parola nouă trebuie să aibă cel puțin 6 caractere.");
+    if (!PASSWORD_RULES.every((r) => r.test(newPassword))) {
+      setError("Parola nouă nu îndeplinește toate cerințele.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -148,14 +186,27 @@ export default function ChangePasswordModal({ visible, token, onClose }) {
                   label="PAROLA NOUĂ"
                   value={newPassword}
                   onChangeText={setNewPassword}
-                  placeholder="Minimum 6 caractere"
+                  placeholder="Minim 8 caractere"
                 />
+                <PasswordRules password={newPassword} />
                 <PasswordField
                   label="CONFIRMĂ PAROLA NOUĂ"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="Repetă parola nouă"
                 />
+                {confirmPassword.length > 0 && (
+                  <View style={ruleStyles.row}>
+                    <Ionicons
+                      name={newPassword === confirmPassword ? "checkmark-circle" : "ellipse-outline"}
+                      size={14}
+                      color={newPassword === confirmPassword ? Colors.primary : Colors.onSurfaceVariant}
+                    />
+                    <Text style={[ruleStyles.text, newPassword === confirmPassword && ruleStyles.textOk]}>
+                      {newPassword === confirmPassword ? "Parolele coincid" : "Parolele nu coincid"}
+                    </Text>
+                  </View>
+                )}
 
                 {error && (
                   <View style={styles.errorBox}>
@@ -312,5 +363,41 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: Colors.background,
     fontFamily: Fonts.label,
+  },
+});
+
+const ruleStyles = StyleSheet.create({
+  container: {
+    gap: 7,
+    paddingHorizontal: 4,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  text: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+  },
+  textOk: {
+    color: Colors.primary,
+  },
+  strongRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(209,255,0,0.15)",
+  },
+  strongText: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.primary,
+    letterSpacing: 0.5,
   },
 });

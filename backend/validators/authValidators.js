@@ -3,20 +3,20 @@ import { body } from "express-validator";
 export const registerValidation = [
   body("email")
     .notEmpty()
-    .withMessage("Email is required")
+    .withMessage("Emailul este obligatoriu.")
     .isEmail()
-    .withMessage("Invalid email format"),
+    .withMessage("Format email invalid."),
 
   body("phone")
     .notEmpty()
-    .withMessage("Phone is required")
+    .withMessage("Numărul de telefon este obligatoriu.")
     .customSanitizer((value) => value.replace(/\D/g, ""))
     .matches(/^07\d{8}$/)
-    .withMessage("Invalid Romanian phone number"),
+    .withMessage("Număr de telefon invalid. Folosește formatul 07xxxxxxxx."),
 
   body("password")
     .notEmpty()
-    .withMessage("Password is required")
+    .withMessage("Parola este obligatorie.")
     .isStrongPassword({
       minLength: 8,
       minUppercase: 1,
@@ -24,21 +24,21 @@ export const registerValidation = [
       minSymbols: 1,
       minLowercase: 1,
     })
-    .withMessage("Password not strong enough"),
+    .withMessage("Parola nu este suficient de puternică."),
 
-  body("first_name").notEmpty().withMessage("First name is required").trim(),
+  body("first_name").notEmpty().withMessage("Prenumele este obligatoriu.").trim(),
 
-  body("last_name").notEmpty().withMessage("Last name is required").trim(),
+  body("last_name").notEmpty().withMessage("Numele este obligatoriu.").trim(),
 ];
 
 export const loginValidation = [
   body("email")
     .notEmpty()
-    .withMessage("Email required")
+    .withMessage("Emailul este obligatoriu.")
     .isEmail()
-    .withMessage("Invalid email"),
+    .withMessage("Format email invalid."),
 
-  body("password").notEmpty().withMessage("Password required"),
+  body("password").notEmpty().withMessage("Parola este obligatorie."),
 ];
 
 export const requestResetValidation = [

@@ -11,17 +11,17 @@ import { Colors, Fonts } from "@/constants/theme";
 
 const DIFFICULTY_CONFIG = {
   beginner: {
-    label: "Beginner",
+    label: "Începător",
     color: Colors.primary,
     bg: "rgba(209,255,0,0.12)",
   },
   intermediate: {
-    label: "Intermediate",
+    label: "Intermediar",
     color: Colors.tertiary,
     bg: "rgba(255,238,171,0.10)",
   },
   advanced: {
-    label: "Advanced",
+    label: "Avansat",
     color: Colors.error,
     bg: "rgba(255,115,81,0.12)",
   },
@@ -80,7 +80,7 @@ export function ClassCard({
               ]}
             >
               <Text style={[styles.badgeText, { color: Colors.error }]}>
-                Cancelled
+                Anulat
               </Text>
             </View>
           )}
@@ -94,7 +94,7 @@ export function ClassCard({
               <Text
                 style={[styles.badgeText, { color: Colors.onSurfaceVariant }]}
               >
-                Over
+                Terminat
               </Text>
             </View>
           )}
@@ -106,7 +106,7 @@ export function ClassCard({
               ]}
             >
               <Text style={[styles.badgeText, { color: Colors.primary }]}>
-                Ongoing
+                În desfășurare
               </Text>
             </View>
           )}
@@ -161,7 +161,7 @@ export function ClassCard({
                   size={14}
                   color={Colors.primary}
                 />
-                <Text style={styles.enrolledText}>Enrolled</Text>
+                <Text style={styles.enrolledText}>Înscris</Text>
               </View>
               <TouchableOpacity
                 style={styles.cancelBtn}
@@ -172,7 +172,7 @@ export function ClassCard({
                 {busy ? (
                   <ActivityIndicator size="small" color={Colors.error} />
                 ) : (
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>Anulează</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -190,7 +190,7 @@ export function ClassCard({
                   color={Colors.tertiary}
                 />
                 <Text style={[styles.enrolledText, { color: Colors.tertiary }]}>
-                  Waitlisted
+                  Listă așteptare
                 </Text>
               </View>
               <TouchableOpacity
@@ -202,7 +202,7 @@ export function ClassCard({
                 {busy ? (
                   <ActivityIndicator size="small" color={Colors.error} />
                 ) : (
-                  <Text style={styles.cancelBtnText}>Leave</Text>
+                  <Text style={styles.cancelBtnText}>Renunță</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -215,8 +215,8 @@ export function ClassCard({
               />
               <Text style={styles.lockedBtnText}>
                 {membershipStatus === "no_classes"
-                  ? "Abonamentul nu include clase"
-                  : "Membership Required"}
+                  ? "Abonamentul nu include cursuri"
+                  : "Abonament necesar"}
               </Text>
             </View>
           ) : (
@@ -231,7 +231,7 @@ export function ClassCard({
               ) : (
                 <>
                   <Text style={styles.enrollBtnText}>
-                    {isFull ? "Join Waiting List" : "Enroll Now"}
+                    {isFull ? "Listă de așteptare" : "Înscrie-te"}
                   </Text>
                   <Ionicons
                     name={isFull ? "hourglass-outline" : "arrow-forward"}

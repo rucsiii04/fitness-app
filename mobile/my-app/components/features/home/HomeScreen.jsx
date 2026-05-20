@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { MembershipCard } from "@/components/features/home/MembershipCard";
 import { WorkoutHeroCard } from "@/components/features/home/WorkoutHeroCard";
 import { GymAlertBanner } from "@/components/ui/GymAlertBanner";
+import { socketOn, socketOff } from "@/services/socket";
 
 import { useAuth } from "@/context/AuthContext";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
@@ -28,7 +29,6 @@ export default function HomeScreen() {
   const [profile, setProfile] = useState(null);
   const [membership, setMembership] = useState(null);
   const [sessions, setSessions] = useState([]);
-  const [latestWorkout, setLatestWorkout] = useState(null);
   const [alert, setAlert] = useState(null);
   const [attendance, setAttendance] = useState([]);
 
@@ -78,9 +78,6 @@ export default function HomeScreen() {
     safeFetch(`${API_BASE}/workout-sessions`, setSessions, (data) =>
       Array.isArray(data) ? data : [],
     );
-    safeFetch(`${API_BASE}/workouts`, setLatestWorkout, (data) =>
-      Array.isArray(data) ? data?.[0] : null,
-    );
     safeFetch(`${API_BASE}/gyms/${user.gym_id}/alerts`, setAlert);
     safeFetch(`${API_BASE}/qr/my-attendance`, setAttendance, (data) =>
       Array.isArray(data) ? data : [],
@@ -88,11 +85,17 @@ export default function HomeScreen() {
   }, [token])
   );
 
+  useEffect(() => {
+    const handler = (data) => setAlert(data?.message ? data : null);
+    socketOn("gym_alert", handler);
+    return () => socketOff("gym_alert", handler);
+  }, []);
+
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
+    if (hour < 12) return "Bună dimineața";
+    if (hour < 17) return "Bună ziua";
+    return "Bună seara";
   };
 
   const totalWorkouts = sessions.length;
@@ -100,14 +103,14 @@ export default function HomeScreen() {
     if (!attendance[0]?.entry_time) return null;
     const diffMs = Date.now() - new Date(attendance[0].entry_time);
     const mins = Math.round(diffMs / 60000);
-    if (mins < 60) return { value: mins, unit: "Min Ago" };
+    if (mins < 60) return { value: mins, unit: "Min în urmă" };
     const hours = Math.round(diffMs / 3600000);
     if (hours < 24)
-      return { value: hours, unit: hours === 1 ? "Hr Ago" : "Hrs Ago" };
+      return { value: hours, unit: hours === 1 ? "Oră în urmă" : "Ore în urmă" };
     const days = Math.round(diffMs / 86400000);
     if (days <= 31)
-      return { value: days, unit: days === 1 ? "Day Ago" : "Days Ago" };
-    return { value: "30+", unit: "Days Ago" };
+      return { value: days, unit: days === 1 ? "Zi în urmă" : "Zile în urmă" };
+    return { value: "30+", unit: "Zile în urmă" };
   })();
   const membershipDaysLeft = membership?.end_date
     ? Math.max(
@@ -122,7 +125,7 @@ export default function HomeScreen() {
   const heroWorkout =
     sessions.length > 0 && sessions[0]?.Workout
       ? sessions[0].Workout
-      : latestWorkout;
+      : null;
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
@@ -178,14 +181,14 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.welcomeSection}>
-            <Text style={styles.systemActive}>⬡ System Active</Text>
+            <Text style={styles.systemActive}>⬡ Sistem Activ</Text>
             <Text style={styles.greeting}>
               {getGreeting()},{"\n"}
               <Text style={styles.greetingName}>
-                {user?.first_name || "Athlete"}.
+                {user?.first_name || "Sportiv"}.
               </Text>
             </Text>
-            <Text style={styles.greetingSub}>Ready to Push?</Text>
+            <Text style={styles.greetingSub}>Gata de antrenament?</Text>
           </View>
 
           <WorkoutHeroCard workout={heroWorkout} />
@@ -195,23 +198,23 @@ export default function HomeScreen() {
           <View style={styles.statsGrid}>
             <View style={styles.statsRow}>
               <StatCard
-                label="Workouts"
+                label="Antrenamente"
                 value={totalWorkouts}
                 unit="Total"
                 icon="fitness-outline"
                 iconColor={Colors.primary}
               />
               <StatCard
-                label="Days Remaining"
+                label="Zile Rămase"
                 value={membershipDaysLeft ?? "—"}
-                unit="Days"
+                unit="Zile"
                 icon="calendar-outline"
                 iconColor={Colors.primary}
               />
             </View>
             <View style={styles.statsRow}>
               <StatCard
-                label="Last Visit"
+                label="Ultima Vizită"
                 value={lastVisit ? lastVisit.value : "—"}
                 unit={lastVisit ? lastVisit.unit : ""}
                 icon="time-outline"

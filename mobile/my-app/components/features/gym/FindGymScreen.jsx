@@ -199,9 +199,9 @@ export default function FindGymScreen() {
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>FIND A GYM</Text>
+          <Text style={styles.headerTitle}>GĂSEȘTE O SALĂ</Text>
           <View style={styles.countBadge}>
-            <Text style={styles.countText}>{gyms.length} FOUND</Text>
+            <Text style={styles.countText}>{gyms.length} GĂSITE</Text>
           </View>
         </View>
 
@@ -214,7 +214,7 @@ export default function FindGymScreen() {
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search by name or address..."
+              placeholder="Caută după nume sau adresă..."
               placeholderTextColor={Colors.onSurfaceVariant}
               value={search}
               onChangeText={setSearch}
@@ -276,7 +276,7 @@ export default function FindGymScreen() {
                           { color: open ? Colors.primary : Colors.error },
                         ]}
                       >
-                        {open ? "● OPEN" : "● CLOSED"}
+                        {open ? "● DESCHIS" : "● ÎNCHIS"}
                       </Text>
                     </View>
                   </Callout>
@@ -312,7 +312,7 @@ export default function FindGymScreen() {
 
         <View style={styles.drawer}>
           <View style={styles.drawerHandle} />
-          <Text style={styles.drawerTitle}>NEARBY LOCATIONS</Text>
+          <Text style={styles.drawerTitle}>SĂLI DISPONIBILE</Text>
 
           {loading ? (
             <ActivityIndicator
@@ -326,7 +326,7 @@ export default function FindGymScreen() {
                 size={36}
                 color={Colors.outlineVariant}
               />
-              <Text style={styles.emptyText}>No gyms found</Text>
+              <Text style={styles.emptyText}>Nicio sală găsită</Text>
             </View>
           ) : (
             <FlatList

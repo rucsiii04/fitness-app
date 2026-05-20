@@ -19,6 +19,14 @@ export const controller = {
       });
 
       if (!membership) {
+        const frozen = await Membership.findOne({
+          where: { client_id: user_id, status: "paused", frozen_by_admin: true },
+        });
+        if (frozen) {
+          return res.status(403).json({
+            message: "Abonamentul tău este înghețat temporar de sală. Nu poți genera QR momentan.",
+          });
+        }
         return res
           .status(403)
           .json({ message: "No active membership. Cannot generate QR code." });
@@ -133,7 +141,18 @@ export const controller = {
         include: [{ model: Membership_Type, where: { gym_id }, attributes: ["name", "gym_id"] }],
       });
 
-      if (!membership) return res.status(403).json({ message: "No active membership for this gym" });
+      if (!membership) {
+        const frozen = await Membership.findOne({
+          where: { client_id: qrRecord.user_id, status: "paused", frozen_by_admin: true },
+          include: [{ model: Membership_Type, where: { gym_id }, attributes: ["name", "gym_id"] }],
+        });
+        if (frozen) {
+          return res.status(403).json({
+            message: "Abonamentul acestui membru este înghețat temporar de sală.",
+          });
+        }
+        return res.status(403).json({ message: "No active membership for this gym" });
+      }
 
       await qrRecord.update({ is_used: true });
 

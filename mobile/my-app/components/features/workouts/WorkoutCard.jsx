@@ -9,24 +9,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 const DIFFICULTY = {
-  beginner: { label: "Beginner", color: Colors.primary, icon: "leaf-outline" },
+  beginner: { label: "Începător", color: Colors.primary, icon: "leaf-outline" },
   intermediate: {
-    label: "Intermediate",
+    label: "Intermediar",
     color: Colors.tertiary,
     icon: "flash-outline",
   },
-  advanced: { label: "Advanced", color: Colors.error, icon: "flame-outline" },
+  advanced: { label: "Avansat", color: Colors.error, icon: "flame-outline" },
 };
 
 const SOURCE_ICON = {
   trainer: { icon: "person-outline", color: Colors.secondary },
   ai: { icon: "sparkles-outline", color: Colors.tertiary },
-  user: { icon: "create-outline", color: Colors.onSurfaceVariant },
 };
 
 export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
   const diff = DIFFICULTY[workout.difficulty_level] ?? DIFFICULTY.beginner;
-  const src = SOURCE_ICON[workout.source] ?? SOURCE_ICON.user;
+  const src = SOURCE_ICON[workout.source] ?? null;
   const [expanded, setExpanded] = useState(false);
   const [truncated, setTruncated] = useState(false);
 
@@ -53,9 +52,11 @@ export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
                 {diff.label}
               </Text>
             </View>
-            <View style={styles.srcBadge}>
-              <Ionicons name={src.icon} size={11} color={src.color} />
-            </View>
+            {src && (
+              <View style={styles.srcBadge}>
+                <Ionicons name={src.icon} size={11} color={src.color} />
+              </View>
+            )}
           </View>
 
           <TouchableOpacity
@@ -108,7 +109,7 @@ export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
                 activeOpacity={0.7}
               >
                 <Text style={styles.showMore}>
-                  {expanded ? "show less" : "show more..."}
+                  {expanded ? "mai puțin" : "mai mult..."}
                 </Text>
               </TouchableOpacity>
             )}

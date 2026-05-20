@@ -26,7 +26,7 @@ const WELCOME_MESSAGE = {
   message_id: "__welcome__",
   sender: "AI",
   content:
-    "Hey! I'm your personal AI coach. I can help you plan workouts, answer fitness questions, and create personalized training programs tailored to your goals. What would you like to work on today?",
+    "Salut! Sunt antrenorul tău personal AI. Te pot ajuta să planifici antrenamente, să răspund la întrebări despre fitness și să creez programe de antrenament personalizate în funcție de obiectivele tale. Cu ce te pot ajuta azi?",
   sent_at: new Date().toISOString(),
 };
 
@@ -59,18 +59,18 @@ function PlanGeneratedCard({ item, onView }) {
         <View style={styles.planCardIcon}>
           <Ionicons name="sparkles" size={14} color={Colors.background} />
         </View>
-        <Text style={styles.planCardLabel}>PLAN GENERATED</Text>
+        <Text style={styles.planCardLabel}>PLAN GENERAT</Text>
       </View>
       <Text style={styles.planCardName}>{item.workoutName}</Text>
       <Text style={styles.planCardSub}>
-        {item.workoutDescription ?? "Tailored to your profile and goals."}
+        {item.workoutDescription ?? "Adaptat profilului și obiectivelor tale."}
       </Text>
       <TouchableOpacity
         style={styles.planCardButton}
         onPress={onView}
         activeOpacity={0.85}
       >
-        <Text style={styles.planCardButtonText}>View in Workouts</Text>
+        <Text style={styles.planCardButtonText}>Vezi antrenamentul</Text>
         <Ionicons name="arrow-forward" size={14} color={Colors.background} />
       </TouchableOpacity>
     </View>
@@ -148,7 +148,13 @@ export default function CoachScreen({ conversationId: initialConvId }) {
       try {
         const id = await ensureConversation();
         const aiMsg = await chatService.sendMessage(token, id, text);
-        setMessages((prev) => [...prev, aiMsg]);
+        setMessages((prev) => {
+          const withoutTemp = prev.filter((m) => m.message_id !== tempId);
+          if (withoutTemp.some((m) => String(m.message_id) === String(aiMsg.message_id))) {
+            return withoutTemp;
+          }
+          return [...withoutTemp, aiMsg];
+        });
       } catch (err) {
         console.error("Send error:", err.message);
         setMessages((prev) => [
@@ -195,8 +201,8 @@ export default function CoachScreen({ conversationId: initialConvId }) {
       } catch (err) {
         console.error("Generate plan error:", err.message);
         Alert.alert(
-          "Could Not Generate Plan",
-          "Please chat with the coach a bit more so I can understand your goals, then try again.",
+          "Nu s-a putut genera planul",
+          "Continuă conversația cu antrenorul câteva mesaje pentru a-ți înțelege obiectivele, apoi încearcă din nou.",
         );
       } finally {
         setGeneratingPlan(false);

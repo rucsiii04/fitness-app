@@ -7,44 +7,44 @@ import { SelectionCard } from "@/components/ui/SelectionCard";
 const ACTIVITIES = [
   {
     value: "sedentary",
-    label: "Sedentary",
+    label: "Sedentar",
     description:
-      "Typical office job, minimal movement, no intentional exercise.",
+      "Job la birou, mișcare minimă, fără exerciții intenționate.",
     icon: "bed-outline",
-    level: "Level 01",
+    level: "Nivel 01",
   },
   {
     value: "light",
-    label: "Lightly Active",
-    description: "Light exercise or sports 1-3 days per week.",
+    label: "Ușor activ",
+    description: "Exerciții ușoare sau sport 1-3 zile pe săptămână.",
     icon: "walk-outline",
-    level: "Level 02",
+    level: "Nivel 02",
   },
   {
     value: "moderate",
-    label: "Moderately Active",
-    description: "Moderate exercise or sports 3-5 days per week.",
+    label: "Moderat activ",
+    description: "Exerciții moderate sau sport 3-5 zile pe săptămână.",
     icon: "barbell-outline",
-    level: "Level 03",
+    level: "Nivel 03",
   },
   {
     value: "active",
-    label: "Very Active",
-    description: "Hard exercise or sports 6-7 days per week.",
+    label: "Foarte activ",
+    description: "Exerciții intense sau sport 6-7 zile pe săptămână.",
     icon: "bicycle-outline",
-    level: "Level 04",
+    level: "Nivel 04",
   },
   {
     value: "very_active",
-    label: "Extra Active",
+    label: "Extrem de activ",
     description:
-      "Very hard exercise, training 2x per day, or physical labor job.",
+      "Exerciții foarte intense, antrenament de 2x pe zi sau muncă fizică.",
     icon: "flash-outline",
-    level: "Level 05",
+    level: "Nivel 05",
   },
 ];
 
-export function ActivityStep({ data, onChange, onNext }) {
+export function ActivityStep({ data, onChange, onNext, onBack }) {
   return (
     <OnboardingLayout
       step={3}
@@ -52,7 +52,8 @@ export function ActivityStep({ data, onChange, onNext }) {
         if (!data.activity_level) return;
         onNext();
       }}
-      nextLabel="Next"
+      onBack={onBack}
+      nextLabel="Continuă"
     >
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -60,10 +61,10 @@ export function ActivityStep({ data, onChange, onNext }) {
       >
         <View style={styles.hero}>
           <Text style={styles.title}>
-            DEFINE YOUR <Text style={styles.titleAccent}>OUTPUT</Text>
+            NIVELUL TĂU <Text style={styles.titleAccent}>DE ACTIVITATE</Text>
           </Text>
           <Text style={styles.subtitle}>
-            Select the activity level that best reflects your daily lifestyle.
+            Selectează nivelul de activitate care reflectă cel mai bine stilul tău de viață zilnic.
           </Text>
         </View>
 

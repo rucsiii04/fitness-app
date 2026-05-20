@@ -49,7 +49,7 @@ function TabToggle({ active, onChange }) {
               active === tab && styles.tabBtnTextActive,
             ]}
           >
-            {tab === "schedule" ? "Schedule" : "My Bookings"}
+            {tab === "schedule" ? "Program" : "Rezervările mele"}
           </Text>
         </TouchableOpacity>
       ))}
@@ -65,9 +65,9 @@ function EmptyDay() {
         size={40}
         color={Colors.outlineVariant}
       />
-      <Text style={styles.emptyTitle}>No Classes Today</Text>
+      <Text style={styles.emptyTitle}>Nicio clasă azi</Text>
       <Text style={styles.emptySubtitle}>
-        There are no sessions scheduled for this day. Check another date.
+        Nu există sesiuni programate pentru această zi. Încearcă altă dată.
       </Text>
     </View>
   );
@@ -81,10 +81,9 @@ function EmptyEnrollments() {
         size={40}
         color={Colors.outlineVariant}
       />
-      <Text style={styles.emptyTitle}>No Bookings Yet</Text>
+      <Text style={styles.emptyTitle}>Nicio rezervare încă</Text>
       <Text style={styles.emptySubtitle}>
-        You haven't enrolled in any classes yet. Browse the schedule to get
-        started.
+        Nu te-ai înscris la nicio clasă. Răsfoiește programul pentru a începe.
       </Text>
     </View>
   );
@@ -197,12 +196,12 @@ export default function ClassesScreen() {
 
       if (enrollment.status === "waiting_list") {
         Alert.alert(
-          "Added to Waitlist",
-          `This class is full. You are #${waitingPosition} on the waiting list.`,
+          "Pe lista de așteptare",
+          `Clasa este plină. Ești pe locul #${waitingPosition} pe lista de așteptare.`,
         );
       }
     } catch (err) {
-      Alert.alert("Could Not Enroll", err.message ?? "Please try again.");
+      Alert.alert("Eroare la înscriere", err.message ?? "Te rugăm să încerci din nou.");
     } finally {
       setBusy(session.session_id, false);
     }
@@ -264,7 +263,7 @@ export default function ClassesScreen() {
           prev.filter((e) => e.session_id !== session.session_id),
         );
       } catch (err) {
-        Alert.alert("Error", err.message ?? "Could not cancel.");
+        Alert.alert("Eroare", err.message ?? "Nu s-a putut anula.");
       } finally {
         setBusy(session.session_id, false);
       }
@@ -290,7 +289,7 @@ export default function ClassesScreen() {
           return next;
         });
       } catch (err) {
-        Alert.alert("Error", err.message ?? "Could not cancel.");
+        Alert.alert("Eroare", err.message ?? "Nu s-a putut anula.");
       } finally {
         setBusy(sessionId, false);
       }
@@ -315,7 +314,7 @@ export default function ClassesScreen() {
       <ScreenBackground>
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Classes</Text>
+            <Text style={styles.headerTitle}>Cursuri</Text>
           </View>
           <View style={styles.centered}>
             <Ionicons
@@ -323,9 +322,9 @@ export default function ClassesScreen() {
               size={40}
               color={Colors.outlineVariant}
             />
-            <Text style={styles.emptyTitle}>No Gym Membership</Text>
+            <Text style={styles.emptyTitle}>Fără abonament</Text>
             <Text style={styles.emptySubtitle}>
-              You need an active membership to view and book classes.
+              Ai nevoie de un abonament activ pentru a vedea și rezerva cursuri.
             </Text>
           </View>
         </SafeAreaView>
@@ -338,9 +337,9 @@ export default function ClassesScreen() {
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>Classes</Text>
+            <Text style={styles.headerTitle}>Cursuri</Text>
             <Text style={styles.headerSub}>
-              Elevate your baseline performance
+              Îmbunătățește-ți performanța de bază
             </Text>
           </View>
           <TabToggle active={activeTab} onChange={setActiveTab} />
@@ -385,7 +384,7 @@ export default function ClassesScreen() {
               <>
                 {upcomingEnrollments.length > 0 && (
                   <>
-                    <Text style={styles.sectionLabel}>Upcoming</Text>
+                    <Text style={styles.sectionLabel}>Viitoare</Text>
                     {upcomingEnrollments.map((item, i) => (
                       <View
                         key={String(item.enrollment_id)}
@@ -408,7 +407,7 @@ export default function ClassesScreen() {
                         upcomingEnrollments.length > 0 && { marginTop: 28 },
                       ]}
                     >
-                      History
+                      Istoric
                     </Text>
                     {historyEnrollments.map((item, i) => (
                       <View

@@ -20,12 +20,12 @@ const relativeTime = (dateString) => {
   if (!dateString) return "";
   const diff = Date.now() - new Date(dateString).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return "Chiar acum";
+  if (mins < 60) return `${mins}m în urmă`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return `${hours}h în urmă`;
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return `${days}z în urmă`;
   return new Date(dateString).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -49,7 +49,7 @@ function ConversationItem({ item, onPress, onDelete }) {
 
       <View style={styles.itemBody}>
         <Text style={styles.itemTitle} numberOfLines={1}>
-          {item.preview ?? "New conversation"}
+          {item.preview ?? "Conversație nouă"}
         </Text>
         <Text style={styles.itemMeta}>
           {relativeTime(item.last_activity_at)}
@@ -82,17 +82,16 @@ function EmptyState({ onNewChat }) {
       <View style={styles.emptyIcon}>
         <Ionicons name="sparkles" size={28} color={Colors.background} />
       </View>
-      <Text style={styles.emptyTitle}>No chats yet</Text>
+      <Text style={styles.emptyTitle}>Nicio conversație</Text>
       <Text style={styles.emptySubtitle}>
-        Start a conversation with your AI coach to get personalized workout
-        plans and fitness advice.
+        Începe o conversație cu antrenorul tău AI pentru planuri de antrenament personalizate și sfaturi fitness.
       </Text>
       <TouchableOpacity
         style={styles.emptyButton}
         onPress={onNewChat}
         activeOpacity={0.85}
       >
-        <Text style={styles.emptyButtonText}>Start First Chat</Text>
+        <Text style={styles.emptyButtonText}>Prima conversație</Text>
         <Ionicons name="arrow-forward" size={14} color={Colors.background} />
       </TouchableOpacity>
     </View>
@@ -126,12 +125,12 @@ export default function ConversationListScreen() {
 
   const handleDelete = (item) => {
     Alert.alert(
-      "Delete Chat",
-      `Delete Chat #${item.conversation_id}? This cannot be undone.${item.linked_plan_id ? "\n\nThe generated workout plan will be kept." : ""}`,
+      "Șterge conversația",
+      `Ștergi conversația #${item.conversation_id}? Această acțiune nu poate fi anulată.${item.linked_plan_id ? "\n\nPlanul de antrenament generat va fi păstrat." : ""}`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Anulează", style: "cancel" },
         {
-          text: "Delete",
+          text: "Șterge",
           style: "destructive",
           onPress: async () => {
             try {
@@ -142,8 +141,8 @@ export default function ConversationListScreen() {
             } catch (err) {
               console.error("Delete error:", err.message);
               Alert.alert(
-                "Error",
-                "Could not delete the chat. Please try again.",
+                "Eroare",
+                "Nu s-a putut șterge conversația. Te rugăm să încerci din nou.",
               );
             }
           },
@@ -166,7 +165,7 @@ export default function ConversationListScreen() {
             </View>
             <View>
               <Text style={styles.headerTitle}>AI Coach</Text>
-              <Text style={styles.headerSubtitle}>Your conversations</Text>
+              <Text style={styles.headerSubtitle}>Conversațiile tale</Text>
             </View>
           </View>
 
@@ -176,7 +175,7 @@ export default function ConversationListScreen() {
             activeOpacity={0.85}
           >
             <Ionicons name="add" size={16} color={Colors.background} />
-            <Text style={styles.newChatBtnText}>New Chat</Text>
+            <Text style={styles.newChatBtnText}>Conversație nouă</Text>
           </TouchableOpacity>
         </View>
 

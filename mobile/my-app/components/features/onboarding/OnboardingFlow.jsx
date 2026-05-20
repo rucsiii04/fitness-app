@@ -8,8 +8,15 @@ import { MedicalStep } from "./MedicalStep";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
+const RESTRICTION_LABELS = {
+  heart: "Afecțiune cardiacă",
+  asthma: "Astm / Respirație",
+  joint: "Dureri articulare",
+  blood_pressure: "Tensiune arterială",
+};
+
 export default function OnboardingFlow() {
-  const { token } = useAuth();
+  const { token, markProfileComplete } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -40,7 +47,10 @@ export default function OnboardingFlow() {
         activity_level: formData.activity_level,
         medical_restriction: formData.no_restrictions
           ? null
-          : [...formData.restrictions, formData.medical_restriction]
+          : [
+              ...formData.restrictions.map((r) => RESTRICTION_LABELS[r] || r),
+              formData.medical_restriction,
+            ]
               .filter(Boolean)
               .join(", ") || null,
       };
@@ -60,6 +70,7 @@ export default function OnboardingFlow() {
         return;
       }
 
+      markProfileComplete();
       router.replace("/(tabs)/home");
     } catch (err) {
       console.error(err);
@@ -82,6 +93,7 @@ export default function OnboardingFlow() {
         data={formData}
         onChange={updateData}
         onNext={() => setStep(3)}
+        onBack={() => setStep(1)}
       />
     );
   if (step === 3)
@@ -90,6 +102,7 @@ export default function OnboardingFlow() {
         data={formData}
         onChange={updateData}
         onNext={() => setStep(4)}
+        onBack={() => setStep(2)}
       />
     );
   if (step === 4)
@@ -99,6 +112,7 @@ export default function OnboardingFlow() {
         onChange={updateData}
         onSubmit={handleSubmit}
         loading={loading}
+        onBack={() => setStep(3)}
       />
     );
 }

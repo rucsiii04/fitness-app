@@ -7,24 +7,34 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { OnboardingProvider } from "@/context/OnboardingContext";
 import { ActiveSessionProvider } from "@/context/ActiveSessionContext";
 import * as Linking from "expo-linking";
+
 export const unstable_settings = {
   anchor: "(tabs)",
 };
 
 function RootNavigator() {
-  const { user, token, loading } = useAuth();
+  const { user, token, loading, profileComplete } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || profileComplete === null) return;
 
     const isResetPassword = segments[0] === "reset-password";
     const inSplash = segments[0] === undefined;
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboarding = segments[0] === "(onboarding)";
+
     if (!token) {
       if (!inAuthGroup && !inSplash && !isResetPassword) {
         router.replace("/");
+      }
+      return;
+    }
+
+    if (profileComplete === false) {
+      if (!inOnboarding) {
+        router.replace("/(onboarding)");
       }
       return;
     }
@@ -41,7 +51,7 @@ function RootNavigator() {
           router.replace("/(tabs)/home");
       }
     }
-  }, [token, user, loading, segments]);
+  }, [token, user, loading, segments, profileComplete]);
 
   useEffect(() => {
     const sub = Linking.addEventListener("url", (event) => {
@@ -62,7 +72,8 @@ function RootNavigator() {
 
     return () => sub.remove();
   }, []);
-  if (loading) return null;
+
+  if (loading || profileComplete === null) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

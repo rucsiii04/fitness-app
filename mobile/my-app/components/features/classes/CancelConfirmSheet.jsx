@@ -37,12 +37,12 @@ export function CancelConfirmSheet({
           </View>
 
           <Text style={styles.title}>
-            {isWaitlist ? "Leave Waitlist?" : "Cancel Enrollment?"}
+            {isWaitlist ? "Renunți la lista de așteptare?" : "Anulezi înscrierea?"}
           </Text>
           <Text style={styles.message}>
             {isWaitlist
-              ? "You'll lose your spot on the waiting list. This can't be undone."
-              : "You'll lose your confirmed spot. This can't be undone."}
+              ? "Vei pierde locul pe lista de așteptare. Această acțiune nu poate fi anulată."
+              : "Vei pierde locul confirmat. Această acțiune nu poate fi anulată."}
           </Text>
 
           <TouchableOpacity
@@ -51,7 +51,7 @@ export function CancelConfirmSheet({
             activeOpacity={0.85}
           >
             <Text style={styles.confirmText}>
-              {isWaitlist ? "Leave Waitlist" : "Cancel Enrollment"}
+              {isWaitlist ? "Renunță la lista" : "Anulează înscrierea"}
             </Text>
           </TouchableOpacity>
 
@@ -60,7 +60,7 @@ export function CancelConfirmSheet({
             onPress={onClose}
             activeOpacity={0.7}
           >
-            <Text style={styles.dismissText}>Keep It</Text>
+            <Text style={styles.dismissText}>Păstrează locul</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

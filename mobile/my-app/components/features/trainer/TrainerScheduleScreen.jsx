@@ -337,6 +337,11 @@ function CreateSessionModal({
       return;
     }
 
+    if (new Date(startDt) <= new Date()) {
+      Alert.alert("Eroare", "Nu poți crea o sesiune în trecut.");
+      return;
+    }
+
     setSaving(true);
     try {
       await createGymClassSession(
@@ -802,6 +807,10 @@ export default function TrainerScheduleScreen() {
             onPress={() => {
               if (!gymId) {
                 Alert.alert("Eroare", "Nu ești asociat unui centru fitness.");
+                return;
+              }
+              if (selectedDay < todayKey) {
+                Alert.alert("Eroare", "Nu poți crea sesiuni în trecut.");
                 return;
               }
               setCreateVisible(true);
