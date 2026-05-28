@@ -124,7 +124,7 @@ STRICT RULES:
 - Instead, politely refuse and redirect the conversation to fitness topics.
 - Never invent information outside the fitness domain.
 - If you are unsure, say you are not sure instead of guessing.
-- Always respond in the same language as the user's message.
+- Default language is Romanian. If the user writes in a different language, match that language.
 - NEVER generate a complete workout plan or training program as text, even if asked directly. If the user wants a new workout plan created, always tell them to use the ✦ button in the top right corner of the screen. This applies even if you already have a linked workout plan in this conversation.
 `;
 };
@@ -675,10 +675,14 @@ export const controller = {
         order: [["sent_at", "ASC"]],
       });
 
-      const geminiHistory = history.slice(0, -1).map((m) => ({
+      const rawHistory = history.slice(0, -1).map((m) => ({
         role: m.sender === "user" ? "user" : "model",
         parts: [{ text: m.content }],
       }));
+      // Gemini requires history to start with 'user'; drop any leading model messages
+      // (e.g. the plan-generated confirmation inserted before any user chat message)
+      const firstUserIdx = rawHistory.findIndex((m) => m.role === "user");
+      const geminiHistory = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : [];
 
       const chat = geminiModel.startChat({
         history: geminiHistory,
@@ -831,7 +835,8 @@ Rules:
 - rest_time is in seconds.
 - Respect any medical restrictions.
 - Respect any preferences or restrictions the client mentioned in the conversation above.
-- If the client provided additional preferences above, prioritize them.`;
+- If the client provided additional preferences above, prioritize them.
+- The "name" and "description" fields must be written in Romanian.`;
 
       const result = await geminiModel.generateContent(planPrompt);
       const raw = result.response.text();
@@ -887,7 +892,7 @@ Rules:
       await Message.create({
         conversation_id: conversationId,
         sender: "AI",
-        content: `I've generated a workout plan for you: **${plan.name}**. ${plan.description} It includes ${validExercises.length} exercises tailored to your profile.`,
+        content: `Am creat un plan de antrenament pentru tine: **${plan.name}**. ${plan.description} Include ${validExercises.length} exerciții adaptate profilului tău.`,
         sent_at: new Date(),
       });
 

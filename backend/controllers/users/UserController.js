@@ -203,7 +203,6 @@ export const controller = {
         where: {
           gym_id: gymId,
           role: ["trainer", "front_desk"],
-          is_active: true,
         },
         attributes: [
           "user_id",
@@ -212,6 +211,7 @@ export const controller = {
           "email",
           "role",
           "phone",
+          "is_active",
         ],
         include: [
           {

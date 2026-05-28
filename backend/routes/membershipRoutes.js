@@ -61,6 +61,13 @@ router.post(
 );
 
 router.get(
+  "/gyms/:gymId/list",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.membershipController.getGymMembershipsList,
+);
+
+router.get(
   "/gyms/:gymId/admin-freeze/status",
   verifyToken,
   requireRole("gym_admin"),

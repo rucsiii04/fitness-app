@@ -75,7 +75,7 @@ export const controller = {
         return res.status(400).json({ message: "Session already finished" });
       }
 
-      const { notes } = req.body;
+      const { notes } = req.body ?? {};
       await session.update({ finished_at: new Date(), ...(notes ? { notes } : {}) });
 
       return res.status(200).json(session);

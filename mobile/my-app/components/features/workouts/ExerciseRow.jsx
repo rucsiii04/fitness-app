@@ -43,11 +43,11 @@ export function ExerciseRow({ item, onChangeSets, onChangeReps, onRemove }) {
               </TouchableOpacity>
             ) : (
               <TextInput
-                style={styles.input}
+                style={[styles.input, styles.repsInput]}
                 value={String(item.reps)}
                 onChangeText={onChangeReps}
-                keyboardType="numeric"
-                maxLength={4}
+                keyboardType="default"
+                maxLength={6}
               />
             )}
           </View>
@@ -140,6 +140,9 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     minWidth: 44,
     textAlign: "center",
+  },
+  repsInput: {
+    minWidth: 62,
   },
   divider: {
     width: 1,

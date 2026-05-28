@@ -112,7 +112,9 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
   const startedAtRef = useRef(
     activeSession?.started_at
       ? new Date(activeSession.started_at).getTime()
-      : null
+      : resumeSessionId
+        ? null        // resume: wait for server's real started_at
+        : Date.now()  // new session: start the clock immediately
   );
   const [, forceUpdate] = useReducer((n) => n + 1, 0);
 
@@ -257,17 +259,8 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
       return updated;
     });
 
-    const allDone = currentSets.every((s, i) =>
-      i === setIndex ? true : s.status === "completed"
-    );
-
-    if (allDone && currentIndex + 1 < exercises.length) {
-      setShowRest(true);
-      setRestKey((k) => k + 1);
-    } else if (!allDone) {
-      setShowRest(true);
-      setRestKey((k) => k + 1);
-    }
+    setShowRest(true);
+    setRestKey((k) => k + 1);
   };
 
   const handleAddSet = () =>
@@ -290,6 +283,18 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
       setCurrentIndex(nextIndex);
     } else {
       handleFinish();
+    }
+  };
+
+  // Called when the rest timer ends or is skipped.
+  // Only advances to the next exercise if all sets for the current one are done;
+  // otherwise just dismisses the rest overlay and stays on the same exercise.
+  const handleRestDone = () => {
+    const allDone = currentSets.every((s) => s.status === "completed");
+    if (allDone) {
+      handleNextExercise();
+    } else {
+      setShowRest(false);
     }
   };
 
@@ -389,7 +394,7 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
         </ScrollView>
 
         {showRest && (
-          <RestTimer key={restKey} onSkip={handleNextExercise} onFinish={handleNextExercise} />
+          <RestTimer key={restKey} onSkip={handleRestDone} onFinish={handleRestDone} />
         )}
 
         <View style={styles.bottomBar}>

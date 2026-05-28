@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   StatusBar,
   TouchableOpacity,
   Image,
+  AppState,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,9 +33,9 @@ export default function HomeScreen() {
   const [sessions, setSessions] = useState([]);
   const [alert, setAlert] = useState(null);
   const [attendance, setAttendance] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
+  const fetchData = useCallback(async () => {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
 
@@ -42,10 +44,7 @@ export default function HomeScreen() {
         const res = await fetch(url, { headers });
         const text = await res.text();
 
-        console.log(`${url} :`, res.status, text.substring(0, 200));
-
         if (res.status === 401) {
-          console.log("Token expirat → logout");
           await logout();
           router.replace("/(auth)/login");
           return;
@@ -54,11 +53,7 @@ export default function HomeScreen() {
         if (!res.ok) return;
 
         let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error(text);
-        }
+        try { data = JSON.parse(text); } catch { return; }
 
         setter(transform ? transform(data) : data);
       } catch (err) {
@@ -82,8 +77,28 @@ export default function HomeScreen() {
     safeFetch(`${API_BASE}/qr/my-attendance`, setAttendance, (data) =>
       Array.isArray(data) ? data : [],
     );
-  }, [token])
-  );
+  }, [token]);
+
+  // Re-fetch when the screen gains focus (tab switch / navigation)
+  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
+
+  // Always call the latest fetchData — avoids stale closure in the AppState listener
+  const fetchDataRef = useRef(fetchData);
+  useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
+
+  // Re-fetch silently when the app comes back to the foreground
+  const appStateRef = useRef(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      console.log("[AppState]", appStateRef.current, "→", nextState);
+      if (appStateRef.current !== "active" && nextState === "active") {
+        console.log("[AppState] app became active → re-fetching");
+        fetchDataRef.current();
+      }
+      appStateRef.current = nextState;
+    });
+    return () => sub.remove();
+  }, []); // runs once — always reads latest fetchData via ref
 
   useEffect(() => {
     const handler = (data) => setAlert(data?.message ? data : null);
@@ -179,9 +194,20 @@ export default function HomeScreen() {
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={async () => {
+                setRefreshing(true);
+                await fetchData();
+                setRefreshing(false);
+              }}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
         >
           <View style={styles.welcomeSection}>
-            <Text style={styles.systemActive}>⬡ Sistem Activ</Text>
             <Text style={styles.greeting}>
               {getGreeting()},{"\n"}
               <Text style={styles.greetingName}>
@@ -279,15 +305,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 8,
     gap: 4,
-  },
-  systemActive: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 3,
-    textTransform: "uppercase",
-    color: Colors.secondary,
-    fontFamily: Fonts.label,
-    marginBottom: 8,
   },
   greeting: {
     fontSize: 36,

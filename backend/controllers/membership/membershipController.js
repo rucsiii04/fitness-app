@@ -745,6 +745,48 @@ export const controller = {
     }
   },
 
+  getGymMembershipsList: async (req, res) => {
+    try {
+      const { gymId } = req.params;
+      const { status } = req.query; // optional: 'active', 'paused', 'expired', 'cancelled'
+
+      const canManage = await canManageGym(req.user, gymId);
+      if (!canManage) {
+        return res.status(403).json({ message: "You cannot manage this gym" });
+      }
+
+      await syncMembershipStatuses();
+
+      const where = {};
+      if (status) {
+        const statuses = status.split(",").map((s) => s.trim());
+        where.status = { [Op.in]: statuses };
+      }
+
+      const memberships = await Membership.findAll({
+        where,
+        include: [
+          {
+            model: Membership_Type,
+            where: { gym_id: gymId },
+            attributes: ["name", "price", "duration_days"],
+          },
+          {
+            model: User,
+            attributes: ["user_id", "first_name", "last_name", "email", "phone"],
+          },
+        ],
+        order: [["start_date", "DESC"]],
+      });
+
+      return res.status(200).json(memberships);
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "Error fetching gym memberships list: " + err });
+    }
+  },
+
   searchClients: async (req, res) => {
     try {
       const { q } = req.query;

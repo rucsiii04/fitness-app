@@ -90,7 +90,7 @@ export function AuthProvider({ children }) {
 
       setToken(null);
       setUser(null);
-      setProfileComplete(null);
+      setProfileComplete(true);
     } catch (err) {
       console.error("Logout error:", err);
     }

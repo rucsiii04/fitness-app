@@ -262,7 +262,7 @@ export default function EditWorkoutModal({
             </View>
 
             {exercises.map((item, index) => (
-              <View key={item.exercise_id} style={styles.exerciseRowWrapper}>
+              <View key={`${item.exercise_id}-${index}`} style={styles.exerciseRowWrapper}>
                 <ExerciseRow
                   item={item}
                   onChangeSets={(v) => updateExercise(index, "sets", v)}

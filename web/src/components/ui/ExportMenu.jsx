@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useToast } from "../../context/ToastContext.jsx";
-import { exportMemberships, exportUsers, exportCheckins } from "../../api/gymAdmin.js";
+import {
+  exportMemberships,
+  exportUsers,
+  exportCheckins,
+} from "../../api/gymAdmin.js";
 import * as I from "./Icons.jsx";
 
 function todayStr() {
@@ -34,7 +38,7 @@ const dateInputStyle = {
 export default function ExportMenu({ gymId }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(null); 
+  const [loading, setLoading] = useState(null);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState(todayStr());
   const ref = useRef(null);
@@ -55,7 +59,7 @@ export default function ExportMenu({ gymId }) {
       triggerDownload(res.data, filename);
       setOpen(false);
     } catch {
-      toast("Export failed", "coral");
+      toast("Eroare la export", "coral");
     } finally {
       setLoading(null);
     }
@@ -91,7 +95,8 @@ export default function ExportMenu({ gymId }) {
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
-            right: 0,
+            left: "50%",
+            transform: "translateX(-50%)",
             minWidth: 220,
             background: "var(--surface)",
             border: "1px solid var(--border-strong)",
@@ -103,48 +108,64 @@ export default function ExportMenu({ gymId }) {
         >
           <div
             className="eyebrow"
-            style={{ padding: "10px 14px 6px", fontSize: 9, color: "var(--text-dim)" }}
+            style={{
+              padding: "10px 14px 6px",
+              fontSize: 9,
+              color: "var(--text-dim)",
+            }}
           >
-            Download CSV
+            Descarcă CSV
           </div>
 
           {/* Memberships */}
           <MenuItem
-            label="Export Memberships"
-            sub="Client, type, dates, status"
+            label="Export Abonamente"
+            sub="Client, tip, date, status"
             loading={loading === "memberships"}
             onClick={() =>
               download(
                 "memberships",
                 () => exportMemberships(gymId),
-                `memberships_${todayStr()}.csv`
+                `abonamente_${todayStr()}.csv`,
               )
             }
           />
 
           <MenuItem
-            label="Export Users"
-            sub="Name, email, phone, role"
+            label="Export Utilizatori"
+            sub="Nume, email, telefon, rol"
             loading={loading === "users"}
             onClick={() =>
               download(
                 "users",
                 () => exportUsers(gymId),
-                `users_${todayStr()}.csv`
+                `utilizatori_${todayStr()}.csv`,
               )
             }
           />
 
-          <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+          <div
+            style={{ height: 1, background: "var(--border)", margin: "4px 0" }}
+          />
 
           <div style={{ padding: "10px 14px 12px" }}>
             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8 }}>
-              Export Check-ins
+              Export Check-in-uri
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                marginBottom: 10,
+              }}
+            >
               <div>
-                <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>
-                  From
+                <div
+                  className="eyebrow"
+                  style={{ fontSize: 9, marginBottom: 3 }}
+                >
+                  De la
                 </div>
                 <input
                   type="date"
@@ -155,8 +176,11 @@ export default function ExportMenu({ gymId }) {
                 />
               </div>
               <div>
-                <div className="eyebrow" style={{ fontSize: 9, marginBottom: 3 }}>
-                  To
+                <div
+                  className="eyebrow"
+                  style={{ fontSize: 9, marginBottom: 3 }}
+                >
+                  Până la
                 </div>
                 <input
                   type="date"
@@ -172,14 +196,16 @@ export default function ExportMenu({ gymId }) {
               onClick={() =>
                 download(
                   "checkins",
-                  () => exportCheckins(gymId, from || undefined, to || undefined),
-                  `checkins_${todayStr()}.csv`
+                  () =>
+                    exportCheckins(gymId, from || undefined, to || undefined),
+                  `checkins_${todayStr()}.csv`,
                 )
               }
               style={{
                 width: "100%",
                 height: 32,
-                background: loading === "checkins" ? "var(--surface-3)" : "var(--accent)",
+                background:
+                  loading === "checkins" ? "var(--surface-3)" : "var(--accent)",
                 color: loading === "checkins" ? "var(--text-dim)" : "var(--bg)",
                 border: "none",
                 borderRadius: 8,
@@ -195,11 +221,11 @@ export default function ExportMenu({ gymId }) {
               }}
             >
               {loading === "checkins" ? (
-                "Downloading…"
+                "Se descarcă…"
               ) : (
                 <>
                   <I.download width={12} height={12} />
-                  {from || to ? "Download filtered" : "Download all"}
+                  Descarcă
                 </>
               )}
             </button>
@@ -227,21 +253,35 @@ function MenuItem({ label, sub, loading, onClick }) {
         cursor: loading ? "not-allowed" : "pointer",
         opacity: loading ? 0.5 : 1,
       }}
-      onMouseEnter={(e) => !loading && (e.currentTarget.style.background = "var(--surface-2)")}
+      onMouseEnter={(e) =>
+        !loading && (e.currentTarget.style.background = "var(--surface-2)")
+      }
       onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
     >
       <div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>{label}</div>
-        <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text)" }}>
+          {label}
+        </div>
+        <div
+          className="mono"
+          style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 1 }}
+        >
           {sub}
         </div>
       </div>
       {loading ? (
-        <span className="mono" style={{ fontSize: 10, color: "var(--text-dim)" }}>
+        <span
+          className="mono"
+          style={{ fontSize: 10, color: "var(--text-dim)" }}
+        >
           …
         </span>
       ) : (
-        <I.download width={13} height={13} style={{ color: "var(--text-dim)", flexShrink: 0 }} />
+        <I.download
+          width={13}
+          height={13}
+          style={{ color: "var(--text-dim)", flexShrink: 0 }}
+        />
       )}
     </button>
   );

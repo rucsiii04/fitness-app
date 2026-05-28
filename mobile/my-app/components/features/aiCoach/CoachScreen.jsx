@@ -147,14 +147,9 @@ export default function CoachScreen({ conversationId: initialConvId }) {
 
       try {
         const id = await ensureConversation();
-        const aiMsg = await chatService.sendMessage(token, id, text);
-        setMessages((prev) => {
-          const withoutTemp = prev.filter((m) => m.message_id !== tempId);
-          if (withoutTemp.some((m) => String(m.message_id) === String(aiMsg.message_id))) {
-            return withoutTemp;
-          }
-          return [...withoutTemp, aiMsg];
-        });
+        await chatService.sendMessage(token, id, text);
+        const { messages: freshMsgs } = await chatService.getMessagesWithMeta(token, id);
+        setMessages(Array.isArray(freshMsgs) ? freshMsgs : []);
       } catch (err) {
         console.error("Send error:", err.message);
         setMessages((prev) => [

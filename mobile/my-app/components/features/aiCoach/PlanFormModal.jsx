@@ -213,6 +213,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     paddingBottom: 32,
+    height: "78%",
     maxHeight: "88%",
   },
   header: {

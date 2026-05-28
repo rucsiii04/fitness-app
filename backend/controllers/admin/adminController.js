@@ -531,11 +531,17 @@ export const controller = {
       const daysElapsed = Math.max(1, dayOfWeek + 1);
       const avgPerDay = Math.round(weekRows.length / daysElapsed);
 
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+      const liveCount = todayRows.filter(
+        (r) => new Date(r.entry_time) >= twoHoursAgo,
+      ).length;
+
       return res.status(200).json({
         today: todayRows.length,
         thisWeek: weekRows.length,
         uniqueThisWeek,
         avgPerDay,
+        liveCount,
         hourlyDate: selStart.toISOString().split("T")[0],
         hourlyTotal: selRows.length,
         hourly,

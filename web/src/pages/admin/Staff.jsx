@@ -133,10 +133,19 @@ export default function AdminStaff() {
       label: "Recepționeri",
       count: staff.filter((s) => s.role === "front_desk").length,
     },
+    {
+      k: "inactive",
+      label: "Inactivi",
+      count: staff.filter((s) => !s.is_active).length,
+    },
   ];
 
   const filtered =
-    filter === "all" ? staff : staff.filter((s) => s.role === filter);
+    filter === "all"
+      ? staff
+      : filter === "inactive"
+      ? staff.filter((s) => !s.is_active)
+      : staff.filter((s) => s.role === filter);
 
   return (
     <>
@@ -262,13 +271,13 @@ export default function AdminStaff() {
                   </div>
                 </div>
                 <span
-                  className="pulse-dot"
                   style={{
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    background: "var(--accent)",
+                    background: s.is_active ? "var(--accent)" : "var(--text-dim)",
                     marginTop: 6,
+                    flexShrink: 0,
                   }}
                 />
               </div>
@@ -307,7 +316,10 @@ export default function AdminStaff() {
                   borderTop: "1px solid var(--border-soft)",
                 }}
               >
-                <Pill tone="green">Activ</Pill>
+                {s.is_active
+                  ? <Pill tone="green">Activ</Pill>
+                  : <Pill tone="muted">Inactiv</Pill>
+                }
                 <button
                   onClick={() => handleDelete(s.user_id, s.role)}
                   style={{ color: "var(--text-dim)", padding: 4 }}

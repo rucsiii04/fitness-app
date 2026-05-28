@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   getMembershipTypesForAdmin,
   createMembershipType,
   updateMembershipType,
   issueMembership,
+  getGymMemberships,
 } from "../../api/memberships.js";
 import { searchClients } from "../../api/reception.js";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -33,6 +34,14 @@ const COLORS = [
   "var(--coral)",
   "#c79bff",
   "#ffd36e",
+];
+
+const MEMBER_COLUMNS = [
+  { key: "client",   label: "Client" },
+  { key: "plan",     label: "Plan" },
+  { key: "status",   label: "Status" },
+  { key: "end_date", label: "Valabil până la" },
+  { key: "payment",  label: "Plată" },
 ];
 
 function Toggle({ checked, onChange }) {
@@ -154,11 +163,44 @@ function PlanFormFields({ form, setForm }) {
   );
 }
 
+const STATUS_LABEL = {
+  active: "Activ",
+  paused: "Pauză",
+  expired: "Expirat",
+  cancelled: "Anulat",
+};
+const STATUS_TONE = {
+  active: "green",
+  paused: "accent",
+  expired: "muted",
+  cancelled: "coral",
+};
+const PAYMENT_LABEL = { cash: "Cash", card: "Card" };
+
+function formatDate(d) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("ro-RO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function AdminMemberships() {
   const { user } = useAuth();
   const toast = useToast();
+  const [tab, setTab] = useState("plans"); // 'plans' | 'members'
+
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // members tab
+  const [members, setMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersStatus, setMembersStatus] = useState("active,paused");
+  const [membersSearch, setMembersSearch] = useState("");
+  const [sortKey, setSortKey] = useState("end_date");
+  const [sortDir, setSortDir] = useState("asc");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -188,9 +230,24 @@ export default function AdminMemberships() {
       .finally(() => setLoading(false));
   };
 
+  const loadMembers = (status) => {
+    if (!gymId) return;
+    setMembersLoading(true);
+    getGymMemberships(gymId, status)
+      .then((r) => setMembers(r.data))
+      .catch(() => setMembers([]))
+      .finally(() => setMembersLoading(false));
+  };
+
   useEffect(() => {
     load();
   }, [gymId]);
+
+  useEffect(() => {
+    if (tab === "members" && gymId) {
+      loadMembers(membersStatus);
+    }
+  }, [tab, gymId, membersStatus]);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -285,13 +342,125 @@ export default function AdminMemberships() {
     }
   };
 
+  // filtered members for search
+  const filteredMembers = membersSearch.trim().length < 1
+    ? members
+    : members.filter((m) => {
+        const q = membersSearch.toLowerCase();
+        const name = `${m.User?.first_name ?? ""} ${m.User?.last_name ?? ""}`.toLowerCase();
+        const email = (m.User?.email ?? "").toLowerCase();
+        const plan = (m.Membership_Type?.name ?? "").toLowerCase();
+        return name.includes(q) || email.includes(q) || plan.includes(q);
+      });
+
+  const statusSortable = membersStatus === ""; // only in "Toți"
+
+  function handleSort(key) {
+    if (key === "status" && !statusSortable) return;
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  // reset status sort when leaving "Toți"
+  useEffect(() => {
+    if (sortKey === "status" && membersStatus !== "") {
+      setSortKey("end_date");
+      setSortDir("asc");
+    }
+  }, [membersStatus]);
+
+  const effectiveSortKey = sortKey === "status" && !statusSortable ? "end_date" : sortKey;
+
+  const sortedMembers = useMemo(() => {
+    const arr = [...filteredMembers];
+    arr.sort((a, b) => {
+      let aVal, bVal;
+      switch (effectiveSortKey) {
+        case "client":
+          aVal = `${a.User?.first_name ?? ""} ${a.User?.last_name ?? ""}`.toLowerCase();
+          bVal = `${b.User?.first_name ?? ""} ${b.User?.last_name ?? ""}`.toLowerCase();
+          break;
+        case "plan":
+          aVal = (a.Membership_Type?.name ?? "").toLowerCase();
+          bVal = (b.Membership_Type?.name ?? "").toLowerCase();
+          break;
+        case "status":
+          aVal = a.status ?? "";
+          bVal = b.status ?? "";
+          break;
+        case "end_date":
+          aVal = a.end_date ? new Date(a.end_date).getTime() : 0;
+          bVal = b.end_date ? new Date(b.end_date).getTime() : 0;
+          break;
+        case "payment":
+          aVal = a.payment_method ?? "";
+          bVal = b.payment_method ?? "";
+          break;
+        default:
+          return 0;
+      }
+      if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filteredMembers, effectiveSortKey, sortDir]);
+
+  const memberStatusTabs = [
+    { key: "active,paused", label: "Activi" },
+    { key: "expired", label: "Expirați" },
+    { key: "cancelled", label: "Anulați" },
+    { key: "", label: "Toți" },
+  ];
+
   return (
     <>
       <TopBar
         title="Abonamente"
-        eyebrow={`${plans.length} planuri · Gestionează niveluri`}
+        eyebrow={tab === "plans" ? `${plans.length} planuri disponibile` : `${members.length} abonamente`}
         actions={
           <div style={{ display: "flex", gap: 8 }}>
+            {/* Tab switcher */}
+            <div
+              style={{
+                display: "flex",
+                background: "var(--surface-2)",
+                border: "1px solid var(--border-strong)",
+                borderRadius: 10,
+                padding: 3,
+                gap: 2,
+              }}
+            >
+              {[
+                { key: "plans", label: "Planuri" },
+                { key: "members", label: "Membri" },
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    fontFamily: "var(--display)",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.04,
+                    background: tab === t.key ? "var(--accent)" : "transparent",
+                    color: tab === t.key ? "var(--accent-ink)" : "var(--text-muted)",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "background .15s, color .15s",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
             <ExportMenu gymId={gymId} />
             <Btn
               variant="outline"
@@ -300,13 +469,204 @@ export default function AdminMemberships() {
             >
               Emite
             </Btn>
-            <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
-              Plan nou
-            </Btn>
+            {tab === "plans" && (
+              <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
+                Plan nou
+              </Btn>
+            )}
           </div>
         }
       />
 
+      {/* ── MEMBERS TAB ── */}
+      {tab === "members" && (
+        <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Status filter + search */}
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              {memberStatusTabs.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setMembersStatus(t.key)}
+                  style={{
+                    padding: "7px 14px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    fontFamily: "var(--display)",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.06,
+                    background: membersStatus === t.key ? "var(--accent)" : "transparent",
+                    color: membersStatus === t.key ? "var(--accent-ink)" : "var(--text-muted)",
+                    border: `1px solid ${membersStatus === t.key ? "var(--accent)" : "var(--border-strong)"}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {/* Search box */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: "var(--surface-2)",
+                border: "1px solid var(--border-strong)",
+                borderRadius: 10,
+                padding: "0 12px",
+                height: 36,
+                flex: "0 0 220px",
+              }}
+            >
+              <I.search width={13} height={13} style={{ color: "var(--text-dim)", flexShrink: 0 }} />
+              <input
+                value={membersSearch}
+                onChange={(e) => setMembersSearch(e.target.value)}
+                placeholder="Caută client sau plan…"
+                style={{
+                  flex: 1,
+                  background: "none",
+                  border: "none",
+                  outline: "none",
+                  fontSize: 12,
+                  color: "var(--text)",
+                }}
+              />
+              {membersSearch && (
+                <button
+                  onClick={() => setMembersSearch("")}
+                  style={{ color: "var(--text-dim)", display: "flex", padding: 0 }}
+                >
+                  <I.close width={12} height={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Table */}
+          {membersLoading ? (
+            <div style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--mono)", fontSize: 12, padding: "40px 0" }}>
+              Se încarcă...
+            </div>
+          ) : filteredMembers.length === 0 ? (
+            <div style={{ padding: "64px 0", textAlign: "center" }}>
+              <I.users width={32} height={32} style={{ opacity: 0.2, marginBottom: 12 }} />
+              <div className="display upper" style={{ fontSize: 14, color: "var(--text-muted)" }}>
+                Niciun abonament găsit
+              </div>
+            </div>
+          ) : (
+            <div className="card" style={{ overflow: "hidden", padding: 0 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid var(--border-soft)" }}>
+                    {MEMBER_COLUMNS.map((col) => {
+                      const disabled = col.key === "status" && !statusSortable;
+                      const active = !disabled && effectiveSortKey === col.key;
+                      return (
+                        <th
+                          key={col.key}
+                          onClick={() => handleSort(col.key)}
+                          style={{
+                            padding: "12px 16px",
+                            textAlign: "left",
+                            fontSize: 9,
+                            fontFamily: "var(--display)",
+                            textTransform: "uppercase",
+                            letterSpacing: 0.08,
+                            color: active ? "var(--accent)" : "var(--text-dim)",
+                            fontWeight: 700,
+                            background: "var(--surface)",
+                            cursor: disabled ? "default" : "pointer",
+                            userSelect: "none",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            {col.label}
+                            {!disabled && (
+                              <I.arrowUp
+                                width={10}
+                                height={10}
+                                style={{
+                                  opacity: active ? 1 : 0.25,
+                                  transform: active && sortDir === "desc" ? "rotate(180deg)" : "rotate(0deg)",
+                                  transition: "transform .15s, opacity .15s",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )}
+                          </span>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedMembers.map((m, idx) => {
+                    const client = m.User || {};
+                    const plan = m.Membership_Type || {};
+                    const name = `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim() || "—";
+                    return (
+                      <tr
+                        key={m.membership_id}
+                        style={{
+                          borderBottom: idx < sortedMembers.length - 1 ? "1px solid var(--border-soft)" : "none",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        {/* Client */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <Avatar name={name} size={32} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
+                              <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)" }}>
+                                {client.email ?? "—"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        {/* Plan */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{plan.name ?? "—"}</div>
+                          <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)" }}>
+                            RON {plan.price ?? "—"} · {plan.duration_days ?? "—"}z
+                          </div>
+                        </td>
+                        {/* Status */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <Pill tone={STATUS_TONE[m.status] ?? "muted"}>
+                            {STATUS_LABEL[m.status] ?? m.status}
+                          </Pill>
+                        </td>
+                        {/* End date */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <div className="mono" style={{ fontSize: 12, color: m.status === "expired" || m.status === "cancelled" ? "var(--text-dim)" : "var(--text)" }}>
+                            {formatDate(m.end_date)}
+                          </div>
+                        </td>
+                        {/* Payment */}
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                            {PAYMENT_LABEL[m.payment_method] ?? m.payment_method ?? "—"}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PLANS TAB ── */}
+      {tab === "plans" && (
       <div
         style={{
           padding: 32,
@@ -513,6 +873,7 @@ export default function AdminMemberships() {
           </div>
         )}
       </div>
+      )}
 
       {/* Create / Edit plan modal */}
       <Modal

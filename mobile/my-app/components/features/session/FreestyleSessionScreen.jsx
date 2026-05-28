@@ -18,6 +18,7 @@ import { useActiveSession } from "@/context/ActiveSessionContext";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { AddExerciseSheet } from "@/components/features/workouts/AddExerciseSheet";
 import { SetTable } from "./SetTable";
+import { RestTimer } from "./RestTimer";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
@@ -38,7 +39,7 @@ function formatTime(totalSeconds) {
 export default function FreestyleSessionScreen({ sessionId }) {
   const fontsLoaded = useAppFonts();
   const { token } = useAuth();
-  const { activeSession, setActiveSession } = useActiveSession();
+  const { activeSession, setActiveSession, refresh } = useActiveSession();
   const router = useRouter();
 
   const [exercises, setExercises] = useState([]);
@@ -60,6 +61,8 @@ export default function FreestyleSessionScreen({ sessionId }) {
   }, [activeSession?.started_at]);
 
   const [showAddExercise, setShowAddExercise] = useState(false);
+  const [showRest, setShowRest] = useState(false);
+  const [restKey, setRestKey] = useState(0);
 
   // Restore exercises + completed sets from logged data
   useEffect(() => {
@@ -203,6 +206,9 @@ export default function FreestyleSessionScreen({ sessionId }) {
       }
       return updated;
     });
+
+    setShowRest(true);
+    setRestKey((k) => k + 1);
   };
 
   const handleAddSet = (exIndex) => {
@@ -215,12 +221,24 @@ export default function FreestyleSessionScreen({ sessionId }) {
 
   const finishSession = async () => {
     if (sessionId) {
-      await fetch(`${API_BASE}/workout-sessions/${sessionId}/finish`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(console.error);
+      try {
+        const res = await fetch(`${API_BASE}/workout-sessions/${sessionId}/finish`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok) {
+          console.error("Failed to finish session:", res.status);
+        }
+      } catch (err) {
+        console.error("Network error finishing session:", err);
+      }
     }
-    setActiveSession(null);
+    // Re-fetch from DB so the banner reflects the real state, regardless of
+    // whether the finish call succeeded or failed.
+    await refresh();
     router.back();
   };
 
@@ -263,16 +281,6 @@ export default function FreestyleSessionScreen({ sessionId }) {
         <View style={styles.timerSection}>
           <Text style={styles.timerLabel}>CURRENT SESSION</Text>
           <Text style={styles.timerValue}>{formatTime(elapsed)}</Text>
-          <View style={styles.timerMeta}>
-            <View style={styles.timerMetaItem}>
-              <Ionicons name="flame" size={12} color={Colors.onSurfaceVariant} />
-              <Text style={styles.timerMetaText}>— KCAL</Text>
-            </View>
-            <View style={[styles.timerMetaItem, { marginLeft: 20 }]}>
-              <Ionicons name="heart" size={12} color={Colors.secondary} />
-              <Text style={[styles.timerMetaText, { color: Colors.secondary }]}>— BPM</Text>
-            </View>
-          </View>
         </View>
 
         <ScrollView
@@ -349,6 +357,14 @@ export default function FreestyleSessionScreen({ sessionId }) {
           onClose={() => setShowAddExercise(false)}
           onConfirm={handleAddExercises}
         />
+
+        {showRest && (
+          <RestTimer
+            key={restKey}
+            onSkip={() => setShowRest(false)}
+            onFinish={() => setShowRest(false)}
+          />
+        )}
       </SafeAreaView>
     </ScreenBackground>
   );
@@ -402,24 +418,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     letterSpacing: -2,
   },
-  timerMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
-  },
-  timerMetaItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  timerMetaText: {
-    fontSize: 11,
-    fontWeight: "700",
-    fontFamily: Fonts.label,
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 1,
-  },
-
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,

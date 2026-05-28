@@ -78,9 +78,9 @@ function ClientMiniCard({ client, lastSession }) {
           </View>
         ) : null}
       </View>
-      {lastSessionText ? (
-        <Text style={styles.clientLastSession}>{lastSessionText}</Text>
-      ) : null}
+      <Text style={styles.clientLastSession}>
+        {lastSessionText ?? "—"}
+      </Text>
     </View>
   );
 }
@@ -191,53 +191,25 @@ export default function TrainerHomeScreen() {
           </View>
 
           <View style={styles.heroRow}>
-            <View style={styles.heroMainCard}>
+            <View style={styles.heroCard}>
               <View style={styles.liveIndicator}>
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
-              <Text style={styles.heroValue}>
-                {stats ? activeClients : "—"}
-              </Text>
+              <Text style={styles.heroValue}>{stats ? activeClients : "—"}</Text>
               <Text style={styles.heroLabel}>
                 {stats ? pluralClients(activeClients) : "Clienți Activi"}
               </Text>
             </View>
-            <View style={styles.heroSideCol}>
-              <View
-                style={[
-                  styles.heroSmallCard,
-                  { backgroundColor: Colors.error + "18" },
-                ]}
-              >
-                <Ionicons name="mail-outline" size={18} color={Colors.error} />
-                <Text style={[styles.heroSmallValue, { color: Colors.error }]}>
-                  {stats ? pendingRequests : "—"}
-                </Text>
-                <Text style={styles.heroSmallLabel}>
-                  {stats ? pluralRequests(pendingRequests) : "Cereri"}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.heroSmallCard,
-                  { backgroundColor: Colors.secondary + "18" },
-                ]}
-              >
-                <Ionicons
-                  name="calendar-outline"
-                  size={18}
-                  color={Colors.secondary}
-                />
-                <Text
-                  style={[styles.heroSmallValue, { color: Colors.secondary }]}
-                >
-                  {stats ? classesToday : "—"}
-                </Text>
-                <Text style={styles.heroSmallLabel}>
-                  {stats ? pluralClasses(classesToday) : "Cursuri Azi"}
-                </Text>
-              </View>
+            <View style={[styles.heroCard, { backgroundColor: Colors.error + "18", borderColor: Colors.error + "30" }]}>
+              <Ionicons name="mail-outline" size={18} color={Colors.error} style={{ marginBottom: 6 }} />
+              <Text style={[styles.heroValue, { color: Colors.error }]}>{stats ? pendingRequests : "—"}</Text>
+              <Text style={styles.heroLabel}>{stats ? pluralRequests(pendingRequests) : "Cereri"}</Text>
+            </View>
+            <View style={[styles.heroCard, { backgroundColor: Colors.secondary + "18", borderColor: Colors.secondary + "30" }]}>
+              <Ionicons name="calendar-outline" size={18} color={Colors.secondary} style={{ marginBottom: 6 }} />
+              <Text style={[styles.heroValue, { color: Colors.secondary }]}>{stats ? classesToday : "—"}</Text>
+              <Text style={styles.heroLabel}>{stats ? pluralClasses(classesToday) : "Cursuri Azi"}</Text>
             </View>
           </View>
 
@@ -252,7 +224,10 @@ export default function TrainerHomeScreen() {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Clienții Mei</Text>
+            <View style={styles.clientTableHeader}>
+              <Text style={styles.cardTitle}>Clienții Mei</Text>
+              <Text style={styles.clientColLabel}>Ultima sesiune</Text>
+            </View>
             {clients.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons
@@ -328,68 +303,47 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   greetingName: { color: Colors.primary, fontFamily: Fonts.headline },
-  heroRow: { flexDirection: "row", gap: 12 },
-  heroMainCard: {
-    flex: 2,
+  heroRow: { flexDirection: "row", gap: 10 },
+  heroCard: {
+    flex: 1,
     backgroundColor: Colors.surfaceContainerHigh,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     justifyContent: "flex-end",
-    minHeight: 140,
   },
   liveIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginBottom: 12,
+    gap: 5,
+    marginBottom: 6,
   },
   liveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.primary,
   },
   liveText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
     letterSpacing: 2,
     color: Colors.primary,
     fontFamily: Fonts.label,
   },
   heroValue: {
-    fontSize: 48,
+    fontSize: 28,
     fontWeight: "700",
     fontFamily: Fonts.headline,
     color: Colors.textPrimary,
-    lineHeight: 52,
+    lineHeight: 32,
   },
   heroLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: Colors.onSurfaceVariant,
     fontFamily: Fonts.body,
     marginTop: 2,
-  },
-  heroSideCol: { flex: 1, gap: 12 },
-  heroSmallCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.borderSubtle,
-    justifyContent: "center",
-    gap: 4,
-  },
-  heroSmallValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    fontFamily: Fonts.headline,
-  },
-  heroSmallLabel: {
-    fontSize: 11,
-    color: Colors.onSurfaceVariant,
-    fontFamily: Fonts.body,
   },
   card: {
     backgroundColor: Colors.surfaceContainerHigh,
@@ -485,6 +439,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   goalText: { fontSize: 10, fontFamily: Fonts.label, fontWeight: "700" },
+  clientTableHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  clientColLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    opacity: 0.6,
+  },
   clientLastSession: {
     fontSize: 11,
     color: Colors.textMuted,

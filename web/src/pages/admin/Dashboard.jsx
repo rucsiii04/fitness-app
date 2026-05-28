@@ -67,16 +67,16 @@ function KPICard({ label, value, total, delta, data, tone = "neutral" }) {
   );
 }
 
-function KV({ label, value, tone }) {
+function KV({ label, value, tone, small }) {
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <div className="eyebrow" style={{ fontSize: 10 }}>
+      <div className="eyebrow" style={{ fontSize: 9 }}>
         {label}
       </div>
       <div
         className="display"
         style={{
-          fontSize: 20,
+          fontSize: small ? 15 : 18,
           color:
             tone === "accent"
               ? "var(--accent)"
@@ -136,7 +136,30 @@ export default function AdminDashboard() {
   const hourly = attendance?.hourly || Array(24).fill(0);
   const peakHour = hourly.indexOf(Math.max(...hourly));
   const monthly = revenue?.monthly || Array(6).fill(0);
+  const daily = attendance?.daily || Array(7).fill(0);
+  const DAY_SHORT = ["Lun", "Mar", "Mie", "Joi", "Vin", "Sâm", "Dum"];
+  const DAY_FULL = [
+    "Luni",
+    "Marți",
+    "Miercuri",
+    "Joi",
+    "Vineri",
+    "Sâmbătă",
+    "Duminică",
+  ];
+  const liveCount = attendance?.liveCount ?? 0;
+  const avgPerDay = attendance?.avgPerDay ?? 0;
+  const peakDayIdx = daily.some(Boolean)
+    ? daily.indexOf(Math.max(...daily))
+    : -1;
   const mrr = revenue?.mrr ?? 0;
+
+  const MONTHS_RO = ["Ian","Feb","Mar","Apr","Mai","Iun","Iul","Aug","Sep","Oct","Nov","Dec"];
+  const now = new Date();
+  const monthLabels = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+    return MONTHS_RO[d.getMonth()];
+  });
 
   return (
     <div
@@ -243,45 +266,104 @@ export default function AdminDashboard() {
       </div>
 
       <div
-        style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: "0.55fr 1fr 1fr",
+          gap: 20,
+        }}
       >
-        <Panel title="Check-in-uri · Azi pe oră" eyebrow="Trafic maxim">
-          <div style={{ padding: "12px 0 4px" }}>
+        <Panel
+          title="Check-in-uri azi"
+          eyebrow="De la deschidere până acum"
+          style={{ padding: 16, display: "flex", flexDirection: "column" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "space-evenly",
+              flex: 1,
+              paddingBottom: 10,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                className="pulse-dot"
+                style={{
+                  display: "inline-block",
+                  width: 7,
+                  height: 7,
+                  borderRadius: 4,
+                  background: "var(--accent)",
+                }}
+              />
+              <span className="eyebrow" style={{ fontSize: 9 }}>
+                clienți intrați azi
+              </span>
+            </div>
+            <div
+              className="display"
+              style={{
+                fontSize: 44,
+                lineHeight: 1,
+                color: (attendance?.today ?? 0) > 0 ? "var(--accent)" : "var(--text-dim)",
+              }}
+            >
+              {attendance?.today ?? 0}
+            </div>
+          </div>
+          <div
+            style={{
+              paddingTop: 10,
+              borderTop: "1px solid var(--border-soft)",
+              display: "flex",
+              justifyContent: "space-between",
+            }}
+          >
+            <KV label="Medie / zi" value={avgPerDay} small />
+            <KV label="Săptămâna" value={attendance?.thisWeek ?? 0} tone="accent" small />
+          </div>
+        </Panel>
+
+        <Panel title="Flux pe zile" eyebrow="Săptămâna curentă" style={{ padding: 16 }}>
+          <div style={{ padding: "8px 0 4px" }}>
             <BarChart
-              data={hourly}
-              labels={hourly.map((_, i) => (i % 3 === 0 ? String(i) : ""))}
-              height={180}
-              benchmark={Math.max(...hourly) * 0.7 || 1}
+              data={daily}
+              labels={DAY_SHORT}
+              height={140}
+              benchmark={avgPerDay || 1}
             />
           </div>
           <div
             style={{
               display: "flex",
-              gap: 24,
+              gap: 20,
               paddingTop: 14,
               borderTop: "1px solid var(--border-soft)",
             }}
           >
-            <KV label="Azi" value={attendance?.today ?? 0} />
             <KV
-              label="Ora de vârf"
-              value={
-                hourly.some(Boolean)
-                  ? `${String(peakHour).padStart(2, "0")}:00`
-                  : "—"
-              }
-            />
-            <KV
-              label="Săptămâna aceasta"
-              value={attendance?.thisWeek ?? 0}
+              label="Cea mai aglomerată"
+              value={peakDayIdx >= 0 ? DAY_FULL[peakDayIdx] : "—"}
               tone="accent"
             />
+            <KV
+              label={
+                peakDayIdx >= 0
+                  ? `Check-in-uri ${DAY_FULL[peakDayIdx]}`
+                  : "Vârf"
+              }
+              value={peakDayIdx >= 0 ? daily[peakDayIdx] : "—"}
+            />
+            <KV label="Medie / zi" value={avgPerDay} />
           </div>
         </Panel>
 
         <Panel
           title="Venituri"
           eyebrow="Ultimele 6 luni"
+          style={{ padding: 16 }}
           action={
             <Btn
               variant="ghost"
@@ -313,48 +395,24 @@ export default function AdminDashboard() {
             data={monthly.length ? monthly : [0]}
             width={340}
             height={80}
+            labels={monthLabels}
+            formatValue={(v) => `RON ${v.toLocaleString()}`}
           />
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
+              padding: 10,
+              background: "var(--surface-2)",
+              borderRadius: 8,
               marginTop: 14,
+              display: "inline-flex",
+              flexDirection: "column",
             }}
           >
-            <div
-              style={{
-                padding: 10,
-                background: "var(--surface-2)",
-                borderRadius: 8,
-              }}
-            >
-              <div className="eyebrow" style={{ fontSize: 10 }}>
-                Venit lunar est.
-              </div>
-              <div
-                className="display"
-                style={{ fontSize: 18, color: "var(--accent)" }}
-              >
-                RON {mrr.toLocaleString()}
-              </div>
+            <div className="eyebrow" style={{ fontSize: 10 }}>
+              Membri activi
             </div>
-            <div
-              style={{
-                padding: 10,
-                background: "var(--surface-2)",
-                borderRadius: 8,
-              }}
-            >
-              <div className="eyebrow" style={{ fontSize: 10 }}>
-                Membri activi
-              </div>
-              <div
-                className="display"
-                style={{ fontSize: 18, color: "var(--teal)" }}
-              >
-                {revenue?.activeMemberships ?? 0}
-              </div>
+            <div className="display" style={{ fontSize: 18, color: "var(--teal)" }}>
+              {revenue?.activeMemberships ?? 0}
             </div>
           </div>
         </Panel>

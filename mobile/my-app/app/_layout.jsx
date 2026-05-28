@@ -27,7 +27,7 @@ function RootNavigator() {
 
     if (!token) {
       if (!inAuthGroup && !inSplash && !isResetPassword) {
-        router.replace("/");
+        router.replace("/(auth)/login");
       }
       return;
     }
@@ -80,13 +80,13 @@ function RootNavigator() {
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
-      {token && <Stack.Screen name="(tabs)" />}
-      {token && <Stack.Screen name="(trainer)" />}
-      {token && <Stack.Screen name="session" />}
-      {token && <Stack.Screen name="workout" />}
-      {token && <Stack.Screen name="coach" />}
-      {token && <Stack.Screen name="membership" />}
-      {token && <Stack.Screen name="class-session" />}
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(trainer)" />
+      <Stack.Screen name="session" />
+      <Stack.Screen name="workout" />
+      <Stack.Screen name="coach" />
+      <Stack.Screen name="membership" />
+      <Stack.Screen name="class-session" />
     </Stack>
   );
 }

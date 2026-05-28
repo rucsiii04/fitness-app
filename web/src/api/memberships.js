@@ -18,6 +18,9 @@ export const issueMembership = (data) =>
 export const cancelMembership = (membershipId) =>
   api.delete(`/memberships/${membershipId}`);
 
+export const getGymMemberships = (gymId, status) =>
+  api.get(`/memberships/gyms/${gymId}/list${status ? `?status=${status}` : ""}`);
+
 export const pauseGymMemberships = (gymId, data) =>
   api.post(`/memberships/gyms/${gymId}/pause-memberships`, data);
 
