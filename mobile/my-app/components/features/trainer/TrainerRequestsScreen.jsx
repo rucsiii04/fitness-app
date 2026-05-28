@@ -145,7 +145,7 @@ export default function TrainerRequestsScreen() {
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.title}>Cereri</Text>
           {requests.length > 0 && (
@@ -317,5 +317,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 32,
   },
-  bottomPadding: { height: 110 },
+  bottomPadding: { height: 20 },
 });

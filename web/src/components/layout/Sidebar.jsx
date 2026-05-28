@@ -8,7 +8,7 @@ const ADMIN_NAV = [
   { path: "/admin/dashboard", label: "Dashboard", icon: I.dash },
   { path: "/admin/classes", label: "Classes", icon: I.calendar },
   { path: "/admin/staff", label: "Staff", icon: I.users },
-  { path: "/admin/memberships", label: "Memberships", icon: I.card },
+  { path: "/admin/memberships", label: "Abonamente", icon: I.card },
   { path: "/admin/attendance", label: "Attendance", icon: I.qr },
   { path: "/admin/settings", label: "Gym Settings", icon: I.building },
 ];

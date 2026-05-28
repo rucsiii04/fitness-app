@@ -59,7 +59,13 @@ export function ClassCard({
   const isOver = now > endTime;
   const isOngoing = now >= startTime && now <= endTime;
 
-  const spotsColor = spotsLeft <= 3 ? Colors.error : Colors.primary;
+  const fillRatio = (session.confirmed_count ?? 0) / Math.max(1, session.max_participants);
+  const canInteract = membershipStatus === "ok" || isEnrolled || isWaiting;
+  const spotsColor = !canInteract
+    ? Colors.onSurfaceVariant
+    : isFull || fillRatio >= 0.7
+      ? Colors.error
+      : Colors.primary;
 
   return (
     <View
@@ -113,7 +119,7 @@ export function ClassCard({
         </View>
         {!isCancelled && (
           <Text style={[styles.spotsText, { color: spotsColor }]}>
-            {isFull ? "FULL" : `${spotsLeft}/${session.max_participants}`}
+            {isFull ? "FULL" : `${session.confirmed_count ?? 0}/${session.max_participants}`}
           </Text>
         )}
       </View>
@@ -227,16 +233,19 @@ export function ClassCard({
               activeOpacity={0.85}
             >
               {busy ? (
-                <ActivityIndicator size="small" color={Colors.background} />
+                <ActivityIndicator
+                  size="small"
+                  color={isFull ? Colors.onSurfaceVariant : Colors.background}
+                />
               ) : (
                 <>
-                  <Text style={styles.enrollBtnText}>
+                  <Text style={[styles.enrollBtnText, isFull && styles.enrollBtnTextWaiting]}>
                     {isFull ? "Listă de așteptare" : "Înscrie-te"}
                   </Text>
                   <Ionicons
                     name={isFull ? "hourglass-outline" : "arrow-forward"}
                     size={14}
-                    color={Colors.background}
+                    color={isFull ? Colors.onSurfaceVariant : Colors.background}
                   />
                 </>
               )}
@@ -340,6 +349,9 @@ const styles = StyleSheet.create({
     color: Colors.background,
     letterSpacing: 1,
     textTransform: "uppercase",
+  },
+  enrollBtnTextWaiting: {
+    color: Colors.onSurfaceVariant,
   },
   enrolledRow: {
     flexDirection: "row",

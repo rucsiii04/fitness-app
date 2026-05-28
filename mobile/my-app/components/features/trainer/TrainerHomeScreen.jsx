@@ -150,7 +150,7 @@ export default function TrainerHomeScreen() {
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.logoText}>KINETIC</Text>
           <View style={styles.headerActions}>
@@ -468,5 +468,5 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   viewAllText: { fontSize: 13, color: Colors.primary, fontFamily: Fonts.label },
-  bottomPadding: { height: 110 },
+  bottomPadding: { height: 20 },
 });

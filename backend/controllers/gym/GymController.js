@@ -65,6 +65,23 @@ export const controller = {
     }
   },
 
+  getInfo: async (req, res) => {
+    try {
+      const gym = await Gym.findByPk(req.params.gymId, {
+        attributes: ["gym_id", "name", "opening_time", "closing_time"],
+      });
+      if (!gym) return res.status(404).json({ message: "Gym not found" });
+      return res.json({
+        gym_id: gym.gym_id,
+        name: gym.name,
+        opening_time: gym.opening_time.slice(0, 5),
+        closing_time: gym.closing_time.slice(0, 5),
+      });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  },
+
   setAlert: async (req, res) => {
     try {
       const { gymId } = req.params;

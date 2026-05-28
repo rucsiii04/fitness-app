@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import { User, Reset_Token, Gym, Gym_Attendance, Membership, Membership_Type } from "../../models/index.js";
+import { User, Reset_Token, Gym, Gym_Attendance, Membership, Membership_Type, Class_Enrollment, Class_Session, Class_Type } from "../../models/index.js";
 import { transporter } from "../../config/mail.js";
 import { Op, fn, col, literal } from "sequelize";
 import { sourceMapsEnabled } from "process";
@@ -597,6 +597,80 @@ export const controller = {
       });
     } catch (err) {
       return res.status(500).json({ message: "Error fetching revenue stats: " + err });
+    }
+  },
+
+  getClientNoShows: async (req, res) => {
+    try {
+      const { clientId } = req.params;
+      const gymId = req.user.gym_id;
+      if (!gymId) return res.status(403).json({ message: "Not associated with a gym" });
+
+      // Sync expired sessions first — same step the enrollment check runs
+      const { syncExpiredNoShows } = await import("../../utils/syncNoShow.js");
+      await syncExpiredNoShows();
+
+      const noShows = await Class_Enrollment.findAll({
+        where: { client_id: clientId, status: "no_show" },
+        include: [
+          {
+            model: Class_Session,
+            required: true,
+            where: { gym_id: gymId },
+            include: [{ model: Class_Type, attributes: ["name"] }],
+            attributes: ["session_id", "start_datetime"],
+          },
+        ],
+        order: [[Class_Session, "start_datetime", "DESC"]],
+      });
+
+      return res.json({
+        count: noShows.length,
+        blocked: noShows.length >= 3,
+        no_shows: noShows.map((e) => ({
+          enrollment_id: e.enrollment_id,
+          class_name: e.Class_Session?.Class_Type?.name ?? "Clasă",
+          start_datetime: e.Class_Session?.start_datetime,
+        })),
+      });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  },
+
+  clearClientNoShows: async (req, res) => {
+    try {
+      const { clientId } = req.params;
+      const gymId = req.user.gym_id;
+      if (!gymId) return res.status(403).json({ message: "Not associated with a gym" });
+
+      // Find only this gym's no-shows
+      const noShows = await Class_Enrollment.findAll({
+        where: { client_id: clientId, status: "no_show" },
+        include: [
+          {
+            model: Class_Session,
+            required: true,
+            where: { gym_id: gymId },
+            attributes: ["session_id"],
+          },
+        ],
+        attributes: ["enrollment_id"],
+      });
+
+      if (!noShows.length) {
+        return res.json({ message: "No no-shows to clear", cleared: 0 });
+      }
+
+      // Soft-cancel: keeps the record in history but removes it from the block count
+      await Class_Enrollment.update(
+        { status: "cancelled" },
+        { where: { enrollment_id: { [Op.in]: noShows.map((e) => e.enrollment_id) } } },
+      );
+
+      return res.json({ message: "No-shows cleared", cleared: noShows.length });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
     }
   },
 };

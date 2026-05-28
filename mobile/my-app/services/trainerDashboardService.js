@@ -117,12 +117,23 @@ export async function deleteWorkout(workoutId, token) {
   if (!res.ok) throw new Error("Failed to delete workout");
 }
 
+export async function fetchGymInfo(gymId, token) {
+  const res = await fetch(`${API_BASE}/gyms/${gymId}/info`, {
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw new Error("Failed to load gym info");
+  return res.json();
+}
+
 export async function fetchGymSessions(gymId, token) {
   const res = await fetch(`${API_BASE}/classes/gyms/${gymId}/class-sessions`, {
     headers: authHeaders(token),
   });
   if (!res.ok) throw new Error("Failed to load sessions");
-  return res.json();
+  const data = await res.json();
+  // Handle both old array format and new { sessions, gym_hours } format
+  if (Array.isArray(data)) return { sessions: data, gym_hours: null };
+  return data;
 }
 
 export async function fetchGymClassTypes(gymId, token) {
@@ -141,6 +152,14 @@ export async function createGymClassSession(data, token) {
   });
   const body = await res.json();
   if (!res.ok) throw new Error(body.message ?? "Failed to create session");
+  return body;
+}
+
+export async function cancelClassSession(sessionId, token, notify = false) {
+  const url = `${API_BASE}/classes/class-sessions/${sessionId}/cancel${notify ? "?notify=1" : ""}`;
+  const res = await fetch(url, { method: "PATCH", headers: authHeaders(token) });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.message ?? "Failed to cancel session");
   return body;
 }
 

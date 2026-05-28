@@ -7,7 +7,7 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
-  Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +18,140 @@ import { useAuth } from "@/context/AuthContext";
 import {
   fetchSessionEnrollments,
   markAttendance,
+  cancelClassSession,
 } from "@/services/trainerDashboardService";
+
+function ConfirmModal({ visible, title, message, buttons, onClose }) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <TouchableOpacity
+        style={cm.overlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity style={cm.card} activeOpacity={1} onPress={() => {}}>
+          <View style={cm.handle} />
+          <Text style={cm.title}>{title}</Text>
+          {message ? <Text style={cm.message}>{message}</Text> : null}
+          <View style={cm.btnCol}>
+            {buttons.map((btn, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  cm.btn,
+                  btn.variant === "destructive" && cm.btnDestructive,
+                  btn.variant === "primary" && cm.btnPrimary,
+                  btn.variant === "cancel" && cm.btnCancel,
+                ]}
+                onPress={btn.onPress}
+                activeOpacity={0.8}
+                disabled={btn.disabled}
+              >
+                {btn.loading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={btn.variant === "cancel" ? Colors.onSurfaceVariant : Colors.background}
+                  />
+                ) : (
+                  <Text
+                    style={[
+                      cm.btnText,
+                      btn.variant === "destructive" && cm.btnTextDestructive,
+                      btn.variant === "primary" && cm.btnTextPrimary,
+                      btn.variant === "cancel" && cm.btnTextCancel,
+                    ]}
+                  >
+                    {btn.label}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const cm = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  card: {
+    width: "100%",
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: 24,
+    gap: 16,
+  },
+  handle: {
+    width: 32,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: Colors.outlineVariant,
+    alignSelf: "center",
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
+    textAlign: "center",
+  },
+  message: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  btnCol: { gap: 8, marginTop: 4 },
+  btn: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceContainerHigh,
+  },
+  btnDestructive: {
+    backgroundColor: Colors.error,
+    borderColor: Colors.error,
+  },
+  btnPrimary: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  btnCancel: {
+    backgroundColor: "transparent",
+    borderColor: Colors.borderSubtle,
+  },
+  btnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.textPrimary,
+    letterSpacing: 0.3,
+  },
+  btnTextDestructive: { color: Colors.background },
+  btnTextPrimary: { color: Colors.background },
+  btnTextCancel: { color: Colors.onSurfaceVariant },
+});
 
 function fmtTime(d) {
   const dt = new Date(d);
@@ -78,6 +211,7 @@ export default function ClassSessionScreen({
   sessionName,
   startDatetime,
   endDatetime,
+  initialStatus,
 }) {
   const router = useRouter();
   const { token } = useAuth();
@@ -86,6 +220,11 @@ export default function ClassSessionScreen({
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState({});
   const [now, setNow] = useState(() => new Date());
+  const [cancelled, setCancelled] = useState(initialStatus === "cancelled");
+  const [cancelling, setCancelling] = useState(false);
+  const [modal, setModal] = useState({ visible: false, title: "", message: "", buttons: [] });
+
+  const closeModal = () => setModal((m) => ({ ...m, visible: false }));
 
   useEffect(() => {
     if (!token || !sessionId) return;
@@ -116,9 +255,99 @@ export default function ClassSessionScreen({
           e.enrollment_id === enrollmentId ? { ...e, status: prevStatus } : e,
         ),
       );
-      Alert.alert("Eroare", err.message || "Nu s-a putut marca prezența.");
+      setModal({
+        visible: true,
+        title: "Eroare",
+        message: err.message || "Nu s-a putut marca prezența.",
+        buttons: [{ label: "OK", variant: "cancel", onPress: closeModal }],
+      });
     } finally {
       setMarking((m) => ({ ...m, [enrollmentId]: false }));
+    }
+  };
+
+  const isUpcoming = new Date(startDatetime) > now;
+
+  const handleCancel = () => {
+    const hasEnrolled = enrollments.some((e) =>
+      ["confirmed", "waiting_list"].includes(e.status),
+    );
+
+    const doCancel = async (notify) => {
+      closeModal();
+      setCancelling(true);
+      try {
+        const result = await cancelClassSession(sessionId, token, notify);
+        setCancelled(true);
+        const extra =
+          notify && result.notified > 0
+            ? `\n\nUn e-mail a fost trimis către ${result.notified} participant${result.notified !== 1 ? "ți" : ""}.`
+            : "";
+        setModal({
+          visible: true,
+          title: "Sesiune anulată",
+          message: `Sesiunea a fost anulată cu succes.${extra}`,
+          buttons: [
+            {
+              label: "OK",
+              variant: "primary",
+              onPress: () => { closeModal(); router.back(); },
+            },
+          ],
+        });
+      } catch (err) {
+        setModal({
+          visible: true,
+          title: "Eroare",
+          message: err.message || "Nu s-a putut anula sesiunea.",
+          buttons: [{ label: "OK", variant: "cancel", onPress: closeModal }],
+        });
+      } finally {
+        setCancelling(false);
+      }
+    };
+
+    if (hasEnrolled) {
+      setModal({
+        visible: true,
+        title: "Anulează sesiunea",
+        message: "Vrei să trimiți un e-mail de notificare participanților înscriși?",
+        buttons: [
+          {
+            label: "Notifică și anulează",
+            variant: "destructive",
+            onPress: () => doCancel(true),
+          },
+          {
+            label: "Anulează fără notificare",
+            variant: "primary",
+            onPress: () => doCancel(false),
+          },
+          {
+            label: "Înapoi",
+            variant: "cancel",
+            onPress: closeModal,
+          },
+        ],
+      });
+    } else {
+      setModal({
+        visible: true,
+        title: "Anulează sesiunea",
+        message: "Ești sigur că vrei să anulezi această sesiune?",
+        buttons: [
+          {
+            label: "Da, anulează",
+            variant: "destructive",
+            onPress: () => doCancel(false),
+          },
+          {
+            label: "Înapoi",
+            variant: "cancel",
+            onPress: closeModal,
+          },
+        ],
+      });
     }
   };
 
@@ -147,7 +376,22 @@ export default function ClassSessionScreen({
           <Text style={s.headerTitle} numberOfLines={1}>
             {sessionName}
           </Text>
-          <View style={{ width: 38 }} />
+          {isUpcoming && !cancelled ? (
+            <TouchableOpacity
+              onPress={handleCancel}
+              disabled={cancelling}
+              hitSlop={8}
+              style={s.cancelHeaderBtn}
+            >
+              {cancelling ? (
+                <ActivityIndicator size="small" color={Colors.error} />
+              ) : (
+                <Ionicons name="trash-outline" size={20} color={Colors.error} />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 38 }} />
+          )}
         </View>
 
         <ScrollView
@@ -362,6 +606,14 @@ export default function ClassSessionScreen({
           )}
         </ScrollView>
       </SafeAreaView>
+
+      <ConfirmModal
+        visible={modal.visible}
+        title={modal.title}
+        message={modal.message}
+        buttons={modal.buttons}
+        onClose={closeModal}
+      />
     </ScreenBackground>
   );
 }
@@ -377,6 +629,7 @@ const s = StyleSheet.create({
     borderBottomColor: Colors.borderSubtle,
   },
   backBtn: { width: 38, alignItems: "flex-start" },
+  cancelHeaderBtn: { width: 38, alignItems: "flex-end" },
   headerTitle: {
     flex: 1,
     textAlign: "center",

@@ -221,7 +221,7 @@ export default function TrainerClientsScreen() {
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.title}>Clienții Mei</Text>
           <View style={styles.countBadge}>
@@ -436,5 +436,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     paddingHorizontal: 32,
   },
-  bottomPadding: { height: 110 },
+  bottomPadding: { height: 20 },
 });

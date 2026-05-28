@@ -9,7 +9,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Modal,
   ActivityIndicator,
   Image,
 } from "react-native";
@@ -21,6 +21,117 @@ import { useAppFonts } from "@/hooks/useAppFonts";
 import { ScreenBackground } from "@/components/ui/ScreenBackground";
 import { useAuth } from "@/context/AuthContext";
 import { fetchTrainerProfile, updateTrainerProfile } from "@/services/trainerDashboardService";
+
+function ConfirmModal({ visible, title, message, buttons, onClose }) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <TouchableOpacity style={cm.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity style={cm.card} activeOpacity={1} onPress={() => {}}>
+          <View style={cm.handle} />
+          <Text style={cm.title}>{title}</Text>
+          {message ? <Text style={cm.message}>{message}</Text> : null}
+          <View style={cm.btnCol}>
+            {buttons.map((btn, i) => (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  cm.btn,
+                  btn.variant === "destructive" && cm.btnDestructive,
+                  btn.variant === "primary" && cm.btnPrimary,
+                  btn.variant === "cancel" && cm.btnCancel,
+                ]}
+                onPress={btn.onPress}
+                activeOpacity={0.8}
+                disabled={btn.disabled}
+              >
+                {btn.loading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={btn.variant === "cancel" ? Colors.onSurfaceVariant : Colors.background}
+                  />
+                ) : (
+                  <Text style={[
+                    cm.btnText,
+                    btn.variant === "destructive" && cm.btnTextDestructive,
+                    btn.variant === "primary" && cm.btnTextPrimary,
+                    btn.variant === "cancel" && cm.btnTextCancel,
+                  ]}>
+                    {btn.label}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const cm = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  card: {
+    width: "100%",
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    padding: 24,
+    gap: 16,
+  },
+  handle: {
+    width: 32,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: Colors.outlineVariant,
+    alignSelf: "center",
+    marginBottom: 4,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
+    textAlign: "center",
+  },
+  message: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  btnCol: { gap: 8, marginTop: 4 },
+  btn: {
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceContainerHigh,
+  },
+  btnDestructive: { backgroundColor: Colors.error, borderColor: Colors.error },
+  btnPrimary: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  btnCancel: { backgroundColor: "transparent", borderColor: Colors.borderSubtle },
+  btnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.textPrimary,
+    letterSpacing: 0.3,
+  },
+  btnTextDestructive: { color: Colors.background },
+  btnTextPrimary: { color: Colors.background },
+  btnTextCancel: { color: Colors.onSurfaceVariant },
+});
 
 function InputField({ label, value, onChangeText, placeholder, keyboardType, multiline, numberOfLines }) {
   return (
@@ -48,6 +159,12 @@ export default function TrainerProfileScreen() {
   const [specialization, setSpecialization] = useState("");
   const [experienceYears, setExperienceYears] = useState("");
   const [bio, setBio] = useState("");
+  const [modal, setModal] = useState({ visible: false, title: "", message: "", buttons: [] });
+  const closeModal = () => setModal((m) => ({ ...m, visible: false }));
+  const showInfo = (title, message) => setModal({
+    visible: true, title, message,
+    buttons: [{ label: "OK", variant: "cancel", onPress: () => setModal((m) => ({ ...m, visible: false })) }],
+  });
   const [imageUri, setImageUri] = useState(null);
   const [existingImageUrl, setExistingImageUrl] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -74,7 +191,7 @@ export default function TrainerProfileScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permisiune necesară", "Acordă acces la galerie pentru a selecta o fotografie.");
+      showInfo("Permisiune necesară", "Acordă acces la galerie pentru a selecta o fotografie.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -90,12 +207,12 @@ export default function TrainerProfileScreen() {
 
   const handleSave = async () => {
     if (!specialization.trim() || !experienceYears.trim()) {
-      Alert.alert("Eroare", "Specializarea și anii de experiență sunt obligatorii.");
+      showInfo("Eroare", "Specializarea și anii de experiență sunt obligatorii.");
       return;
     }
     const years = Number(experienceYears);
     if (isNaN(years) || years < 0 || years > 50) {
-      Alert.alert("Eroare", "Anii de experiență trebuie să fie între 0 și 50.");
+      showInfo("Eroare", "Anii de experiență trebuie să fie între 0 și 50.");
       return;
     }
     setSaving(true);
@@ -107,23 +224,29 @@ export default function TrainerProfileScreen() {
       );
       setExistingImageUrl(updated.image_url ?? existingImageUrl);
       setImageUri(null);
-      Alert.alert("Succes", "Profilul a fost salvat.");
+      setModal({
+        visible: true,
+        title: "Profil salvat",
+        message: "Modificările au fost salvate cu succes.",
+        buttons: [{ label: "OK", variant: "primary", onPress: closeModal }],
+      });
     } catch (err) {
-      Alert.alert("Eroare", err.message);
+      showInfo("Eroare", err.message);
     } finally {
       setSaving(false);
     }
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Deconectare",
-      "Ești sigur că vrei să te deconectezi?",
-      [
-        { text: "Anulează", style: "cancel" },
-        { text: "Da, deconectează", style: "destructive", onPress: logout },
+    setModal({
+      visible: true,
+      title: "Deconectare",
+      message: "Ești sigur că vrei să te deconectezi?",
+      buttons: [
+        { label: "Da, deconectează", variant: "destructive", onPress: logout },
+        { label: "Anulează", variant: "cancel", onPress: closeModal },
       ],
-    );
+    });
   };
 
   if (!fontsLoaded) return null;
@@ -133,7 +256,7 @@ export default function TrainerProfileScreen() {
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.title}>Profilul Meu</Text>
         </View>
@@ -204,6 +327,14 @@ export default function TrainerProfileScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      <ConfirmModal
+        visible={modal.visible}
+        title={modal.title}
+        message={modal.message}
+        buttons={modal.buttons}
+        onClose={closeModal}
+      />
     </ScreenBackground>
   );
 }
@@ -350,5 +481,5 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     color: Colors.error,
   },
-  bottomPadding: { height: 110 },
+  bottomPadding: { height: 20 },
 });

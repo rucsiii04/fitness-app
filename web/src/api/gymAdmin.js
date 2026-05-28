@@ -42,6 +42,12 @@ export const cancelAffectedClasses = (gymId) =>
 export const getTrainersByGym = (gymId) =>
   api.get(`/trainer/gyms/${gymId}/trainers`);
 
+export const getClientNoShows = (clientId) =>
+  api.get(`/gym-admin/clients/${clientId}/no-shows`);
+
+export const clearClientNoShows = (clientId) =>
+  api.post(`/gym-admin/clients/${clientId}/no-shows/clear`);
+
 export const getAttendanceStats = (gymId, date) =>
   api.get(`/gym-admin/gyms/${gymId}/attendance/stats${date ? `?date=${date}` : ""}`);
 

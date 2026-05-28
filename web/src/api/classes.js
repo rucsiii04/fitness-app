@@ -7,7 +7,10 @@ export const createClassType = (data) =>
   api.post("/classes/class-types", data);
 
 export const getSessionsByGym = (gymId) =>
-  api.get(`/classes/gyms/${gymId}/class-sessions`);
+  api.get(`/classes/gyms/${gymId}/class-sessions`).then((r) => ({
+    ...r,
+    data: Array.isArray(r.data) ? r.data : (r.data?.sessions ?? []),
+  }));
 
 export const createClassSession = (data) =>
   api.post("/classes/class-sessions", data);

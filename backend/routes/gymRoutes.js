@@ -4,4 +4,5 @@ import { controllers } from "../controllers/index.js";
 
 export const router = express.Router();
 
+router.get("/:gymId/info", verifyToken, controllers.gymController.getInfo);
 router.get("/:gymId/alerts", verifyToken, controllers.gymController.getAlert);

@@ -71,22 +71,12 @@ export default function TrainerLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 90,
+    height: 70,
     backgroundColor: "rgba(14,14,14,0.92)",
     borderTopWidth: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     paddingHorizontal: 8,
-    paddingBottom: 16,
+    paddingBottom: 8,
     elevation: 0,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
   },
   tabButton: {
     flex: 1,

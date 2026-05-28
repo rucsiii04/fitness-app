@@ -8,6 +8,7 @@ import {
   getGymMemberships,
 } from "../../api/memberships.js";
 import { searchClients } from "../../api/reception.js";
+import { getClientNoShows, clearClientNoShows } from "../../api/gymAdmin.js";
 import { useToast } from "../../context/ToastContext.jsx";
 import TopBar from "../../components/layout/TopBar.jsx";
 import Btn from "../../components/ui/Btn.jsx";
@@ -197,6 +198,12 @@ export default function AdminMemberships() {
   // members tab
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
+
+  // no-show modal
+  const [noShowClient, setNoShowClient] = useState(null); // { clientId, name }
+  const [noShowData, setNoShowData] = useState(null);     // { count, blocked, no_shows }
+  const [noShowLoading, setNoShowLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [membersStatus, setMembersStatus] = useState("active,paused");
   const [membersSearch, setMembersSearch] = useState("");
   const [sortKey, setSortKey] = useState("end_date");
@@ -417,11 +424,39 @@ export default function AdminMemberships() {
     { key: "", label: "Toți" },
   ];
 
+  const openNoShowModal = async (clientId, name) => {
+    setNoShowClient({ clientId, name });
+    setNoShowData(null);
+    setNoShowLoading(true);
+    try {
+      const r = await getClientNoShows(clientId);
+      setNoShowData(r.data);
+    } catch {
+      setNoShowData({ count: 0, blocked: false, no_shows: [] });
+    } finally {
+      setNoShowLoading(false);
+    }
+  };
+
+  const handleClearNoShows = async () => {
+    if (!noShowClient) return;
+    setClearing(true);
+    try {
+      await clearClientNoShows(noShowClient.clientId);
+      setNoShowData((prev) => ({ ...prev, count: 0, blocked: false, no_shows: [] }));
+      toast(`Absențele lui ${noShowClient.name} de la sala ta au fost șterse.`);
+    } catch (err) {
+      toast(err.response?.data?.message || "Eroare la ștergerea istoricului.", "coral");
+    } finally {
+      setClearing(false);
+    }
+  };
+
   return (
     <>
       <TopBar
         title="Abonamente"
-        eyebrow={tab === "plans" ? `${plans.length} planuri disponibile` : `${members.length} abonamente`}
+        eyebrow={tab === "plans" ? `${plans.length} planuri disponibile` : `${members.length} clienți`}
         actions={
           <div style={{ display: "flex", gap: 8 }}>
             {/* Tab switcher */}
@@ -437,7 +472,7 @@ export default function AdminMemberships() {
             >
               {[
                 { key: "plans", label: "Planuri" },
-                { key: "members", label: "Membri" },
+                { key: "members", label: "Clienți" },
               ].map((t) => (
                 <button
                   key={t.key}
@@ -467,7 +502,7 @@ export default function AdminMemberships() {
               icon={<I.card />}
               onClick={() => setIssueOpen(true)}
             >
-              Emite
+              Abonament nou
             </Btn>
             {tab === "plans" && (
               <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
@@ -612,8 +647,10 @@ export default function AdminMemberships() {
                     return (
                       <tr
                         key={m.membership_id}
+                        onClick={() => openNoShowModal(client.user_id, name)}
                         style={{
                           borderBottom: idx < sortedMembers.length - 1 ? "1px solid var(--border-soft)" : "none",
+                          cursor: "pointer",
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -1173,6 +1210,94 @@ export default function AdminMemberships() {
             </Btn>
           </div>
         </form>
+      </Modal>
+
+      {/* ── NO-SHOW MODAL ── */}
+      <Modal
+        open={!!noShowClient}
+        onClose={() => setNoShowClient(null)}
+        title={noShowClient?.name ?? ""}
+      >
+        <div style={{ padding: "0 20px 24px", minWidth: 340 }}>
+          {noShowLoading ? (
+            <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--mono)", fontSize: 12 }}>
+              Se încarcă...
+            </div>
+          ) : noShowData ? (
+            <>
+              {/* Blocked banner */}
+              {noShowData.blocked ? (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "12px 14px", borderRadius: 10, marginBottom: 20,
+                  background: "rgba(255,80,60,.08)", border: "1px solid rgba(255,80,60,.25)",
+                }}>
+                  <I.close width={14} height={14} style={{ color: "var(--coral)", flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--coral)", fontFamily: "var(--display)", textTransform: "uppercase", letterSpacing: 0.04 }}>
+                      Înscrierea blocată
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
+                      {noShowData.count} absențe nemotivate — limita este 3
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "12px 14px", borderRadius: 10, marginBottom: 20,
+                  background: "rgba(224,251,76,.06)", border: "1px solid rgba(224,251,76,.2)",
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--display)", textTransform: "uppercase", letterSpacing: 0.04 }}>
+                    Activ · {noShowData.count} absențe
+                  </div>
+                </div>
+              )}
+
+              {/* No-show list */}
+              {noShowData.no_shows.length > 0 ? (
+                <>
+                  <div className="eyebrow" style={{ fontSize: 9, marginBottom: 10 }}>Sesiuni ratate</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+                    {noShowData.no_shows.map((ns) => {
+                      const dt = new Date(ns.start_datetime);
+                      const dateStr = dt.toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" });
+                      const timeStr = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+                      return (
+                        <div key={ns.enrollment_id} style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "10px 14px", borderRadius: 8,
+                          background: "var(--surface-2)", border: "1px solid var(--border-soft)",
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 500 }}>{ns.class_name}</div>
+                          <div className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                            {dateStr} · {timeStr}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 20, textAlign: "center" }}>
+                  Nicio absență înregistrată.
+                </div>
+              )}
+
+              {/* Clear button — only if there are no-shows */}
+              {noShowData.count > 0 && (
+                <Btn
+                  variant={noShowData.blocked ? "primary" : "outline"}
+                  onClick={handleClearNoShows}
+                  disabled={clearing}
+                  style={{ width: "100%" }}
+                >
+                  {clearing ? "Se șterge…" : "Șterge absențele de la sala ta"}
+                </Btn>
+              )}
+            </>
+          ) : null}
+        </div>
       </Modal>
     </>
   );

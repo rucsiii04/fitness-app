@@ -109,7 +109,7 @@ export const controller = {
         await t.rollback();
         return res
           .status(403)
-          .json({ message: "Booking blocked due to repeated no-shows" });
+          .json({ message: "Înscrierea este blocată din cauza absenților repetate. Contactează sala pentru deblocare." });
       }
       const existingEnrollment = await Class_Enrollment.findOne({
         where: {
@@ -375,24 +375,27 @@ export const controller = {
     try {
       const { gymId } = req.params;
 
-      const sessions = await Class_Session.findAll({
-        where: { gym_id: gymId },
-        include: [
-          Class_Type,
-          {
-            model: User,
-            as: "Trainer",
-            attributes: ["first_name", "last_name"],
-          },
-          {
-            model: Class_Enrollment,
-            where: { status: "confirmed" },
-            required: false,
-            attributes: ["enrollment_id"],
-          },
-        ],
-        order: [["start_datetime", "ASC"]],
-      });
+      const [gym, sessions] = await Promise.all([
+        Gym.findByPk(gymId, { attributes: ["opening_time", "closing_time"] }),
+        Class_Session.findAll({
+          where: { gym_id: gymId },
+          include: [
+            Class_Type,
+            {
+              model: User,
+              as: "Trainer",
+              attributes: ["first_name", "last_name"],
+            },
+            {
+              model: Class_Enrollment,
+              where: { status: "confirmed" },
+              required: false,
+              attributes: ["enrollment_id"],
+            },
+          ],
+          order: [["start_datetime", "ASC"]],
+        }),
+      ]);
 
       const result = sessions.map((s) => ({
         ...s.toJSON(),
@@ -400,7 +403,15 @@ export const controller = {
         Class_Enrollments: undefined,
       }));
 
-      res.json(result);
+      res.json({
+        sessions: result,
+        gym_hours: gym
+          ? {
+              opening_time: gym.opening_time.slice(0, 5),
+              closing_time: gym.closing_time.slice(0, 5),
+            }
+          : null,
+      });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }
@@ -545,7 +556,9 @@ export const controller = {
     try {
       const { sessionId } = req.params;
 
-      const session = await Class_Session.findByPk(sessionId);
+      const session = await Class_Session.findByPk(sessionId, {
+        include: [Class_Type],
+      });
 
       if (!session) {
         return res.status(404).json({ message: "Session not found" });
@@ -556,6 +569,25 @@ export const controller = {
 
       if (!isTrainer && !isAdmin) {
         return res.status(403).json({ message: "Not authorized" });
+      }
+
+      // Fetch enrolled clients before bulk-cancelling so we can email them
+      const { notify } = req.query; // ?notify=1 to send emails
+      let clientsToNotify = [];
+      if (notify === "1") {
+        clientsToNotify = await Class_Enrollment.findAll({
+          where: {
+            session_id: sessionId,
+            status: { [Op.in]: ["confirmed", "waiting_list"] },
+          },
+          include: [
+            {
+              model: User,
+              as: "Client",
+              attributes: ["email", "first_name"],
+            },
+          ],
+        });
       }
 
       session.status = "cancelled";
@@ -573,7 +605,32 @@ export const controller = {
         },
       );
 
-      res.json({ message: "Session cancelled" });
+      // Fire-and-forget emails
+      if (clientsToNotify.length > 0) {
+        const className = session.Class_Type?.name ?? "clasă";
+        const sessionDate = new Date(session.start_datetime).toLocaleString(
+          "ro-RO",
+          { dateStyle: "full", timeStyle: "short" },
+        );
+        clientsToNotify.forEach((enr) => {
+          if (!enr.Client?.email) return;
+          transporter
+            .sendMail({
+              from: "Kinetic Fitness",
+              to: enr.Client.email,
+              subject: `Sesiune anulată – ${className}`,
+              html: `
+                <p>Bună, ${enr.Client.first_name},</p>
+                <p>Sesiunea de <strong>${className}</strong> programată pentru
+                <strong>${sessionDate}</strong> a fost anulată.</p>
+                <p>Ne cerem scuze pentru inconveniență. Te așteptăm la alte sesiuni!</p>
+                <p>— Echipa Kinetic Fitness</p>`,
+            })
+            .catch(console.error);
+        });
+      }
+
+      res.json({ message: "Session cancelled", notified: clientsToNotify.length });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }

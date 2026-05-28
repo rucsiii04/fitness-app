@@ -9,6 +9,7 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -82,10 +83,37 @@ function fmtDayTitle(dateKey) {
   return `${DAY_NAMES_LONG[date.getDay()]}, ${d} ${MONTHS_RO[m - 1]}`;
 }
 
-function TimePicker({ hour, minute, onHourChange, onMinuteChange }) {
-  const stepMinute = (delta) => {
-    let m = minute + delta * 5;
-    if (m >= 60) m = 0;
+// maxTotalMin: absolute ceiling in minutes for the start time (hour*60+minute).
+// When provided, the minute "+" arrow is disabled once adding 5 more minutes
+// would exceed it (i.e. no session could fit before gym closing).
+function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, maxHour = 23, maxTotalMin = null }) {
+  const [hourText, setHourText] = React.useState(String(hour).padStart(2, "0"));
+  const [minText, setMinText] = React.useState(String(minute).padStart(2, "0"));
+  const hourFocused = React.useRef(false);
+  const minFocused = React.useRef(false);
+
+  const clampHour = (h) => Math.min(maxHour, Math.max(minHour, h));
+
+  const currentTotalMin = hour * 60 + minute;
+  const minUpDisabled = maxTotalMin !== null && currentTotalMin + 5 > maxTotalMin;
+  const minDownDisabled = minute === 0;
+
+  React.useEffect(() => {
+    if (!hourFocused.current) setHourText(String(hour).padStart(2, "0"));
+  }, [hour]);
+  React.useEffect(() => {
+    if (!minFocused.current) setMinText(String(minute).padStart(2, "0"));
+  }, [minute]);
+
+  const stepMinuteUp = () => {
+    if (minUpDisabled) return;
+    let m = minute + 5;
+    if (m >= 60) { onHourChange(clampHour(hour + 1)); onMinuteChange(m - 60); }
+    else onMinuteChange(m);
+  };
+
+  const stepMinuteDown = () => {
+    let m = minute - 5;
     if (m < 0) m = 55;
     onMinuteChange(m);
   };
@@ -94,37 +122,78 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange }) {
     <View style={tpStyles.root}>
       <View style={tpStyles.col}>
         <TouchableOpacity
-          onPress={() => onHourChange((hour + 1) % 24)}
-          style={tpStyles.btn}
+          onPress={() => onHourChange(clampHour(hour + 1))}
+          style={[tpStyles.btn, hour >= maxHour && tpStyles.btnDisabled]}
           hitSlop={6}
+          disabled={hour >= maxHour}
         >
-          <Ionicons name="chevron-up" size={13} color={Colors.primary} />
+          <Ionicons name="chevron-up" size={13} color={hour >= maxHour ? Colors.textMuted : Colors.primary} />
         </TouchableOpacity>
-        <Text style={tpStyles.val}>{String(hour).padStart(2, "0")}</Text>
+        <TextInput
+          style={tpStyles.val}
+          value={hourText}
+          keyboardType="numeric"
+          maxLength={2}
+          selectTextOnFocus
+          underlineColorAndroid="transparent"
+          onFocus={() => { hourFocused.current = true; }}
+          onChangeText={(v) => setHourText(v)}
+          onBlur={() => {
+            hourFocused.current = false;
+            const n = parseInt(hourText, 10);
+            const clamped = clampHour(isNaN(n) ? minHour : n);
+            onHourChange(clamped);
+            setHourText(String(clamped).padStart(2, "0"));
+          }}
+        />
         <TouchableOpacity
-          onPress={() => onHourChange((hour + 23) % 24)}
-          style={tpStyles.btn}
+          onPress={() => onHourChange(clampHour(hour - 1))}
+          style={[tpStyles.btn, hour <= minHour && tpStyles.btnDisabled]}
           hitSlop={6}
+          disabled={hour <= minHour}
         >
-          <Ionicons name="chevron-down" size={13} color={Colors.primary} />
+          <Ionicons name="chevron-down" size={13} color={hour <= minHour ? Colors.textMuted : Colors.primary} />
         </TouchableOpacity>
       </View>
       <Text style={tpStyles.colon}>:</Text>
       <View style={tpStyles.col}>
         <TouchableOpacity
-          onPress={() => stepMinute(1)}
-          style={tpStyles.btn}
+          onPress={stepMinuteUp}
+          style={[tpStyles.btn, minUpDisabled && tpStyles.btnDisabled]}
           hitSlop={6}
+          disabled={minUpDisabled}
         >
-          <Ionicons name="chevron-up" size={13} color={Colors.primary} />
+          <Ionicons name="chevron-up" size={13} color={minUpDisabled ? Colors.textMuted : Colors.primary} />
         </TouchableOpacity>
-        <Text style={tpStyles.val}>{String(minute).padStart(2, "0")}</Text>
+        <TextInput
+          style={tpStyles.val}
+          value={minText}
+          keyboardType="numeric"
+          maxLength={2}
+          selectTextOnFocus
+          underlineColorAndroid="transparent"
+          onFocus={() => { minFocused.current = true; }}
+          onChangeText={(v) => setMinText(v)}
+          onBlur={() => {
+            minFocused.current = false;
+            const n = parseInt(minText, 10);
+            // clamp typed minute to what's allowed given the hour and maxTotalMin
+            const raw = isNaN(n) ? 0 : Math.min(59, Math.max(0, n));
+            const maxAllowedMin = maxTotalMin !== null
+              ? Math.min(59, maxTotalMin - hour * 60)
+              : 59;
+            const clamped = Math.min(raw, Math.max(0, maxAllowedMin));
+            onMinuteChange(clamped);
+            setMinText(String(clamped).padStart(2, "0"));
+          }}
+        />
         <TouchableOpacity
-          onPress={() => stepMinute(-1)}
-          style={tpStyles.btn}
+          onPress={stepMinuteDown}
+          style={[tpStyles.btn, minDownDisabled && tpStyles.btnDisabled]}
           hitSlop={6}
+          disabled={minDownDisabled}
         >
-          <Ionicons name="chevron-down" size={13} color={Colors.primary} />
+          <Ionicons name="chevron-down" size={13} color={minDownDisabled ? Colors.textMuted : Colors.primary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -142,6 +211,9 @@ const tpStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  btnDisabled: {
+    opacity: 0.3,
+  },
   val: {
     fontSize: 22,
     fontWeight: "700",
@@ -149,6 +221,8 @@ const tpStyles = StyleSheet.create({
     color: Colors.textPrimary,
     minWidth: 38,
     textAlign: "center",
+    backgroundColor: "transparent",
+    padding: 0,
   },
   colon: {
     fontSize: 22,
@@ -161,6 +235,7 @@ const tpStyles = StyleSheet.create({
 
 function SessionCard({ session, userId, onPress }) {
   const isMine = session.trainer_id === userId;
+  const isCancelled = session.status === "cancelled";
   const typeName = session.Class_Type?.name ?? "Clasă";
   const trainer = session.Trainer;
   const trainerLabel = isMine
@@ -170,45 +245,50 @@ function SessionCard({ session, userId, onPress }) {
       : "—";
 
   const inner = (
-    <View style={[scStyles.card, isMine && scStyles.cardMine]}>
+    <View style={[
+      scStyles.card,
+      isMine && !isCancelled && scStyles.cardMine,
+      isCancelled && scStyles.cardCancelled,
+    ]}>
       <View style={scStyles.timeCol}>
-        <Text style={scStyles.timeStart}>
+        <Text style={[scStyles.timeStart, isCancelled && scStyles.textDim]}>
           {fmtTime(session.start_datetime)}
         </Text>
         <View style={scStyles.timeLine} />
-        <Text style={scStyles.timeEnd}>{fmtTime(session.end_datetime)}</Text>
+        <Text style={[scStyles.timeEnd, isCancelled && scStyles.textDim]}>
+          {fmtTime(session.end_datetime)}
+        </Text>
       </View>
       <View style={scStyles.info}>
-        <Text style={scStyles.typeName} numberOfLines={1}>
-          {typeName}
-        </Text>
+        <View style={scStyles.typeRow}>
+          <Text style={[scStyles.typeName, isCancelled && scStyles.textDim]} numberOfLines={1}>
+            {typeName}
+          </Text>
+          {isCancelled && (
+            <View style={scStyles.cancelledBadge}>
+              <Text style={scStyles.cancelledBadgeText}>ANULAT</Text>
+            </View>
+          )}
+        </View>
         <View style={scStyles.metaRow}>
-          <Ionicons
-            name="person-outline"
-            size={11}
-            color={Colors.onSurfaceVariant}
-          />
-          <Text style={[scStyles.metaText, isMine && scStyles.metaMine]}>
+          <Ionicons name="person-outline" size={11} color={Colors.onSurfaceVariant} />
+          <Text style={[scStyles.metaText, isMine && !isCancelled && scStyles.metaMine]}>
             {trainerLabel}
           </Text>
           <Text style={scStyles.metaSep}>·</Text>
-          <Ionicons
-            name="people-outline"
-            size={11}
-            color={Colors.onSurfaceVariant}
-          />
+          <Ionicons name="people-outline" size={11} color={Colors.onSurfaceVariant} />
           <Text style={scStyles.metaText}>
             {session.confirmed_count ?? 0}/{session.max_participants}
           </Text>
         </View>
       </View>
-      {isMine && (
+      {isMine && !isCancelled && (
         <Ionicons name="chevron-forward" size={16} color={Colors.primary} />
       )}
     </View>
   );
 
-  if (onPress) {
+  if (onPress && !isCancelled) {
     return (
       <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
         {inner}
@@ -231,6 +311,25 @@ const scStyles = StyleSheet.create({
   },
   cardMine: {
     borderColor: "rgba(209,255,0,0.25)",
+  },
+  cardCancelled: {
+    opacity: 0.45,
+    borderColor: Colors.borderSubtle,
+  },
+  typeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  textDim: { color: Colors.textMuted },
+  cancelledBadge: {
+    backgroundColor: "rgba(255,115,81,0.15)",
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  cancelledBadgeText: {
+    fontSize: 8,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: Colors.error,
+    letterSpacing: 0.5,
   },
   timeCol: { alignItems: "center", width: 44, gap: 3 },
   timeStart: {
@@ -289,29 +388,35 @@ function CreateSessionModal({
   selectedDay,
   gymId,
   token,
+  gymHours,
   onClose,
   onCreated,
 }) {
+  const DURATIONS = [30, 45, 60, 90, 120];
+
   const [classTypes, setClassTypes] = useState([]);
   const [typesLoading, setTypesLoading] = useState(false);
   const [classTypeId, setClassTypeId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [startH, setStartH] = useState(9);
+  const [startH, setStartH] = useState(gymHours ? gymHours.openH : 9);
   const [startM, setStartM] = useState(0);
-  const [endH, setEndH] = useState(10);
-  const [endM, setEndM] = useState(0);
+  const [duration, setDuration] = useState(60);
   const [maxPart, setMaxPart] = useState(10);
   const [saving, setSaving] = useState(false);
+
+  const totalEndMin = startH * 60 + startM + duration;
+  const computedEndH = Math.floor(totalEndMin / 60) % 24;
+  const computedEndM = totalEndMin % 60;
+  const endLabel = `${String(computedEndH).padStart(2, "0")}:${String(computedEndM).padStart(2, "0")}`;
 
   useEffect(() => {
     if (!visible) return;
     setClassTypeId(null);
     setDropdownOpen(false);
-    setStartH(9);
-    setStartM(0);
-    setEndH(10);
-    setEndM(0);
+    setDuration(60);
     setMaxPart(10);
+    setStartH(gymHours ? gymHours.openH : 9);
+    setStartM(0);
     if (!gymId || !token) return;
     setTypesLoading(true);
     fetchGymClassTypes(gymId, token)
@@ -327,7 +432,33 @@ function CreateSessionModal({
     }
     const [y, m, d] = selectedDay.split("-").map(Number);
     const startDt = new Date(y, m - 1, d, startH, startM, 0).toISOString();
-    const endDt = new Date(y, m - 1, d, endH, endM, 0).toISOString();
+
+    const startMin = startH * 60 + startM;
+
+    if (!gymHours) {
+      Alert.alert("Eroare", "Nu s-au putut încărca orele de funcționare ale sălii. Încearcă din nou.");
+      return;
+    }
+
+    if (startMin < gymHours.openMin) {
+      Alert.alert("Eroare", `Sala deschide la ${gymHours.label.split(" – ")[0]}. Alege o oră de start mai târzie.`);
+      return;
+    }
+    if (startMin >= gymHours.closeMin) {
+      Alert.alert("Eroare", `Ora de start trebuie să fie înainte de ${gymHours.label.split(" – ")[1]} (ora de închidere).`);
+      return;
+    }
+    if (totalEndMin > gymHours.closeMin) {
+      Alert.alert("Eroare", `Sesiunea depășește ora de închidere (${gymHours.label.split(" – ")[1]}). Alege o durată mai scurtă.`);
+      return;
+    }
+
+    if (totalEndMin >= 24 * 60) {
+      Alert.alert("Eroare", "Sesiunea nu poate depăși miezul nopții.");
+      return;
+    }
+
+    const endDt = new Date(y, m - 1, d, computedEndH, computedEndM, 0).toISOString();
 
     if (new Date(startDt) >= new Date(endDt)) {
       Alert.alert(
@@ -481,32 +612,58 @@ function CreateSessionModal({
               </View>
             )}
 
-            <View style={cmStyles.timesRow}>
-              <View style={cmStyles.timeBlock}>
-                <Text style={cmStyles.label}>START</Text>
-                <TimePicker
-                  hour={startH}
-                  minute={startM}
-                  onHourChange={setStartH}
-                  onMinuteChange={setStartM}
-                />
+            <Text style={cmStyles.label}>ORA START</Text>
+            <View style={cmStyles.timeRow}>
+              <TimePicker
+                hour={startH}
+                minute={startM}
+                onHourChange={setStartH}
+                onMinuteChange={setStartM}
+                minHour={gymHours ? gymHours.openH : 0}
+                maxHour={gymHours ? gymHours.maxH : 23}
+                maxTotalMin={gymHours ? gymHours.closeMin - 30 : null}
+              />
+              <View style={cmStyles.endTimeDisplay}>
+                <Text style={cmStyles.endTimeArrow}>→</Text>
+                <Text style={cmStyles.endTimeText}>{endLabel}</Text>
               </View>
-              <View style={cmStyles.timeSepIcon}>
-                <Ionicons
-                  name="arrow-forward"
-                  size={16}
-                  color={Colors.outlineVariant}
-                />
-              </View>
-              <View style={cmStyles.timeBlock}>
-                <Text style={cmStyles.label}>FINAL</Text>
-                <TimePicker
-                  hour={endH}
-                  minute={endM}
-                  onHourChange={setEndH}
-                  onMinuteChange={setEndM}
-                />
-              </View>
+            </View>
+            {gymHours ? (
+              <Text style={cmStyles.gymHoursHint}>
+                Program sală: {gymHours.label}
+              </Text>
+            ) : null}
+
+            <Text style={cmStyles.label}>DURATĂ</Text>
+            <View style={cmStyles.durationRow}>
+              {DURATIONS.map((d) => {
+                const startMin = startH * 60 + startM;
+                const wouldOverflow =
+                  startMin + d >= 24 * 60 ||
+                  (gymHours ? startMin + d > gymHours.closeMin : false);
+                return (
+                  <TouchableOpacity
+                    key={d}
+                    style={[
+                      cmStyles.durationChip,
+                      duration === d && cmStyles.durationChipActive,
+                      wouldOverflow && cmStyles.durationChipDisabled,
+                    ]}
+                    onPress={() => !wouldOverflow && setDuration(d)}
+                    activeOpacity={wouldOverflow ? 1 : 0.7}
+                  >
+                    <Text
+                      style={[
+                        cmStyles.durationChipText,
+                        duration === d && cmStyles.durationChipTextActive,
+                        wouldOverflow && cmStyles.durationChipTextDisabled,
+                      ]}
+                    >
+                      {d} min
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <Text style={cmStyles.label}>PARTICIPANȚI MAX.</Text>
@@ -663,14 +820,65 @@ const cmStyles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: "700",
   },
-  timesRow: {
+  timeRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    marginBottom: 4,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  timeBlock: { flex: 1 },
-  timeSepIcon: { paddingBottom: 14, paddingHorizontal: 2 },
+  endTimeDisplay: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  endTimeArrow: {
+    fontSize: 14,
+    color: Colors.onSurfaceVariant,
+    fontFamily: Fonts.label,
+  },
+  endTimeText: {
+    fontSize: 22,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+  },
+  gymHoursHint: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    marginTop: 4,
+  },
+  durationRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  durationChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surfaceContainerHighest,
+  },
+  durationChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryDimAlphaLight,
+  },
+  durationChipDisabled: {
+    opacity: 0.3,
+  },
+  durationChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
+  },
+  durationChipTextActive: {
+    color: Colors.primary,
+  },
+  durationChipTextDisabled: {
+    color: Colors.textMuted,
+  },
   counterRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -728,6 +936,7 @@ export default function TrainerScheduleScreen() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [createVisible, setCreateVisible] = useState(false);
+  const [gymHours, setGymHours] = useState(null);
 
   const load = useCallback(async () => {
     if (!token || !gymId) {
@@ -737,7 +946,18 @@ export default function TrainerScheduleScreen() {
     setLoading(true);
     try {
       const data = await fetchGymSessions(gymId, token);
-      setSessions(Array.isArray(data) ? data : []);
+      setSessions(data.sessions ?? []);
+      if (data.gym_hours?.opening_time && data.gym_hours?.closing_time) {
+        const [oh, om] = data.gym_hours.opening_time.split(":").map(Number);
+        const [ch, cm] = data.gym_hours.closing_time.split(":").map(Number);
+        const openMin = oh * 60 + om;
+        const closeMin = ch * 60 + cm;
+        setGymHours({
+          openMin, closeMin,
+          openH: oh, maxH: Math.floor((closeMin - 1) / 60),
+          label: `${data.gym_hours.opening_time} – ${data.gym_hours.closing_time}`,
+        });
+      }
     } catch {
       /* silent */
     } finally {
@@ -977,6 +1197,7 @@ export default function TrainerScheduleScreen() {
                                   name: sess.Class_Type?.name ?? "Clasă",
                                   start: sess.start_datetime,
                                   end: sess.end_datetime,
+                                  status: sess.status,
                                 },
                               })
                           : undefined
@@ -997,6 +1218,7 @@ export default function TrainerScheduleScreen() {
         selectedDay={selectedDay}
         gymId={gymId}
         token={token}
+        gymHours={gymHours}
         onClose={() => setCreateVisible(false)}
         onCreated={() => {
           setCreateVisible(false);

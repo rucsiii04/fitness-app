@@ -83,6 +83,19 @@ router.delete(
 
 router.get("/gyms/all", verifyToken, controllers.adminController.getAllGyms);
 
+router.get(
+  "/clients/:clientId/no-shows",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.getClientNoShows,
+);
+router.post(
+  "/clients/:clientId/no-shows/clear",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.clearClientNoShows,
+);
+
 router.put(
   "/gym/:gymId/alert",
   verifyToken,
