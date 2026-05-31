@@ -107,26 +107,15 @@ const buildSystemPrompt = (profile, user, recentSessions) => {
         .join("\n")
     : "  No recent sessions recorded.";
 
-  return `You are a personal fitness assistant inside a gym management app.
-
-Client profile:Name: ${name}, gender: ${gender}, weight: ${weight}, height: ${height}, main goal: ${goal}, activity level: 
-${activity}, medical restrictions: ${restrictions}
-Recent workout sessions (last 5):
+  return `Ești un asistent fitness personal. Răspunde întotdeauna în română, concis și practic.
+Profil client: ${name}, ${gender}, ${weight}, ${height}, scop: ${goal}, nivel activitate: ${activity}, restricții medicale: ${restrictions}.
+Sesiuni recente:
 ${sessionLines}
-Guidelines:
-- Be specific and practical. Tailor every answer to this client's profile.
-- If medical restrictions are listed, always respect them.
-- Keep responses concise and friendly.
-- Do not recommend exercises that conflict with medical restrictions.
-STRICT RULES:
-- Only answer questions related to fitness, workouts, health, or fitness-related nutrition.
-- If the user asks something unrelated (e.g. general recipes, desserts, non-fitness topics), DO NOT answer it.
-- Instead, politely refuse and redirect the conversation to fitness topics.
-- Never invent information outside the fitness domain.
-- If you are unsure, say you are not sure instead of guessing.
-- Default language is Romanian. If the user writes in a different language, match that language.
-- NEVER generate a complete workout plan or training program as text, even if asked directly. If the user wants a new workout plan created, always tell them to use the ✦ button in the top right corner of the screen. This applies even if you already have a linked workout plan in this conversation.
-`;
+Reguli importante:
+- Răspunzi DOAR la întrebări despre fitness, antrenamente, sănătate sau nutriție sportivă.
+- Adaptează fiecare răspuns la profilul clientului. Respectă restricțiile medicale.
+- NU genera niciodată un plan de antrenament complet ca text. Dacă userul vrea un plan nou, trimite-l la butonul ✦ din colțul dreapta sus.
+- Dacă nu știi ceva, spune că nu ești sigur în loc să inventezi.`;
 };
 
 const buildWorkoutContextSection = (
@@ -138,7 +127,7 @@ const buildWorkoutContextSection = (
     ? workoutExercises
         .map(
           (we, i) =>
-            `  ${i + 1}. [workout_exercise_id: ${we.workout_exercise_id}] ${we.Exercise?.name ?? "Unknown"} (${we.Exercise?.muscle_group ?? "?"}) — ${we.sets} sets × ${we.reps} reps${we.rest_time ? `, ${we.rest_time}s rest` : ""}${i === workoutExercises.length - 1 ? "  ← LAST EXERCISE" : ""}`,
+            `  ${i + 1}. [workout_exercise_id: ${we.workout_exercise_id}] ${we.Exercise?.name ?? "Unknown"} (${we.Exercise?.muscle_group ?? "?"}) - ${we.sets} sets × ${we.reps} reps${we.rest_time ? `, ${we.rest_time}s rest` : ""}${i === workoutExercises.length - 1 ? "  ← LAST EXERCISE" : ""}`,
         )
         .join("\n")
     : "  (no exercises yet)";
@@ -155,40 +144,19 @@ const buildWorkoutContextSection = (
     .join("\n");
 
   return `
-The user has a linked workout plan:
-- Name: "${workout.name}"
-- Difficulty: ${workout.difficulty_level ?? "not set"}
-- Description: ${workout.description ?? "none"}
-
-Current exercises in this plan (use workout_exercise_id when calling tools):
+Planul de antrenament al userului: "${workout.name}" (dificultate: ${workout.difficulty_level ?? "nesetat"})
+Exerciții curente (folosește workout_exercise_id pentru tools):
 ${exerciseLines}
-
 ${lastExerciseHint}
-
-Available exercises you can add (use exercise_id when calling tools):
+Exerciții disponibile pentru adăugare (folosește exercise_id):
 ${libraryLines}
-
-TOOL USAGE RULES:
-
-IMPORTANT:
-- If the user asks to change, swap, or replace an exercise, you MUST call the function "replace_exercise".
-- Do NOT respond with text before calling the function.
-- Never explain what to do. Always use the function.
-
-GENERAL RULES:
-- To ADD a new exercise: call add_exercise with an exercise_id.
-- To REMOVE an exercise: call remove_exercise with its workout_exercise_id.
-- To UPDATE sets or reps: call update_exercise with its workout_exercise_id.
-- To RENAME the workout: call update_workout.
-
-AFTER TOOL EXECUTION:
-- After the function is executed, you MUST respond with a short confirmation message describing what changed.
-
-IDENTIFIERS:
-- NEVER say you don't have an identifier.
-- Every exercise already has a workout_exercise_id.
-- Always use the provided IDs.
-`;
+Reguli tools:
+- Adaugă exercițiu: add_exercise(exercise_id)
+- Șterge exercițiu: remove_exercise(workout_exercise_id)
+- Actualizează seturi/repetări: update_exercise(workout_exercise_id)
+- Înlocuiește exercițiu: replace_exercise
+- Redenumește planul: update_workout
+- Apelează întotdeauna funcția direct, fără explicații prealabile. Confirmă printr-un mesaj scurt după execuție.`;
 };
 
 const WORKOUT_TOOLS = [
@@ -348,7 +316,7 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       return {
         success: true,
-        message: `Added "${exercise.name}" — ${sets} sets × ${reps} reps.`,
+        message: `Added "${exercise.name}" - ${sets} sets × ${reps} reps.`,
       };
     }
 
@@ -412,7 +380,7 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       return {
         success: true,
-        message: `Replaced "${oldExercise?.name ?? "exercise"}" with "${newExercise.name}" — ${sets} sets × ${reps} reps.`,
+        message: `Replaced "${oldExercise?.name ?? "exercise"}" with "${newExercise.name}" - ${sets} sets × ${reps} reps.`,
       };
     }
 
@@ -490,6 +458,21 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
   }
 };
 
+const generateConversationTitle = async (userMessage) => {
+  try {
+    const prompt = `Ești un asistent care generează titluri scurte pentru conversații de fitness.
+Pe baza primului mesaj al utilizatorului, generează un titlu de maxim 5 cuvinte în română care rezumă subiectul.
+Răspunde DOAR cu titlul, fără ghilimele, fără explicații, fără punct la final.
+
+Mesaj: ${userMessage}`;
+    const result = await geminiModel.generateContent(prompt);
+    const title = result.response.text().trim().replace(/^["']|["']$/g, "").replace(/\.$/, "");
+    return title.slice(0, 120);
+  } catch {
+    return null;
+  }
+};
+
 const getClientContext = async (userId) => {
   const [user, profile, recentSessions] = await Promise.all([
     User.findByPk(userId),
@@ -553,7 +536,7 @@ export const controller = {
 
       const result = conversations.map((c) => ({
         ...c.toJSON(),
-        preview: firstMessageMap[c.conversation_id] ?? null,
+        preview: c.title ?? firstMessageMap[c.conversation_id] ?? null,
       }));
 
       return res.status(200).json(result);
@@ -583,6 +566,7 @@ export const controller = {
       return res.status(200).json({
         messages,
         linked_plan_id: conversation.linked_plan_id ?? null,
+        title: conversation.title ?? null,
       });
     } catch (err) {
       return res
@@ -682,7 +666,10 @@ export const controller = {
       // Gemini requires history to start with 'user'; drop any leading model messages
       // (e.g. the plan-generated confirmation inserted before any user chat message)
       const firstUserIdx = rawHistory.findIndex((m) => m.role === "user");
-      const geminiHistory = firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : [];
+      const geminiHistory =
+        firstUserIdx >= 0 ? rawHistory.slice(firstUserIdx) : [];
+
+      const isFirstMessage = !conversation.title && history.length === 1;
 
       const chat = geminiModel.startChat({
         history: geminiHistory,
@@ -691,7 +678,11 @@ export const controller = {
         ...(toolConfig && { toolConfig }),
       });
 
-      let result = await chat.sendMessage(content);
+      const [chatResult, generatedTitle] = await Promise.all([
+        chat.sendMessage(content),
+        isFirstMessage ? generateConversationTitle(content) : Promise.resolve(null),
+      ]);
+      let result = chatResult;
       let response = result.response;
 
       while (response.functionCalls()?.length) {
@@ -722,7 +713,10 @@ export const controller = {
         sent_at: new Date(),
       });
 
-      await conversation.update({ last_activity_at: new Date() });
+      const conversationUpdate = { last_activity_at: new Date() };
+      if (generatedTitle) conversationUpdate.title = generatedTitle;
+      await conversation.update(conversationUpdate);
+
       return res.status(200).json(aiMessage);
     } catch (err) {
       if (userMessage) await userMessage.destroy().catch(() => {});
@@ -887,6 +881,7 @@ Rules:
       await conversation.update({
         linked_plan_id: workout.workout_id,
         last_activity_at: new Date(),
+        ...(!conversation.title && { title: plan.name }),
       });
 
       await Message.create({

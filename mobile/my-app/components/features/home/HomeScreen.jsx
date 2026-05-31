@@ -53,7 +53,11 @@ export default function HomeScreen() {
         if (!res.ok) return;
 
         let data;
-        try { data = JSON.parse(text); } catch { return; }
+        try {
+          data = JSON.parse(text);
+        } catch {
+          return;
+        }
 
         setter(transform ? transform(data) : data);
       } catch (err) {
@@ -80,11 +84,17 @@ export default function HomeScreen() {
   }, [token]);
 
   // Re-fetch when the screen gains focus (tab switch / navigation)
-  useFocusEffect(useCallback(() => { fetchData(); }, [fetchData]));
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData]),
+  );
 
-  // Always call the latest fetchData — avoids stale closure in the AppState listener
+  // Always call the latest fetchData - avoids stale closure in the AppState listener
   const fetchDataRef = useRef(fetchData);
-  useEffect(() => { fetchDataRef.current = fetchData; }, [fetchData]);
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  }, [fetchData]);
 
   // Re-fetch silently when the app comes back to the foreground
   const appStateRef = useRef(AppState.currentState);
@@ -98,7 +108,7 @@ export default function HomeScreen() {
       appStateRef.current = nextState;
     });
     return () => sub.remove();
-  }, []); // runs once — always reads latest fetchData via ref
+  }, []); // runs once - always reads latest fetchData via ref
 
   useEffect(() => {
     const handler = (data) => setAlert(data?.message ? data : null);
@@ -108,8 +118,8 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Bună dimineața";
-    if (hour < 17) return "Bună ziua";
+    if (hour >= 5 && hour < 12) return "Bună dimineața";
+    if (hour >= 12 && hour < 17) return "Bună ziua";
     return "Bună seara";
   };
 
@@ -121,7 +131,10 @@ export default function HomeScreen() {
     if (mins < 60) return { value: mins, unit: "Min în urmă" };
     const hours = Math.round(diffMs / 3600000);
     if (hours < 24)
-      return { value: hours, unit: hours === 1 ? "Oră în urmă" : "Ore în urmă" };
+      return {
+        value: hours,
+        unit: hours === 1 ? "Oră în urmă" : "Ore în urmă",
+      };
     const days = Math.round(diffMs / 86400000);
     if (days <= 31)
       return { value: days, unit: days === 1 ? "Zi în urmă" : "Zile în urmă" };
@@ -138,9 +151,7 @@ export default function HomeScreen() {
 
   if (!fontsLoaded) return null;
   const heroWorkout =
-    sessions.length > 0 && sessions[0]?.Workout
-      ? sessions[0].Workout
-      : null;
+    sessions.length > 0 && sessions[0]?.Workout ? sessions[0].Workout : null;
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
@@ -148,13 +159,6 @@ export default function HomeScreen() {
         <GymAlertBanner message={alert?.message} />
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <View style={styles.avatar}>
-              <Ionicons
-                name="person"
-                size={18}
-                color={Colors.onSurfaceVariant}
-              />
-            </View>
             <Text style={styles.logoText}>KINETIC</Text>
           </View>
           <View style={styles.headerRight}>
@@ -232,7 +236,7 @@ export default function HomeScreen() {
               />
               <StatCard
                 label="Zile Rămase"
-                value={membershipDaysLeft ?? "—"}
+                value={membershipDaysLeft ?? "-"}
                 unit="Zile"
                 icon="calendar-outline"
                 iconColor={Colors.primary}
@@ -241,7 +245,7 @@ export default function HomeScreen() {
             <View style={styles.statsRow}>
               <StatCard
                 label="Ultima Vizită"
-                value={lastVisit ? lastVisit.value : "—"}
+                value={lastVisit ? lastVisit.value : "-"}
                 unit={lastVisit ? lastVisit.unit : ""}
                 icon="time-outline"
                 iconColor={Colors.secondary}
@@ -271,16 +275,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surfaceContainerHighest,
-    borderWidth: 2,
-    borderColor: "rgba(209,255,0,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
   },
   logoText: {
     fontSize: 20,

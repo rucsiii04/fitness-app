@@ -28,7 +28,7 @@ export function ActiveSessionBanner() {
       activeOpacity={0.9}
     >
       <Ionicons name="radio-button-on" size={14} color={Colors.background} />
-      <Text style={styles.label}>SESSION IN PROGRESS</Text>
+      <Text style={styles.label}>SESIUNE ÎN DESFĂȘURARE</Text>
       <Ionicons name="chevron-forward" size={14} color={Colors.background} />
     </TouchableOpacity>
   );

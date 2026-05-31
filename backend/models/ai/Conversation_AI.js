@@ -24,6 +24,10 @@ export const Conversation_AI = db.define(
     linked_plan_id: {
       type: DataTypes.INTEGER,
     },
+    title: {
+      type: DataTypes.STRING(120),
+      allowNull: true,
+    },
   },
   {
     freezeTableName: true,

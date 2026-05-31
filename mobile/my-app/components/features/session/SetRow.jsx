@@ -51,7 +51,7 @@ export function SetRow({
             isCompleted && styles.inputDim,
             isToFailure && styles.inputFailure,
           ]}
-          value={isToFailure ? "FAIL" : String(reps)}
+          value={reps === "failure" ? "MAX" : String(reps)}
           onChangeText={onRepsChange}
           keyboardType="numeric"
           selectionColor={Colors.secondary}

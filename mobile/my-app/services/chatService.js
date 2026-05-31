@@ -37,6 +37,7 @@ export const chatService = {
     return {
       messages: Array.isArray(data.messages) ? data.messages : [],
       linked_plan_id: data.linked_plan_id ?? null,
+      title: data.title ?? null,
     };
   },
 

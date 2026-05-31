@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export default function BarChart({
   data,
@@ -6,7 +6,9 @@ export default function BarChart({
   height = 140,
   accent = "var(--accent)",
   benchmark,
+  formatValue,
 }) {
+  const [tooltip, setTooltip] = useState(null);
   const max = Math.max(...data, benchmark || 0);
   return (
     <div
@@ -54,8 +56,32 @@ export default function BarChart({
             gap: 6,
             height: "100%",
             justifyContent: "flex-end",
+            position: "relative",
           }}
+          onMouseEnter={() => setTooltip(i)}
+          onMouseLeave={() => setTooltip(null)}
         >
+          {tooltip === i && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "calc(100% - 20px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "var(--surface-2, #1e1e1e)",
+                border: "1px solid var(--surface-3, #333)",
+                borderRadius: 4,
+                padding: "2px 7px",
+                fontSize: 11,
+                color: "var(--text, #fff)",
+                whiteSpace: "nowrap",
+                pointerEvents: "none",
+                zIndex: 10,
+              }}
+            >
+              {formatValue ? formatValue(v) : v}
+            </div>
+          )}
           <div
             style={{
               width: "100%",
@@ -64,6 +90,7 @@ export default function BarChart({
               background: i === data.length - 1 ? accent : "var(--surface-3)",
               borderRadius: "3px 3px 0 0",
               transition: "height .3s",
+              cursor: "default",
             }}
           />
           {labels && (

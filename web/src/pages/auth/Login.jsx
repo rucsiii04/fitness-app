@@ -25,13 +25,13 @@ export default function Login() {
       const { token, user } = res.data;
       const staffRoles = ["gym_admin", "front_desk"];
       if (!staffRoles.includes(user.role)) {
-        setError("This portal is for gym staff only. Clients and trainers use the mobile app.");
+        setError("Acest portal este doar pentru personalul sălii. Clienții și antrenorii folosesc aplicația mobilă.");
         return;
       }
       signIn(token, user);
       navigate(user.role === "front_desk" ? "/reception/scan" : "/admin/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid email or password.");
+      setError(err.response?.data?.message || "Email sau parolă invalide.");
     } finally {
       setLoading(false);
     }
@@ -139,53 +139,7 @@ export default function Login() {
 
         <div style={{ flex: 1 }} />
 
-        <div style={{ position: "relative" }}>
-          <div
-            className="eyebrow"
-            style={{ color: "var(--teal)", marginBottom: 18 }}
-          >
-            <span
-              className="pulse-dot"
-              style={{
-                display: "inline-block",
-                width: 6,
-                height: 6,
-                borderRadius: 3,
-                background: "var(--teal)",
-                marginRight: 6,
-                verticalAlign: "middle",
-              }}
-            />
-            Trainer & Admin Portal
-          </div>
-          <div
-            className="display"
-            style={{
-              fontSize: 68,
-              lineHeight: 0.95,
-              letterSpacing: -0.02,
-              textTransform: "uppercase",
-              marginBottom: 16,
-            }}
-          >
-            Train.
-            <br />
-            Manage.
-            <br />
-            <span style={{ color: "var(--accent)" }}>Perform.</span>
-          </div>
-          <div
-            style={{
-              fontSize: 15,
-              color: "var(--text-muted)",
-              maxWidth: 380,
-              lineHeight: 1.6,
-            }}
-          >
-            Your complete platform for coaching clients, managing programs, and
-            running your gym.
-          </div>
-        </div>
+        <div style={{ position: "relative" }} />
 
         <div style={{ flex: 1 }} />
       </div>
@@ -208,7 +162,7 @@ export default function Login() {
               marginBottom: 10,
             }}
           >
-            WELCOME BACK
+            BINE AI REVENIT
           </div>
           <h1
             className="display upper"
@@ -219,7 +173,7 @@ export default function Login() {
               lineHeight: 1,
             }}
           >
-            Sign in to
+            Autentifică-te la
             <br />
             Kinetic.
           </h1>
@@ -231,7 +185,7 @@ export default function Login() {
               lineHeight: 1.5,
             }}
           >
-            Gym admin or front desk account required.
+            Necesită cont de administrator sau recepție.
           </p>
 
           <form
@@ -244,12 +198,12 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@kinetic.ro"
+                placeholder="tu@kinetic.ro"
                 autoFocus
                 required
               />
             </Field>
-            <Field label="Password">
+            <Field label="Parolă">
               <Input
                 icon={<I.lock />}
                 type={showPw ? "text" : "password"}
@@ -297,7 +251,7 @@ export default function Login() {
               disabled={loading}
               style={{ width: "100%", justifyContent: "center" }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? "Se autentifică..." : "Autentificare"}
             </Btn>
 
             <div style={{ textAlign: "center" }}>
@@ -315,7 +269,7 @@ export default function Login() {
                   (e.currentTarget.style.color = "var(--text-muted)")
                 }
               >
-                Forgot password?
+                Ai uitat parola?
               </Link>
             </div>
           </form>

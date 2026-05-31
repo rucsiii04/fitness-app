@@ -185,25 +185,13 @@ export const initDatabase = async () => {
   try {
     await db.authenticate();
     console.log("Database connected");
+
   } catch (err) {
     console.log("Database connection error: ", err);
     return;
   }
-  try {
-    await db.query(
-      "ALTER TABLE `Workout` ADD COLUMN IF NOT EXISTS `original_workout_id` INT NULL DEFAULT NULL",
-    );
-  } catch (err) {
-    console.log("Migration warning (original_workout_id):", err.message);
-  }
-  try {
-    await db.query(
-      "ALTER TABLE `Membership` ADD COLUMN IF NOT EXISTS `frozen_by_admin` TINYINT(1) NOT NULL DEFAULT 0",
-    );
-  } catch (err) {
-    console.log("Migration warning (frozen_by_admin):", err.message);
-  }
 };
+
 export {
   User,
   Reset_Token,

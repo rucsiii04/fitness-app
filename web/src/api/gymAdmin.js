@@ -42,6 +42,9 @@ export const cancelAffectedClasses = (gymId) =>
 export const getTrainersByGym = (gymId) =>
   api.get(`/trainer/gyms/${gymId}/trainers`);
 
+export const getStaff = (gymId) =>
+  api.get(`/gym-admin/gym/${gymId}/staff`);
+
 export const getClientNoShows = (clientId) =>
   api.get(`/gym-admin/clients/${clientId}/no-shows`);
 

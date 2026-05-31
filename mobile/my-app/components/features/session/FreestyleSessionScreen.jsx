@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -63,6 +63,8 @@ export default function FreestyleSessionScreen({ sessionId }) {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showRest, setShowRest] = useState(false);
   const [restKey, setRestKey] = useState(0);
+  const [confirmModal, setConfirmModal] = useState(null); // { title, body, action, actionLabel, danger }
+  const [removeExIndex, setRemoveExIndex] = useState(null);
 
   // Restore exercises + completed sets from logged data
   useEffect(() => {
@@ -124,25 +126,22 @@ export default function FreestyleSessionScreen({ sessionId }) {
   };
 
   const handleRemoveExercise = (exIndex) => {
-    Alert.alert("Remove Exercise", "Remove this exercise from the session?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: () => {
-          setExercises((prev) => prev.filter((_, i) => i !== exIndex));
-          setSetsMap((prev) => {
-            const updated = {};
-            Object.keys(prev).forEach((k) => {
-              const ki = Number(k);
-              if (ki < exIndex) updated[ki] = prev[k];
-              else if (ki > exIndex) updated[ki - 1] = prev[k];
-            });
-            return updated;
-          });
-        },
-      },
-    ]);
+    setRemoveExIndex(exIndex);
+  };
+
+  const confirmRemoveExercise = () => {
+    const exIndex = removeExIndex;
+    setRemoveExIndex(null);
+    setExercises((prev) => prev.filter((_, i) => i !== exIndex));
+    setSetsMap((prev) => {
+      const updated = {};
+      Object.keys(prev).forEach((k) => {
+        const ki = Number(k);
+        if (ki < exIndex) updated[ki] = prev[k];
+        else if (ki > exIndex) updated[ki - 1] = prev[k];
+      });
+      return updated;
+    });
   };
 
   const updateSets = (exIndex, updater) => {
@@ -243,21 +242,23 @@ export default function FreestyleSessionScreen({ sessionId }) {
   };
 
   const handleFinish = () => {
-    Alert.alert("Finish Session", "Save and finish this session?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Finish", style: "destructive", onPress: finishSession },
-    ]);
+    setConfirmModal({
+      title: "Finalizează sesiunea",
+      body: "Salvezi și închei această sesiune?",
+      actionLabel: "Finalizează",
+      action: finishSession,
+      danger: false,
+    });
   };
 
   const handleDiscard = () => {
-    Alert.alert(
-      "Discard Session",
-      "End this session without saving progress?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Discard", style: "destructive", onPress: finishSession },
-      ]
-    );
+    setConfirmModal({
+      title: "Renunță la sesiune",
+      body: "Închei sesiunea fără a salva progresul?",
+      actionLabel: "Renunță",
+      action: finishSession,
+      danger: true,
+    });
   };
 
   if (!fontsLoaded) return null;
@@ -349,6 +350,52 @@ export default function FreestyleSessionScreen({ sessionId }) {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {/* Confirm modal (finish / discard) */}
+        <Modal visible={!!confirmModal} transparent animationType="fade" onRequestClose={() => setConfirmModal(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={[styles.modalIconWrap, confirmModal?.danger && styles.modalIconWrapDanger]}>
+                <Ionicons
+                  name={confirmModal?.danger ? "trash-outline" : "checkmark-circle-outline"}
+                  size={26}
+                  color={confirmModal?.danger ? Colors.error : Colors.primary}
+                />
+              </View>
+              <Text style={styles.modalTitle}>{confirmModal?.title}</Text>
+              <Text style={styles.modalBody}>{confirmModal?.body}</Text>
+              <TouchableOpacity
+                style={[styles.modalActionBtn, confirmModal?.danger && styles.modalActionBtnDanger]}
+                onPress={() => { const fn = confirmModal?.action; setConfirmModal(null); fn?.(); }}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.modalActionText}>{confirmModal?.actionLabel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setConfirmModal(null)} activeOpacity={0.8}>
+                <Text style={styles.modalCancelText}>Anulează</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Remove exercise modal */}
+        <Modal visible={removeExIndex !== null} transparent animationType="fade" onRequestClose={() => setRemoveExIndex(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalIconWrapDanger}>
+                <Ionicons name="remove-circle-outline" size={26} color={Colors.error} />
+              </View>
+              <Text style={styles.modalTitle}>Elimină exercițiul</Text>
+              <Text style={styles.modalBody}>Elimini acest exercițiu din sesiune?</Text>
+              <TouchableOpacity style={styles.modalActionBtnDanger} onPress={confirmRemoveExercise} activeOpacity={0.85}>
+                <Text style={styles.modalActionText}>Elimină</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setRemoveExIndex(null)} activeOpacity={0.8}>
+                <Text style={styles.modalCancelText}>Anulează</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         <AddExerciseSheet
           visible={showAddExercise}
@@ -517,5 +564,89 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     color: Colors.error,
     letterSpacing: 2,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  modalIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(209,255,0,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  modalIconWrapDanger: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,59,48,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+    textAlign: "center",
+  },
+  modalBody: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  modalActionBtn: {
+    width: "100%",
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  modalActionBtnDanger: {
+    width: "100%",
+    backgroundColor: Colors.error,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  modalActionText: {
+    fontSize: 13,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: "#fff",
+    letterSpacing: 1,
+  },
+  modalCancelBtn: {
+    width: "100%",
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 13,
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
   },
 });

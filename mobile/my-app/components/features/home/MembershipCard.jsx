@@ -16,20 +16,33 @@ export function MembershipCard({ membership }) {
       >
         <View style={styles.emptyIconRow}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="card-outline" size={22} color={Colors.onSurfaceVariant} />
+            <Ionicons
+              name="card-outline"
+              size={22}
+              color={Colors.onSurfaceVariant}
+            />
           </View>
           <View style={styles.emptyArrow}>
-            <Ionicons name="arrow-forward" size={16} color={Colors.background} />
+            <Ionicons
+              name="arrow-forward"
+              size={16}
+              color={Colors.background}
+            />
           </View>
         </View>
         <View style={styles.emptyBody}>
           <Text style={styles.emptyTitle}>Niciun abonament activ</Text>
           <Text style={styles.emptySubtitle}>
-            Descoperă sălile disponibile și alege un abonament potrivit pentru tine.
+            Descoperă sălile disponibile și alege un abonament potrivit pentru
+            tine.
           </Text>
         </View>
         <View style={styles.emptyFooter}>
-          <Ionicons name="location-outline" size={13} color={Colors.onSurfaceVariant} />
+          <Ionicons
+            name="location-outline"
+            size={13}
+            color={Colors.onSurfaceVariant}
+          />
           <Text style={styles.emptyFooterText}>Vezi sălile disponibile</Text>
         </View>
       </TouchableOpacity>
@@ -41,34 +54,38 @@ export function MembershipCard({ membership }) {
         day: "numeric",
         year: "numeric",
       })
-    : "—";
+    : "-";
 
   const tierName = membership?.type_name || "Standard";
-  const gymName = membership?.gym_name || "—";
+  const gymName = membership?.gym_name || "-";
   const status = membership?.status;
   const badgeStyle =
-    status === "active" ? styles.badgeActive
-    : status === "paused" ? styles.badgePaused
-    : styles.badgeInactive;
+    status === "active"
+      ? styles.badgeActive
+      : status === "paused"
+        ? styles.badgePaused
+        : styles.badgeInactive;
   const badgeTextStyle =
-    status === "active" ? styles.badgeTextActive
-    : status === "paused" ? styles.badgeTextPaused
-    : styles.badgeTextInactive;
+    status === "active"
+      ? styles.badgeTextActive
+      : status === "paused"
+        ? styles.badgeTextPaused
+        : styles.badgeTextInactive;
   const badgeLabel =
-    status === "active" ? "Activ"
-    : status === "paused" ? "Pauzat"
-    : "Inactiv";
+    status === "active" ? "Activ" : status === "paused" ? "Pauzat" : "Inactiv";
 
   return (
     <View style={styles.card}>
       <View style={styles.top}>
         <View style={styles.iconBox}>
-          <Ionicons name="diamond-outline" size={22} color={Colors.background} />
+          <Ionicons
+            name="diamond-outline"
+            size={22}
+            color={Colors.background}
+          />
         </View>
         <View style={[styles.badge, badgeStyle]}>
-          <Text style={[styles.badgeText, badgeTextStyle]}>
-            {badgeLabel}
-          </Text>
+          <Text style={[styles.badgeText, badgeTextStyle]}>{badgeLabel}</Text>
         </View>
       </View>
 
@@ -84,7 +101,6 @@ export function MembershipCard({ membership }) {
           <Text style={styles.validLabel}>Valabil până la</Text>
           <Text style={styles.validDate}>{validUntil}</Text>
         </View>
-        <Ionicons name="wifi-outline" size={22} color={Colors.outlineVariant} />
       </View>
     </View>
   );

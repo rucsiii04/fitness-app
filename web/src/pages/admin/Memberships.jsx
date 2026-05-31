@@ -6,6 +6,7 @@ import {
   updateMembershipType,
   issueMembership,
   getGymMemberships,
+  cancelMembership,
 } from "../../api/memberships.js";
 import { searchClients } from "../../api/reception.js";
 import { getClientNoShows, clearClientNoShows } from "../../api/gymAdmin.js";
@@ -38,11 +39,12 @@ const COLORS = [
 ];
 
 const MEMBER_COLUMNS = [
-  { key: "client",   label: "Client" },
-  { key: "plan",     label: "Plan" },
-  { key: "status",   label: "Status" },
+  { key: "client", label: "Client" },
+  { key: "plan", label: "Plan" },
+  { key: "status", label: "Status" },
   { key: "end_date", label: "Valabil până la" },
-  { key: "payment",  label: "Plată" },
+  { key: "payment", label: "Plată" },
+  { key: "actions", label: "" },
 ];
 
 function Toggle({ checked, onChange }) {
@@ -90,7 +92,7 @@ function Toggle({ checked, onChange }) {
           color: checked ? "var(--accent)" : "var(--text-dim)",
         }}
       >
-        {checked ? "Da — inclusă" : "Nu — neinclusă"}
+        {checked ? "Da - inclusă" : "Nu - neinclusă"}
       </span>
     </button>
   );
@@ -132,7 +134,7 @@ function PlanFormFields({ form, setForm }) {
       </div>
       <Field
         label="Zile de pauză"
-        hint="Zile în care membrul poate pausa abonamentul"
+        hint="Zile în care membrul poate suspenda abonamentul"
       >
         <Input
           type="number"
@@ -151,7 +153,7 @@ function PlanFormFields({ form, setForm }) {
           }
         />
       </Field>
-      <Field label="Descriere" hint="Opțional — vizibil pentru membri">
+      <Field label="Descriere" hint="Opțional - vizibil pentru membri">
         <Input
           placeholder="Acces nelimitat la toate clasele..."
           value={form.description}
@@ -179,7 +181,7 @@ const STATUS_TONE = {
 const PAYMENT_LABEL = { cash: "Cash", card: "Card" };
 
 function formatDate(d) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("ro-RO", {
     day: "2-digit",
     month: "short",
@@ -200,8 +202,11 @@ export default function AdminMemberships() {
   const [membersLoading, setMembersLoading] = useState(false);
 
   // no-show modal
+  const [cancelTarget, setCancelTarget] = useState(null); // { membershipId, name }
+  const [cancelledDetail, setCancelledDetail] = useState(null); // { name, reason, plan, date }
+  const [cancelReason, setCancelReason] = useState("");
   const [noShowClient, setNoShowClient] = useState(null); // { clientId, name }
-  const [noShowData, setNoShowData] = useState(null);     // { count, blocked, no_shows }
+  const [noShowData, setNoShowData] = useState(null); // { count, blocked, no_shows }
   const [noShowLoading, setNoShowLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [membersStatus, setMembersStatus] = useState("active,paused");
@@ -350,15 +355,17 @@ export default function AdminMemberships() {
   };
 
   // filtered members for search
-  const filteredMembers = membersSearch.trim().length < 1
-    ? members
-    : members.filter((m) => {
-        const q = membersSearch.toLowerCase();
-        const name = `${m.User?.first_name ?? ""} ${m.User?.last_name ?? ""}`.toLowerCase();
-        const email = (m.User?.email ?? "").toLowerCase();
-        const plan = (m.Membership_Type?.name ?? "").toLowerCase();
-        return name.includes(q) || email.includes(q) || plan.includes(q);
-      });
+  const filteredMembers =
+    membersSearch.trim().length < 1
+      ? members
+      : members.filter((m) => {
+          const q = membersSearch.toLowerCase();
+          const name =
+            `${m.User?.first_name ?? ""} ${m.User?.last_name ?? ""}`.toLowerCase();
+          const email = (m.User?.email ?? "").toLowerCase();
+          const plan = (m.Membership_Type?.name ?? "").toLowerCase();
+          return name.includes(q) || email.includes(q) || plan.includes(q);
+        });
 
   const statusSortable = membersStatus === ""; // only in "Toți"
 
@@ -380,7 +387,8 @@ export default function AdminMemberships() {
     }
   }, [membersStatus]);
 
-  const effectiveSortKey = sortKey === "status" && !statusSortable ? "end_date" : sortKey;
+  const effectiveSortKey =
+    sortKey === "status" && !statusSortable ? "end_date" : sortKey;
 
   const sortedMembers = useMemo(() => {
     const arr = [...filteredMembers];
@@ -388,8 +396,10 @@ export default function AdminMemberships() {
       let aVal, bVal;
       switch (effectiveSortKey) {
         case "client":
-          aVal = `${a.User?.first_name ?? ""} ${a.User?.last_name ?? ""}`.toLowerCase();
-          bVal = `${b.User?.first_name ?? ""} ${b.User?.last_name ?? ""}`.toLowerCase();
+          aVal =
+            `${a.User?.first_name ?? ""} ${a.User?.last_name ?? ""}`.toLowerCase();
+          bVal =
+            `${b.User?.first_name ?? ""} ${b.User?.last_name ?? ""}`.toLowerCase();
           break;
         case "plan":
           aVal = (a.Membership_Type?.name ?? "").toLowerCase();
@@ -424,6 +434,19 @@ export default function AdminMemberships() {
     { key: "", label: "Toți" },
   ];
 
+  const handleCancelMembership = async () => {
+    if (!cancelTarget || !cancelReason.trim()) return;
+    try {
+      await cancelMembership(cancelTarget.membershipId, cancelReason.trim());
+      toast("Abonamentul a fost anulat");
+      setCancelTarget(null);
+      setCancelReason("");
+      loadMembers();
+    } catch (err) {
+      toast(err.response?.data?.message || "Eroare la anulare", "coral");
+    }
+  };
+
   const openNoShowModal = async (clientId, name) => {
     setNoShowClient({ clientId, name });
     setNoShowData(null);
@@ -443,10 +466,18 @@ export default function AdminMemberships() {
     setClearing(true);
     try {
       await clearClientNoShows(noShowClient.clientId);
-      setNoShowData((prev) => ({ ...prev, count: 0, blocked: false, no_shows: [] }));
+      setNoShowData((prev) => ({
+        ...prev,
+        count: 0,
+        blocked: false,
+        no_shows: [],
+      }));
       toast(`Absențele lui ${noShowClient.name} de la sala ta au fost șterse.`);
     } catch (err) {
-      toast(err.response?.data?.message || "Eroare la ștergerea istoricului.", "coral");
+      toast(
+        err.response?.data?.message || "Eroare la ștergerea istoricului.",
+        "coral",
+      );
     } finally {
       setClearing(false);
     }
@@ -456,7 +487,11 @@ export default function AdminMemberships() {
     <>
       <TopBar
         title="Abonamente"
-        eyebrow={tab === "plans" ? `${plans.length} planuri disponibile` : `${members.length} clienți`}
+        eyebrow={
+          tab === "plans"
+            ? `${plans.length} planuri disponibile`
+            : `${members.length} clienți`
+        }
         actions={
           <div style={{ display: "flex", gap: 8 }}>
             {/* Tab switcher */}
@@ -486,7 +521,8 @@ export default function AdminMemberships() {
                     textTransform: "uppercase",
                     letterSpacing: 0.04,
                     background: tab === t.key ? "var(--accent)" : "transparent",
-                    color: tab === t.key ? "var(--accent-ink)" : "var(--text-muted)",
+                    color:
+                      tab === t.key ? "var(--accent-ink)" : "var(--text-muted)",
                     border: "none",
                     cursor: "pointer",
                     transition: "background .15s, color .15s",
@@ -515,9 +551,23 @@ export default function AdminMemberships() {
 
       {/* ── MEMBERS TAB ── */}
       {tab === "members" && (
-        <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div
+          style={{
+            padding: 32,
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
           {/* Status filter + search */}
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
             <div style={{ display: "flex", gap: 6 }}>
               {memberStatusTabs.map((t) => (
                 <button
@@ -531,8 +581,12 @@ export default function AdminMemberships() {
                     fontFamily: "var(--display)",
                     textTransform: "uppercase",
                     letterSpacing: 0.06,
-                    background: membersStatus === t.key ? "var(--accent)" : "transparent",
-                    color: membersStatus === t.key ? "var(--accent-ink)" : "var(--text-muted)",
+                    background:
+                      membersStatus === t.key ? "var(--accent)" : "transparent",
+                    color:
+                      membersStatus === t.key
+                        ? "var(--accent-ink)"
+                        : "var(--text-muted)",
                     border: `1px solid ${membersStatus === t.key ? "var(--accent)" : "var(--border-strong)"}`,
                     cursor: "pointer",
                   }}
@@ -555,7 +609,11 @@ export default function AdminMemberships() {
                 flex: "0 0 220px",
               }}
             >
-              <I.search width={13} height={13} style={{ color: "var(--text-dim)", flexShrink: 0 }} />
+              <I.search
+                width={13}
+                height={13}
+                style={{ color: "var(--text-dim)", flexShrink: 0 }}
+              />
               <input
                 value={membersSearch}
                 onChange={(e) => setMembersSearch(e.target.value)}
@@ -572,7 +630,11 @@ export default function AdminMemberships() {
               {membersSearch && (
                 <button
                   onClick={() => setMembersSearch("")}
-                  style={{ color: "var(--text-dim)", display: "flex", padding: 0 }}
+                  style={{
+                    color: "var(--text-dim)",
+                    display: "flex",
+                    padding: 0,
+                  }}
                 >
                   <I.close width={12} height={12} />
                 </button>
@@ -582,13 +644,28 @@ export default function AdminMemberships() {
 
           {/* Table */}
           {membersLoading ? (
-            <div style={{ textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--mono)", fontSize: 12, padding: "40px 0" }}>
+            <div
+              style={{
+                textAlign: "center",
+                color: "var(--text-dim)",
+                fontFamily: "var(--mono)",
+                fontSize: 12,
+                padding: "40px 0",
+              }}
+            >
               Se încarcă...
             </div>
           ) : filteredMembers.length === 0 ? (
             <div style={{ padding: "64px 0", textAlign: "center" }}>
-              <I.users width={32} height={32} style={{ opacity: 0.2, marginBottom: 12 }} />
-              <div className="display upper" style={{ fontSize: 14, color: "var(--text-muted)" }}>
+              <I.users
+                width={32}
+                height={32}
+                style={{ opacity: 0.2, marginBottom: 12 }}
+              />
+              <div
+                className="display upper"
+                style={{ fontSize: 14, color: "var(--text-muted)" }}
+              >
                 Niciun abonament găsit
               </div>
             </div>
@@ -619,7 +696,13 @@ export default function AdminMemberships() {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
                             {col.label}
                             {!disabled && (
                               <I.arrowUp
@@ -627,7 +710,10 @@ export default function AdminMemberships() {
                                 height={10}
                                 style={{
                                   opacity: active ? 1 : 0.25,
-                                  transform: active && sortDir === "desc" ? "rotate(180deg)" : "rotate(0deg)",
+                                  transform:
+                                    active && sortDir === "desc"
+                                      ? "rotate(180deg)"
+                                      : "rotate(0deg)",
                                   transition: "transform .15s, opacity .15s",
                                   flexShrink: 0,
                                 }}
@@ -643,35 +729,71 @@ export default function AdminMemberships() {
                   {sortedMembers.map((m, idx) => {
                     const client = m.User || {};
                     const plan = m.Membership_Type || {};
-                    const name = `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim() || "—";
+                    const name =
+                      `${client.first_name ?? ""} ${client.last_name ?? ""}`.trim() ||
+                      "-";
+                    const isActive = m.status === "active" || m.status === "paused";
+                    const isCancelled = m.status === "cancelled";
+                    const isClickable = isActive || isCancelled;
                     return (
                       <tr
                         key={m.membership_id}
-                        onClick={() => openNoShowModal(client.user_id, name)}
-                        style={{
-                          borderBottom: idx < sortedMembers.length - 1 ? "1px solid var(--border-soft)" : "none",
-                          cursor: "pointer",
+                        onClick={() => {
+                          if (isActive) openNoShowModal(client.user_id, name);
+                          else if (isCancelled) setCancelledDetail({ name, reason: m.cancelled_reason, plan: plan.name, date: m.end_date });
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        style={{
+                          borderBottom:
+                            idx < sortedMembers.length - 1
+                              ? "1px solid var(--border-soft)"
+                              : "none",
+                          cursor: isClickable ? "pointer" : "default",
+                          opacity: m.status === "cancelled" || m.status === "expired" ? 0.55 : 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isClickable) e.currentTarget.style.background = "var(--surface-2)";
+                        }}
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "transparent")
+                        }
                       >
                         {/* Client */}
                         <td style={{ padding: "12px 16px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
                             <Avatar name={name} size={32} />
                             <div>
-                              <div style={{ fontSize: 13, fontWeight: 600 }}>{name}</div>
-                              <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)" }}>
-                                {client.email ?? "—"}
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                {name}
+                              </div>
+                              <div
+                                className="mono"
+                                style={{
+                                  fontSize: 10,
+                                  color: "var(--text-dim)",
+                                }}
+                              >
+                                {client.email ?? "-"}
                               </div>
                             </div>
                           </div>
                         </td>
                         {/* Plan */}
                         <td style={{ padding: "12px 16px" }}>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>{plan.name ?? "—"}</div>
-                          <div className="mono" style={{ fontSize: 10, color: "var(--text-dim)" }}>
-                            RON {plan.price ?? "—"} · {plan.duration_days ?? "—"}z
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>
+                            {plan.name ?? "-"}
+                          </div>
+                          <div
+                            className="mono"
+                            style={{ fontSize: 10, color: "var(--text-dim)" }}
+                          >
+                            RON {plan.price ?? "-"} ·{" "}
+                            {plan.duration_days ?? "-"}z
                           </div>
                         </td>
                         {/* Status */}
@@ -682,15 +804,50 @@ export default function AdminMemberships() {
                         </td>
                         {/* End date */}
                         <td style={{ padding: "12px 16px" }}>
-                          <div className="mono" style={{ fontSize: 12, color: m.status === "expired" || m.status === "cancelled" ? "var(--text-dim)" : "var(--text)" }}>
+                          <div
+                            className="mono"
+                            style={{
+                              fontSize: 12,
+                              color:
+                                m.status === "expired" ||
+                                m.status === "cancelled"
+                                  ? "var(--text-dim)"
+                                  : "var(--text)",
+                            }}
+                          >
                             {formatDate(m.end_date)}
                           </div>
                         </td>
                         {/* Payment */}
                         <td style={{ padding: "12px 16px" }}>
-                          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                            {PAYMENT_LABEL[m.payment_method] ?? m.payment_method ?? "—"}
+                          <div
+                            style={{ fontSize: 12, color: "var(--text-muted)" }}
+                          >
+                            {PAYMENT_LABEL[m.payment_method] ??
+                              m.payment_method ??
+                              "-"}
                           </div>
+                        </td>
+                        {/* Actions */}
+                        <td style={{ padding: "12px 16px" }} onClick={(e) => e.stopPropagation()}>
+                          {(m.status === "active" || m.status === "paused") && (
+                            <button
+                              onClick={() => setCancelTarget({ membershipId: m.membership_id, name })}
+                              style={{
+                                background: "transparent",
+                                border: "1px solid rgba(255,85,102,.3)",
+                                borderRadius: 6,
+                                color: "var(--red)",
+                                fontSize: 11,
+                                fontFamily: "var(--mono)",
+                                padding: "4px 10px",
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              Anulează
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -704,212 +861,215 @@ export default function AdminMemberships() {
 
       {/* ── PLANS TAB ── */}
       {tab === "plans" && (
-      <div
-        style={{
-          padding: 32,
-          display: "flex",
-          flexDirection: "column",
-          gap: 24,
-        }}
-      >
-        {loading && (
-          <div
-            style={{
-              textAlign: "center",
-              color: "var(--text-dim)",
-              fontFamily: "var(--mono)",
-              fontSize: 12,
-              padding: "40px 0",
-            }}
-          >
-            Se încarcă...
-          </div>
-        )}
-
-        {!loading && !gymId && (
-          <div
-            style={{
-              padding: "64px 0",
-              textAlign: "center",
-              color: "var(--text-dim)",
-            }}
-          >
-            Nicio sală atribuită.
-          </div>
-        )}
-
-        {plans.length > 0 && (
-          <div>
-            <div className="eyebrow" style={{ marginBottom: 14 }}>
-              Planuri active
-            </div>
+        <div
+          style={{
+            padding: 32,
+            display: "flex",
+            flexDirection: "column",
+            gap: 24,
+          }}
+        >
+          {loading && (
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                gap: 14,
+                textAlign: "center",
+                color: "var(--text-dim)",
+                fontFamily: "var(--mono)",
+                fontSize: 12,
+                padding: "40px 0",
               }}
             >
-              {plans.map((m, i) => {
-                const isElite = i === 0;
-                return (
-                  <div
-                    key={m.membership_type_id}
-                    className="card"
-                    style={{
-                      padding: 20,
-                      position: "relative",
-                      borderColor: isElite
-                        ? "rgba(224,251,76,.4)"
-                        : "var(--border)",
-                      background: isElite
-                        ? "linear-gradient(180deg, rgba(224,251,76,.06), var(--surface))"
-                        : "var(--surface)",
-                    }}
-                  >
-                    {isElite && (
-                      <Pill
-                        tone="accent"
-                        style={{ position: "absolute", top: 16, right: 16 }}
-                      >
-                        Top plan
-                      </Pill>
-                    )}
+              Se încarcă...
+            </div>
+          )}
+
+          {!loading && !gymId && (
+            <div
+              style={{
+                padding: "64px 0",
+                textAlign: "center",
+                color: "var(--text-dim)",
+              }}
+            >
+              Nicio sală atribuită.
+            </div>
+          )}
+
+          {plans.length > 0 && (
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 14 }}>
+                Planuri active
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+                  gap: 14,
+                }}
+              >
+                {plans.map((m, i) => {
+                  const isElite = i === 0;
+                  return (
                     <div
-                      className="display upper"
+                      key={m.membership_type_id}
+                      className="card"
                       style={{
-                        fontSize: 14,
-                        letterSpacing: 0.04,
-                        marginBottom: 8,
-                        color: isElite ? "var(--accent)" : "var(--text)",
+                        padding: 20,
+                        position: "relative",
+                        borderColor: isElite
+                          ? "rgba(224,251,76,.4)"
+                          : "var(--border)",
+                        background: isElite
+                          ? "linear-gradient(180deg, rgba(224,251,76,.06), var(--surface))"
+                          : "var(--surface)",
                       }}
                     >
-                      {m.name}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 4,
-                        marginBottom: 10,
-                      }}
-                    >
+                      {isElite && (
+                        <Pill
+                          tone="accent"
+                          style={{ position: "absolute", top: 16, right: 16 }}
+                        >
+                          Top plan
+                        </Pill>
+                      )}
                       <div
-                        className="display"
+                        className="display upper"
                         style={{
-                          fontSize: 30,
+                          fontSize: 14,
+                          letterSpacing: 0.04,
+                          marginBottom: 8,
                           color: isElite ? "var(--accent)" : "var(--text)",
                         }}
                       >
-                        RON {m.price}
+                        {m.name}
                       </div>
-                      <div
-                        className="mono"
-                        style={{ fontSize: 11, color: "var(--text-dim)" }}
-                      >
-                        / {m.duration_days}d
-                      </div>
-                    </div>
-
-                    {/* feature badges */}
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        flexWrap: "wrap",
-                        marginBottom: 10,
-                      }}
-                    >
-                      {m.includes_group_classes ? (
-                        <Pill tone="teal">Clase de grup</Pill>
-                      ) : (
-                        <Pill tone="muted">Fără clase de grup</Pill>
-                      )}
-                      <Pill tone="muted">{m.freeze_days ?? 0} zile pauză</Pill>
-                    </div>
-
-                    {m.description && (
                       <div
                         style={{
-                          fontSize: 12,
-                          color: "var(--text-muted)",
-                          marginBottom: 12,
-                          lineHeight: 1.4,
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: 4,
+                          marginBottom: 10,
                         }}
                       >
-                        {m.description}
+                        <div
+                          className="display"
+                          style={{
+                            fontSize: 30,
+                            color: isElite ? "var(--accent)" : "var(--text)",
+                          }}
+                        >
+                          RON {m.price}
+                        </div>
+                        <div
+                          className="mono"
+                          style={{ fontSize: 11, color: "var(--text-dim)" }}
+                        >
+                          / {m.duration_days}d
+                        </div>
                       </div>
-                    )}
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <Btn
-                        variant="ghost"
-                        size="sm"
-                        icon={<I.edit />}
-                        style={{ flex: 1 }}
-                        onClick={() => openEdit(m)}
+
+                      {/* feature badges */}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 6,
+                          flexWrap: "wrap",
+                          marginBottom: 10,
+                        }}
                       >
-                        Editează
-                      </Btn>
+                        {m.includes_group_classes ? (
+                          <Pill tone="teal">Clase de grup</Pill>
+                        ) : (
+                          <Pill tone="muted">Fără clase de grup</Pill>
+                        )}
+                        <Pill tone="muted">
+                          {m.freeze_days ?? 0} zile pauză
+                        </Pill>
+                      </div>
+
+                      {m.description && (
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: "var(--text-muted)",
+                            marginBottom: 12,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {m.description}
+                        </div>
+                      )}
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <Btn
+                          variant="ghost"
+                          size="sm"
+                          icon={<I.edit />}
+                          style={{ flex: 1 }}
+                          onClick={() => openEdit(m)}
+                        >
+                          Editează
+                        </Btn>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
 
-              <button
-                onClick={openCreate}
+                <button
+                  onClick={openCreate}
+                  style={{
+                    padding: 20,
+                    border: "2px dashed var(--border-strong)",
+                    borderRadius: "var(--radius)",
+                    background: "transparent",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    color: "var(--text-muted)",
+                    minHeight: 160,
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => (
+                    (e.currentTarget.style.borderColor = "var(--accent)"),
+                    (e.currentTarget.style.color = "var(--accent)")
+                  )}
+                  onMouseLeave={(e) => (
+                    (e.currentTarget.style.borderColor =
+                      "var(--border-strong)"),
+                    (e.currentTarget.style.color = "var(--text-muted)")
+                  )}
+                >
+                  <I.plus width={24} height={24} />
+                  <div className="eyebrow">Plan nou</div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!loading && gymId && plans.length === 0 && (
+            <div style={{ padding: "64px 0", textAlign: "center" }}>
+              <I.card
+                width={32}
+                height={32}
+                style={{ opacity: 0.2, marginBottom: 12 }}
+              />
+              <div
+                className="display upper"
                 style={{
-                  padding: 20,
-                  border: "2px dashed var(--border-strong)",
-                  borderRadius: "var(--radius)",
-                  background: "transparent",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
+                  fontSize: 14,
                   color: "var(--text-muted)",
-                  minHeight: 160,
-                  cursor: "pointer",
+                  marginBottom: 12,
                 }}
-                onMouseEnter={(e) => (
-                  (e.currentTarget.style.borderColor = "var(--accent)"),
-                  (e.currentTarget.style.color = "var(--accent)")
-                )}
-                onMouseLeave={(e) => (
-                  (e.currentTarget.style.borderColor = "var(--border-strong)"),
-                  (e.currentTarget.style.color = "var(--text-muted)")
-                )}
               >
-                <I.plus width={24} height={24} />
-                <div className="eyebrow">Plan nou</div>
-              </button>
+                Niciun plan încă
+              </div>
+              <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
+                Creează primul plan
+              </Btn>
             </div>
-          </div>
-        )}
-
-        {!loading && gymId && plans.length === 0 && (
-          <div style={{ padding: "64px 0", textAlign: "center" }}>
-            <I.card
-              width={32}
-              height={32}
-              style={{ opacity: 0.2, marginBottom: 12 }}
-            />
-            <div
-              className="display upper"
-              style={{
-                fontSize: 14,
-                color: "var(--text-muted)",
-                marginBottom: 12,
-              }}
-            >
-              Niciun plan încă
-            </div>
-            <Btn variant="primary" icon={<I.plus />} onClick={openCreate}>
-              Creează primul plan
-            </Btn>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* Create / Edit plan modal */}
@@ -1141,10 +1301,10 @@ export default function AdminMemberships() {
               }}
               required
             >
-              <option value="">— Selectează planul —</option>
+              <option value="">- Selectează planul -</option>
               {plans.map((p) => (
                 <option key={p.membership_type_id} value={p.membership_type_id}>
-                  {p.name} — RON {p.price}
+                  {p.name} - RON {p.price}
                 </option>
               ))}
             </select>
@@ -1212,6 +1372,73 @@ export default function AdminMemberships() {
         </form>
       </Modal>
 
+      {/* ── CANCELLED DETAIL MODAL ── */}
+      <Modal
+        open={!!cancelledDetail}
+        onClose={() => setCancelledDetail(null)}
+        title={cancelledDetail?.name ?? ""}
+        width={400}
+      >
+        <div style={{ padding: "20px 24px 28px", display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ padding: "14px 16px", borderRadius: 10, background: "rgba(255,85,102,.08)", border: "1px solid rgba(255,85,102,.2)" }}>
+            <div className="eyebrow" style={{ fontSize: 10, color: "var(--red)", marginBottom: 6 }}>Abonament anulat</div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>{cancelledDetail?.plan}</div>
+            {cancelledDetail?.date && (
+              <div className="mono" style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 4 }}>
+                Anulat pe {formatDate(cancelledDetail.date)}
+              </div>
+            )}
+          </div>
+          <div>
+            <div className="eyebrow" style={{ fontSize: 10, marginBottom: 6 }}>Motiv anulare</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
+              {cancelledDetail?.reason || "Niciun motiv specificat."}
+            </div>
+          </div>
+          <Btn variant="outline" style={{ alignSelf: "flex-end" }} onClick={() => setCancelledDetail(null)}>
+            Închide
+          </Btn>
+        </div>
+      </Modal>
+
+      {/* ── CANCEL MEMBERSHIP MODAL ── */}
+      <Modal
+        open={!!cancelTarget}
+        onClose={() => { setCancelTarget(null); setCancelReason(""); }}
+        title="Anulează abonament"
+        width={420}
+      >
+        <div style={{ padding: "20px 24px 28px", display: "flex", flexDirection: "column", gap: 20 }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.7, textAlign: "center", margin: 0 }}>
+            Anulezi abonamentul lui{" "}
+            <strong style={{ color: "var(--text)" }}>{cancelTarget?.name}</strong>.
+            <br />Acțiunea este ireversibilă.
+          </p>
+          <Field label="Motiv anulare">
+            <Input
+              placeholder="ex: cerere client, fraudă, etc."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              autoFocus
+            />
+          </Field>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn variant="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setCancelTarget(null); setCancelReason(""); }}>
+              Renunță
+            </Btn>
+            <Btn
+              variant="primary"
+              style={{ flex: 1, justifyContent: "center", background: "var(--red)", borderColor: "var(--red)" }}
+              icon={<I.close />}
+              disabled={!cancelReason.trim()}
+              onClick={handleCancelMembership}
+            >
+              Anulează
+            </Btn>
+          </div>
+        </div>
+      </Modal>
+
       {/* ── NO-SHOW MODAL ── */}
       <Modal
         open={!!noShowClient}
@@ -1220,57 +1447,150 @@ export default function AdminMemberships() {
       >
         <div style={{ padding: "0 20px 24px", minWidth: 340 }}>
           {noShowLoading ? (
-            <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text-dim)", fontFamily: "var(--mono)", fontSize: 12 }}>
+            <div
+              style={{
+                padding: "40px 0",
+                textAlign: "center",
+                color: "var(--text-dim)",
+                fontFamily: "var(--mono)",
+                fontSize: 12,
+              }}
+            >
               Se încarcă...
             </div>
           ) : noShowData ? (
             <>
+              {/* Cancelled banner */}
+              {noShowData.membership_status === "cancelled" && (
+                <div style={{ padding: "12px 14px", borderRadius: 10, marginBottom: 20, background: "rgba(255,85,102,.08)", border: "1px solid rgba(255,85,102,.25)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--red)", fontFamily: "var(--display)", textTransform: "uppercase", letterSpacing: 0.04, marginBottom: 4 }}>
+                    Abonament anulat
+                  </div>
+                  {noShowData.cancelled_reason && (
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                      Motiv: {noShowData.cancelled_reason}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Blocked banner */}
-              {noShowData.blocked ? (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "12px 14px", borderRadius: 10, marginBottom: 20,
-                  background: "rgba(255,80,60,.08)", border: "1px solid rgba(255,80,60,.25)",
-                }}>
-                  <I.close width={14} height={14} style={{ color: "var(--coral)", flexShrink: 0 }} />
+              {noShowData.membership_status !== "cancelled" && (noShowData.blocked ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    marginBottom: 20,
+                    background: "rgba(255,80,60,.08)",
+                    border: "1px solid rgba(255,80,60,.25)",
+                  }}
+                >
+                  <I.close
+                    width={14}
+                    height={14}
+                    style={{ color: "var(--coral)", flexShrink: 0 }}
+                  />
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "var(--coral)", fontFamily: "var(--display)", textTransform: "uppercase", letterSpacing: 0.04 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--coral)",
+                        fontFamily: "var(--display)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.04,
+                      }}
+                    >
                       Înscrierea blocată
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 2 }}>
-                      {noShowData.count} absențe nemotivate — limita este 3
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--text-dim)",
+                        marginTop: 2,
+                      }}
+                    >
+                      {noShowData.count} absențe nemotivate - limita este 3
                     </div>
                   </div>
                 </div>
               ) : (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "12px 14px", borderRadius: 10, marginBottom: 20,
-                  background: "rgba(224,251,76,.06)", border: "1px solid rgba(224,251,76,.2)",
-                }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--display)", textTransform: "uppercase", letterSpacing: 0.04 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    marginBottom: 20,
+                    background: "rgba(224,251,76,.06)",
+                    border: "1px solid rgba(224,251,76,.2)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: "var(--accent)",
+                      fontFamily: "var(--display)",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.04,
+                    }}
+                  >
                     Activ · {noShowData.count} absențe
                   </div>
                 </div>
+              )
               )}
 
               {/* No-show list */}
               {noShowData.no_shows.length > 0 ? (
                 <>
-                  <div className="eyebrow" style={{ fontSize: 9, marginBottom: 10 }}>Sesiuni ratate</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+                  <div
+                    className="eyebrow"
+                    style={{ fontSize: 9, marginBottom: 10 }}
+                  >
+                    Sesiuni ratate
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                      marginBottom: 20,
+                    }}
+                  >
                     {noShowData.no_shows.map((ns) => {
                       const dt = new Date(ns.start_datetime);
-                      const dateStr = dt.toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" });
+                      const dateStr = dt.toLocaleDateString("ro-RO", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      });
                       const timeStr = `${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
                       return (
-                        <div key={ns.enrollment_id} style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          padding: "10px 14px", borderRadius: 8,
-                          background: "var(--surface-2)", border: "1px solid var(--border-soft)",
-                        }}>
-                          <div style={{ fontSize: 13, fontWeight: 500 }}>{ns.class_name}</div>
-                          <div className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                        <div
+                          key={ns.enrollment_id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "10px 14px",
+                            borderRadius: 8,
+                            background: "var(--surface-2)",
+                            border: "1px solid var(--border-soft)",
+                          }}
+                        >
+                          <div style={{ fontSize: 13, fontWeight: 500 }}>
+                            {ns.class_name}
+                          </div>
+                          <div
+                            className="mono"
+                            style={{ fontSize: 11, color: "var(--text-dim)" }}
+                          >
                             {dateStr} · {timeStr}
                           </div>
                         </div>
@@ -1279,12 +1599,19 @@ export default function AdminMemberships() {
                   </div>
                 </>
               ) : (
-                <div style={{ fontSize: 13, color: "var(--text-dim)", marginBottom: 20, textAlign: "center" }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--text-dim)",
+                    marginBottom: 20,
+                    textAlign: "center",
+                  }}
+                >
                   Nicio absență înregistrată.
                 </div>
               )}
 
-              {/* Clear button — only if there are no-shows */}
+              {/* Clear button - only if there are no-shows */}
               {noShowData.count > 0 && (
                 <Btn
                   variant={noShowData.blocked ? "primary" : "outline"}

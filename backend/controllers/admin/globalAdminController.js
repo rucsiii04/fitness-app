@@ -48,7 +48,7 @@ export const controller = {
       await transporter.sendMail({
         from: "Kinetic Fitness",
         to: gymAdmin.email,
-        subject: "Contul tău de administrator a fost creat — setează-ți parola",
+        subject: "Contul tău de administrator a fost creat - setează-ți parola",
         html: `
           <p>Salut ${gymAdmin.first_name},</p>
           <p>Contul tău de <strong>administrator de sală</strong> pe <strong>Kinetic</strong> a fost creat.</p>

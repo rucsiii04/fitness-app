@@ -34,14 +34,14 @@ export default function QRScreen() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || "Failed to generate QR");
+        setError(data.message || "Eroare la generarea QR");
         return;
       }
       const exp = new Date(Date.now() + 5 * 60 * 1000);
       setQrToken(data.token);
       setExpiresAt(exp);
     } catch {
-      setError("Network error");
+      setError("Eroare de rețea");
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ export default function QRScreen() {
     <ScreenBackground>
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>GYM ACCESS</Text>
+          <Text style={styles.headerTitle}>ACCES SALĂ</Text>
         </View>
 
         <View style={styles.body}>
@@ -114,12 +114,12 @@ export default function QRScreen() {
                     isExpiringSoon && styles.timerTextUrgent,
                   ]}
                 >
-                  Expires in {formatTime(secondsLeft)}
+                  Expiră în {formatTime(secondsLeft)}
                 </Text>
               </View>
 
               <Text style={styles.hint}>
-                Show this code at the front desk to enter
+                Prezintă acest cod la recepție pentru a intra
               </Text>
             </View>
           )}
@@ -131,9 +131,9 @@ export default function QRScreen() {
                 size={64}
                 color={Colors.outlineVariant}
               />
-              <Text style={styles.emptyTitle}>NO ACTIVE QR</Text>
+              <Text style={styles.emptyTitle}>NICIUN QR ACTIV</Text>
               <Text style={styles.emptySubtitle}>
-                Generate a code to check in at the gym
+                Generează un cod pentru a te înregistra la sală
               </Text>
             </View>
           )}
@@ -150,7 +150,7 @@ export default function QRScreen() {
               color={Colors.background}
             />
             <Text style={styles.generateBtnText}>
-              {qrToken ? "REGENERATE" : "GENERATE QR"}
+              {qrToken ? "REGENEREAZĂ" : "GENEREAZĂ QR"}
             </Text>
           </TouchableOpacity>
         </View>

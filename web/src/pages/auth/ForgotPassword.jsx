@@ -20,7 +20,7 @@ export default function ForgotPassword() {
       await requestPasswordReset(email);
       setSent(true);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Ceva nu a mers. Te rugăm să încerci din nou.");
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ export default function ForgotPassword() {
                 verticalAlign: "middle",
               }}
             />
-            Secure Recovery · Encrypted end-to-end
+            Recuperare Securizată · Criptat End-to-End
           </div>
           <div
             className="display"
@@ -159,11 +159,11 @@ export default function ForgotPassword() {
               marginBottom: 12,
             }}
           >
-            Reset.
+            Resetare.
             <br />
-            Reload.
+            Reîncărcare.
             <br />
-            <span style={{ color: "var(--accent)" }}>Return.</span>
+            <span style={{ color: "var(--accent)" }}>Revenire.</span>
           </div>
           <div
             style={{
@@ -173,7 +173,7 @@ export default function ForgotPassword() {
               lineHeight: 1.5,
             }}
           >
-            A quick flow to get you back on the floor. No delays. No detours.
+            Un proces rapid pentru a te readuce în sală. Fără întârzieri. Fără ocolișuri.
           </div>
         </div>
         <div style={{ flex: 1 }} />
@@ -199,7 +199,7 @@ export default function ForgotPassword() {
                   marginBottom: 10,
                 }}
               >
-                STEP 01 · REQUEST
+                PAS 01 · SOLICITARE
               </div>
               <h1
                 className="display upper"
@@ -210,9 +210,9 @@ export default function ForgotPassword() {
                   lineHeight: 1,
                 }}
               >
-                Forgot
+                Ai uitat
                 <br />
-                password?
+                parola?
               </h1>
               <p
                 style={{
@@ -222,20 +222,19 @@ export default function ForgotPassword() {
                   lineHeight: 1.5,
                 }}
               >
-                Enter the email tied to your Kinetic account. We'll send a reset
-                link.
+                Introdu emailul asociat contului tău Kinetic. Îți vom trimite un link de resetare.
               </p>
               <form
                 onSubmit={handleSubmit}
                 style={{ display: "flex", flexDirection: "column", gap: 16 }}
               >
-                <Field label="Email Address" error={error}>
+                <Field label="Adresă Email" error={error}>
                   <Input
                     icon={<I.mail />}
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@kinetic.ro"
+                    placeholder="tu@kinetic.ro"
                     autoFocus
                     required
                   />
@@ -248,7 +247,7 @@ export default function ForgotPassword() {
                   disabled={loading}
                   style={{ width: "100%", justifyContent: "center" }}
                 >
-                  {loading ? "Sending..." : "Send Reset Link"}
+                  {loading ? "Se trimite..." : "Trimite Link de Resetare"}
                 </Btn>
                 <div style={{ textAlign: "center" }}>
                   <Link
@@ -259,7 +258,7 @@ export default function ForgotPassword() {
                       textDecoration: "none",
                     }}
                   >
-                    ← Back to login
+                    ← Înapoi la autentificare
                   </Link>
                 </div>
               </form>
@@ -275,7 +274,7 @@ export default function ForgotPassword() {
                   marginBottom: 10,
                 }}
               >
-                STEP 02 · CHECK INBOX
+                PAS 02 · VERIFICĂ INBOX-UL
               </div>
               <div
                 style={{
@@ -301,9 +300,9 @@ export default function ForgotPassword() {
                   lineHeight: 1,
                 }}
               >
-                Check
+                Verifică
                 <br />
-                your inbox.
+                inbox-ul.
               </h1>
               <p
                 style={{
@@ -313,9 +312,9 @@ export default function ForgotPassword() {
                   lineHeight: 1.5,
                 }}
               >
-                We sent a recovery link to{" "}
-                <b style={{ color: "var(--text)" }}>{email}</b>. The link
-                expires in 30 minutes.
+                Am trimis un link de recuperare la{" "}
+                <b style={{ color: "var(--text)" }}>{email}</b>. Link-ul
+                expiră în 30 de minute.
               </p>
               <div
                 style={{
@@ -335,7 +334,7 @@ export default function ForgotPassword() {
                   style={{ color: "var(--text-dim)", flexShrink: 0 }}
                 />
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  Check spam if you don't see it within a minute.
+                  Verifică spam dacă nu îl vezi în câteva minute.
                 </div>
               </div>
               <Link to="/login">
@@ -345,7 +344,7 @@ export default function ForgotPassword() {
                   icon={<I.chevL />}
                   style={{ width: "100%", justifyContent: "center" }}
                 >
-                  Back to login
+                  Înapoi la autentificare
                 </Btn>
               </Link>
             </div>

@@ -79,14 +79,21 @@ export const controller = {
       });
       if (!activeMembership) {
         const frozenMembership = await Membership.findOne({
-          where: { client_id: clientId, status: "paused", frozen_by_admin: true },
-          include: [{ model: Membership_Type, where: { gym_id: session.gym_id } }],
+          where: {
+            client_id: clientId,
+            status: "paused",
+            frozen_by_admin: true,
+          },
+          include: [
+            { model: Membership_Type, where: { gym_id: session.gym_id } },
+          ],
           transaction: t,
         });
         await t.rollback();
         if (frozenMembership) {
           return res.status(403).json({
-            message: "Abonamentul tău este înghețat temporar de sală. Revino când sala redeschide.",
+            message:
+              "Abonamentul tău este înghețat temporar de sală. Revino când sala redeschide.",
           });
         }
         return res.status(403).json({ message: "No active membership" });
@@ -109,7 +116,10 @@ export const controller = {
         await t.rollback();
         return res
           .status(403)
-          .json({ message: "Înscrierea este blocată din cauza absenților repetate. Contactează sala pentru deblocare." });
+          .json({
+            message:
+              "Înscrierea este blocată din cauza absenților repetate. Contactează sala pentru deblocare.",
+          });
       }
       const existingEnrollment = await Class_Enrollment.findOne({
         where: {
@@ -279,7 +289,7 @@ export const controller = {
       <p>Vești bune!</p>
       <p>Un loc s-a eliberat și ai fost mutat(ă) din lista de așteptare în clasa <strong>${classType?.name ?? "selectată"}</strong>, care va avea loc <strong>${sessionDate}</strong>.</p>
       <p>Ne bucurăm să te avem alături!</p>
-      <p>— Echipa Kinetic Fitness </p>`,
+      <p>- Echipa Kinetic Fitness </p>`,
             })
             .catch(console.error);
         }
@@ -624,13 +634,16 @@ export const controller = {
                 <p>Sesiunea de <strong>${className}</strong> programată pentru
                 <strong>${sessionDate}</strong> a fost anulată.</p>
                 <p>Ne cerem scuze pentru inconveniență. Te așteptăm la alte sesiuni!</p>
-                <p>— Echipa Kinetic Fitness</p>`,
+                <p>- Echipa Kinetic Fitness</p>`,
             })
             .catch(console.error);
         });
       }
 
-      res.json({ message: "Session cancelled", notified: clientsToNotify.length });
+      res.json({
+        message: "Session cancelled",
+        notified: clientsToNotify.length,
+      });
     } catch (err) {
       res.status(500).json({ message: err.message });
     }

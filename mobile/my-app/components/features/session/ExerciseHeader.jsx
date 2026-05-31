@@ -8,8 +8,8 @@ export function ExerciseHeader({ exercise }) {
       <View style={styles.tag}>
         <Text style={styles.tagText}>Primary Movement</Text>
       </View>
-      <Text style={styles.name}>{exercise?.name || "—"}</Text>
-      <Text style={styles.muscles}>{exercise?.primary_muscles || "—"}</Text>
+      <Text style={styles.name}>{exercise?.name || "-"}</Text>
+      <Text style={styles.muscles}>{exercise?.primary_muscles || "-"}</Text>
     </View>
   );
 }

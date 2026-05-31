@@ -29,7 +29,7 @@ export const controller = {
         }
         return res
           .status(403)
-          .json({ message: "No active membership. Cannot generate QR code." });
+          .json({ message: "Nu ai niciun abonament activ. Nu poți genera QR." });
       }
 
       await QR_Code.update(
@@ -131,7 +131,7 @@ export const controller = {
       const qrRecord = await QR_Code.findOne({ where: { token_hash } });
 
       if (!qrRecord) return res.status(404).json({ message: "Invalid QR code" });
-      if (qrRecord.is_used) return res.status(400).json({ message: "QR code already used" });
+      if (qrRecord.is_used) return res.status(400).json({ message: "Codul QR a fost deja folosit" });
       if (qrRecord.expires_at < new Date()) return res.status(400).json({ message: "QR code expired" });
 
       const gym_id = req.user.gym_id;

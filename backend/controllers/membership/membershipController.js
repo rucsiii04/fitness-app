@@ -448,6 +448,7 @@ export const controller = {
         pause_end_date: pauseEndDate,
         end_date: addDays(membership.end_date, pauseDays),
         remaining_freeze_days: membership.remaining_freeze_days - pauseDays,
+        frozen_by_admin: false,
       });
 
       const pausedMembership = await Membership.findByPk(
@@ -602,8 +603,8 @@ export const controller = {
         pause_reason: null,
         pause_start_date: null,
         pause_end_date: null,
+        frozen_by_admin: false,
         end_date: newEndDate,
-
         remaining_freeze_days:
           membership.remaining_freeze_days + remainingPauseDays,
       });

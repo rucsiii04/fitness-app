@@ -6,6 +6,7 @@ export default function Sparkline({
   height = 48,
   width = 180,
   fill = true,
+  responsive = false,
   labels,
   formatValue,
 }) {
@@ -51,16 +52,20 @@ export default function Sparkline({
   const tooltipLabel = hover !== null && labels ? labels[hover.idx] : null;
 
   // Tooltip box dimensions
-  const TW = 72, TH = 30, TR = 5;
+  const TW = 96, TH = 32, TR = 5;
   const tx = hover
     ? Math.min(Math.max(hover.x - TW / 2, 2), width - TW - 2)
     : 0;
-  const ty = hover ? Math.max(hover.y - TH - 8, 2) : 0;
+  const ty = hover
+    ? (hover.y + TH + 8 < height ? hover.y + 8 : Math.max(hover.y - TH - 8, 2))
+    : 0;
 
   return (
     <svg
       ref={svgRef}
-      width={width}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      width={responsive ? "100%" : width}
       height={height}
       style={{ display: "block", cursor: hover ? "crosshair" : "default", overflow: "visible" }}
       onMouseMove={handleMouseMove}
@@ -83,6 +88,7 @@ export default function Sparkline({
         strokeLinejoin="round"
       />
       <circle cx={last[0]} cy={last[1]} r="2.5" fill={color} />
+
 
       {hover && (
         <g>
@@ -110,9 +116,9 @@ export default function Sparkline({
           />
           {tooltipLabel && (
             <text
-              x={tx + TW / 2} y={ty + 10}
+              x={tx + TW / 2} y={ty + 11}
               textAnchor="middle"
-              fontSize={8}
+              fontSize={9}
               fill="var(--text-dim)"
               fontFamily="var(--mono)"
             >
@@ -121,9 +127,9 @@ export default function Sparkline({
           )}
           <text
             x={tx + TW / 2}
-            y={tooltipLabel ? ty + 22 : ty + TH / 2 + 4}
+            y={tooltipLabel ? ty + 24 : ty + TH / 2 + 4}
             textAnchor="middle"
-            fontSize={10}
+            fontSize={11}
             fontWeight={700}
             fill={color}
             fontFamily="var(--mono)"

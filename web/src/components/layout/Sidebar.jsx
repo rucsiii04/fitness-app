@@ -5,25 +5,25 @@ import Avatar from "../ui/Avatar.jsx";
 import * as I from "../ui/Icons.jsx";
 
 const ADMIN_NAV = [
-  { path: "/admin/dashboard", label: "Dashboard", icon: I.dash },
-  { path: "/admin/classes", label: "Classes", icon: I.calendar },
-  { path: "/admin/staff", label: "Staff", icon: I.users },
+  { path: "/admin/dashboard", label: "Panou principal", icon: I.dash },
+  { path: "/admin/classes", label: "Clase", icon: I.calendar },
+  { path: "/admin/staff", label: "Personal", icon: I.users },
   { path: "/admin/memberships", label: "Abonamente", icon: I.card },
-  { path: "/admin/attendance", label: "Attendance", icon: I.qr },
-  { path: "/admin/settings", label: "Gym Settings", icon: I.building },
+  { path: "/admin/attendance", label: "Prezență", icon: I.qr },
+  { path: "/admin/settings", label: "Setări sală", icon: I.building },
 ];
 
 const RECEPTION_NAV = [
-  { path: "/reception/scan", label: "Scan QR", icon: I.qr },
-  { path: "/reception/issue", label: "Issue Membership", icon: I.card },
+  { path: "/reception/scan", label: "Scanează QR", icon: I.qr },
+  { path: "/reception/issue", label: "Emite abonament", icon: I.card },
 ];
 
 const TRAINER_NAV = [
-  { path: "/trainer/dashboard", label: "Dashboard", icon: I.dash },
-  { path: "/trainer/clients", label: "Clients", icon: I.users },
-  { path: "/trainer/builder", label: "Workout Builder", icon: I.dumbbell },
-  { path: "/trainer/classes", label: "Classes", icon: I.calendar },
-  { path: "/trainer/profile", label: "Public Profile", icon: I.user },
+  { path: "/trainer/dashboard", label: "Panou principal", icon: I.dash },
+  { path: "/trainer/clients", label: "Clienți", icon: I.users },
+  { path: "/trainer/builder", label: "Creator antrenamente", icon: I.dumbbell },
+  { path: "/trainer/classes", label: "Clase", icon: I.calendar },
+  { path: "/trainer/profile", label: "Profil public", icon: I.user },
 ];
 
 function NavItem({ path, label, icon: Icon, active }) {
@@ -103,16 +103,16 @@ export function Sidebar() {
         : ADMIN_NAV;
   const eyebrow =
     role === "trainer"
-      ? "Coaching"
+      ? "Antrenor"
       : role === "front_desk"
-        ? "Reception"
-        : "Operations";
+        ? "Recepție"
+        : "Operațiuni";
   const roleLabel =
     role === "trainer"
-      ? "Trainer"
+      ? "Antrenor"
       : role === "front_desk"
-        ? "Front Desk"
-        : "Gym Admin";
+        ? "Recepționer"
+        : "Admin sală";
   const fullName = user ? `${user.first_name} ${user.last_name}` : "User";
 
   return (

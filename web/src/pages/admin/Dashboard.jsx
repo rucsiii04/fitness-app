@@ -130,7 +130,7 @@ export default function AdminDashboard() {
 
   const gym = gyms[0];
   const todaySessions = sessions.filter(
-    (s) => new Date(s.start_time).toDateString() === new Date().toDateString(),
+    (s) => new Date(s.start_datetime).toDateString() === new Date().toDateString(),
   );
 
   const hourly = attendance?.hourly || Array(24).fill(0);
@@ -154,7 +154,20 @@ export default function AdminDashboard() {
     : -1;
   const mrr = revenue?.mrr ?? 0;
 
-  const MONTHS_RO = ["Ian","Feb","Mar","Apr","Mai","Iun","Iul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTHS_RO = [
+    "Ian",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mai",
+    "Iun",
+    "Iul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const now = new Date();
   const monthLabels = Array.from({ length: 6 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
@@ -209,7 +222,7 @@ export default function AdminDashboard() {
           className="display"
           style={{ fontSize: 28, lineHeight: 1.05, marginBottom: 4 }}
         >
-          {gym?.name || "Sala ta"} —{" "}
+          {gym?.name || "Sala ta"} -{" "}
           <span style={{ color: "var(--accent)" }}>Dashboard</span>
         </div>
         <div style={{ color: "var(--text-muted)", marginBottom: 16 }}>
@@ -236,7 +249,7 @@ export default function AdminDashboard() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: 16,
         }}
       >
@@ -250,18 +263,6 @@ export default function AdminDashboard() {
           value={todaySessions.length}
           delta="Programate azi"
           tone="accent"
-        />
-        <KPICard
-          label="Check-in-uri azi"
-          value={attendance?.today ?? 0}
-          delta="Prin scanner QR"
-        />
-        <KPICard
-          label="Venit lunar (est.)"
-          value={`RON ${mrr.toLocaleString()}`}
-          delta="Abonamente active"
-          data={monthly}
-          tone="coral"
         />
       </div>
 
@@ -307,26 +308,22 @@ export default function AdminDashboard() {
               style={{
                 fontSize: 44,
                 lineHeight: 1,
-                color: (attendance?.today ?? 0) > 0 ? "var(--accent)" : "var(--text-dim)",
+                color:
+                  (attendance?.today ?? 0) > 0
+                    ? "var(--accent)"
+                    : "var(--text-dim)",
               }}
             >
               {attendance?.today ?? 0}
             </div>
           </div>
-          <div
-            style={{
-              paddingTop: 10,
-              borderTop: "1px solid var(--border-soft)",
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <KV label="Medie / zi" value={avgPerDay} small />
-            <KV label="Săptămâna" value={attendance?.thisWeek ?? 0} tone="accent" small />
-          </div>
         </Panel>
 
-        <Panel title="Flux pe zile" eyebrow="Săptămâna curentă" style={{ padding: 16 }}>
+        <Panel
+          title="Flux pe zile"
+          eyebrow="Săptămâna curentă"
+          style={{ padding: 16 }}
+        >
           <div style={{ padding: "8px 0 4px" }}>
             <BarChart
               data={daily}
@@ -345,7 +342,7 @@ export default function AdminDashboard() {
           >
             <KV
               label="Cea mai aglomerată"
-              value={peakDayIdx >= 0 ? DAY_FULL[peakDayIdx] : "—"}
+              value={peakDayIdx >= 0 ? DAY_FULL[peakDayIdx] : "-"}
               tone="accent"
             />
             <KV
@@ -354,7 +351,7 @@ export default function AdminDashboard() {
                   ? `Check-in-uri ${DAY_FULL[peakDayIdx]}`
                   : "Vârf"
               }
-              value={peakDayIdx >= 0 ? daily[peakDayIdx] : "—"}
+              value={peakDayIdx >= 0 ? daily[peakDayIdx] : "-"}
             />
             <KV label="Medie / zi" value={avgPerDay} />
           </div>
@@ -391,30 +388,12 @@ export default function AdminDashboard() {
               </Pill>
             </div>
           </div>
-          <Sparkline
-            data={monthly.length ? monthly : [0]}
-            width={340}
-            height={80}
+          <BarChart
+            data={monthly.length ? monthly : Array(6).fill(0)}
             labels={monthLabels}
+            height={80}
             formatValue={(v) => `RON ${v.toLocaleString()}`}
           />
-          <div
-            style={{
-              padding: 10,
-              background: "var(--surface-2)",
-              borderRadius: 8,
-              marginTop: 14,
-              display: "inline-flex",
-              flexDirection: "column",
-            }}
-          >
-            <div className="eyebrow" style={{ fontSize: 10 }}>
-              Membri activi
-            </div>
-            <div className="display" style={{ fontSize: 18, color: "var(--teal)" }}>
-              {revenue?.activeMemberships ?? 0}
-            </div>
-          </div>
         </Panel>
       </div>
 
@@ -455,7 +434,7 @@ export default function AdminDashboard() {
                       width: 48,
                     }}
                   >
-                    {new Date(s.start_time).toLocaleTimeString("en-GB", {
+                    {new Date(s.start_datetime).toLocaleTimeString("en-GB", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
@@ -543,7 +522,7 @@ export default function AdminDashboard() {
           </div>
         </Panel>
 
-        <Panel title="Info sală" eyebrow="Profilul tău">
+        <Panel title="Detalii sală">
           {gym ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <div>
@@ -564,17 +543,6 @@ export default function AdminDashboard() {
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   {gym.address}
-                </div>
-              </div>
-              <div>
-                <div
-                  className="eyebrow"
-                  style={{ fontSize: 9, marginBottom: 4 }}
-                >
-                  Oraș
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  {gym.city}
                 </div>
               </div>
               <Btn

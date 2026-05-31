@@ -15,8 +15,8 @@ export const updateMembershipType = (typeId, data) =>
 export const issueMembership = (data) =>
   api.post("/memberships/issue", data);
 
-export const cancelMembership = (membershipId) =>
-  api.delete(`/memberships/${membershipId}`);
+export const cancelMembership = (membershipId, reason) =>
+  api.delete(`/memberships/${membershipId}`, { data: { reason } });
 
 export const getGymMemberships = (gymId, status) =>
   api.get(`/memberships/gyms/${gymId}/list${status ? `?status=${status}` : ""}`);

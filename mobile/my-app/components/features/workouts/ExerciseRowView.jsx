@@ -26,7 +26,7 @@ export function ExerciseRowView({ item }) {
           {item.reps === "failure" ? (
             <View style={styles.failurePill}>
               <Ionicons name="flame" size={10} color={Colors.background} />
-              <Text style={styles.failurePillText}>FAIL</Text>
+              <Text style={styles.failurePillText}>MAX</Text>
             </View>
           ) : (
             <Text style={styles.statValue}>{item.reps}</Text>

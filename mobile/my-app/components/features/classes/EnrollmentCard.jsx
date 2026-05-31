@@ -52,7 +52,7 @@ export function EnrollmentCard({ enrollment, onCancel, busy, dimmed }) {
       <View style={styles.metaRow}>
         <Ionicons name="calendar-outline" size={13} color={Colors.onSurfaceVariant} />
         <Text style={styles.metaText}>
-          {session ? formatDateTime(session.start_datetime) : "—"}
+          {session ? formatDateTime(session.start_datetime) : "-"}
         </Text>
       </View>
 

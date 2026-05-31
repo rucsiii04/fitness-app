@@ -238,7 +238,7 @@ export default function TrainerClasses() {
               fontWeight: 600,
             }}
           >
-            {fmtWeekRange(week1)} — {fmtWeekRange(week2)}
+            {fmtWeekRange(week1)} - {fmtWeekRange(week2)}
           </span>
           {weekOffset !== 0 && (
             <button
@@ -350,7 +350,7 @@ export default function TrainerClasses() {
                       fontWeight: cnt > 0 ? 700 : 400,
                     }}
                   >
-                    {cnt > 0 ? `${cnt} class${cnt > 1 ? "es" : ""}` : "—"}
+                    {cnt > 0 ? `${cnt} class${cnt > 1 ? "es" : ""}` : "-"}
                   </div>
                 </button>
               );
@@ -452,7 +452,7 @@ export default function TrainerClasses() {
 
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>
-                      {s.Class_Type?.name || "—"}
+                      {s.Class_Type?.name || "-"}
                     </div>
                     {win.isOpen && (
                       <div

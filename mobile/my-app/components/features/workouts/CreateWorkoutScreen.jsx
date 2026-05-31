@@ -8,7 +8,6 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,9 +21,9 @@ import { AddExerciseSheet } from "./AddExerciseSheet";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const DIFFICULTIES = [
-  { key: "beginner", label: "BEGINNER" },
+  { key: "beginner", label: "ÎNCEPĂTOR" },
   { key: "intermediate", label: "INTER." },
-  { key: "advanced", label: "ADVANCED" },
+  { key: "advanced", label: "AVANSAT" },
 ];
 
 export default function CreateWorkoutScreen() {
@@ -39,6 +38,9 @@ export default function CreateWorkoutScreen() {
   const [exercises, setExercises] = useState([]);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [nameError, setNameError] = useState("");
+  const [exerciseError, setExerciseError] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   const handleExercisesConfirmed = (selectedExercises) => {
     const merged = selectedExercises.map((ex) => {
@@ -53,6 +55,7 @@ export default function CreateWorkoutScreen() {
       );
     });
     setExercises(merged);
+    if (merged.length > 0) setExerciseError("");
     setSheetVisible(false);
   };
 
@@ -67,11 +70,23 @@ export default function CreateWorkoutScreen() {
   };
 
   const handleSave = async () => {
+    let valid = true;
     if (!name.trim()) {
-      Alert.alert("Missing name", "Please enter a workout name.");
-      return;
+      setNameError("Introduceți un nume pentru antrenament.");
+      valid = false;
+    } else {
+      setNameError("");
     }
+    if (exercises.length === 0) {
+      setExerciseError("Adaugă cel puțin un exercițiu.");
+      valid = false;
+    } else {
+      setExerciseError("");
+    }
+    if (!valid) return;
+
     setSaving(true);
+    setSaveError("");
     try {
       const workoutRes = await fetch(`${API_BASE}/workouts`, {
         method: "POST",
@@ -89,31 +104,28 @@ export default function CreateWorkoutScreen() {
       });
       const workout = await workoutRes.json();
       if (!workoutRes.ok) {
-        Alert.alert("Error", workout.message || "Failed to create workout.");
+        setSaveError(workout.message || "Nu s-a putut crea antrenamentul.");
         return;
       }
 
-      // 2. Add exercises if any
-      if (exercises.length > 0) {
-        const exercisesPayload = exercises.map((ex, index) => ({
-          exercise_id: ex.exercise_id,
-          sets: parseInt(ex.sets) || 3,
-          reps: ex.reps || "10",
-          order_index: index,
-        }));
-        await fetch(`${API_BASE}/workouts/${workout.workout_id}/exercises`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ exercises: exercisesPayload }),
-        });
-      }
+      const exercisesPayload = exercises.map((ex, index) => ({
+        exercise_id: ex.exercise_id,
+        sets: parseInt(ex.sets) || 3,
+        reps: ex.reps || "10",
+        order_index: index,
+      }));
+      await fetch(`${API_BASE}/workouts/${workout.workout_id}/exercises`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ exercises: exercisesPayload }),
+      });
 
       router.back();
     } catch {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      setSaveError("Ceva a mers greșit. Încearcă din nou.");
     } finally {
       setSaving(false);
     }
@@ -135,8 +147,8 @@ export default function CreateWorkoutScreen() {
             {clientName
               ? `PENTRU ${clientName.toUpperCase().split(" ")[0]}`
               : isPublicZone
-                ? "PUBLIC WORKOUT"
-                : "NEW WORKOUT"}
+                ? "ANTRENAMENT PUBLIC"
+                : "ANTRENAMENT NOU"}
           </Text>
           <TouchableOpacity
             onPress={handleSave}
@@ -146,7 +158,7 @@ export default function CreateWorkoutScreen() {
             {saving ? (
               <ActivityIndicator size="small" color={Colors.primary} />
             ) : (
-              <Text style={styles.saveText}>SAVE</Text>
+              <Text style={styles.saveText}>SALVEAZĂ</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -178,24 +190,25 @@ export default function CreateWorkoutScreen() {
 
           {/* Name */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>WORKOUT NAME</Text>
+            <Text style={styles.fieldLabel}>NUME ANTRENAMENT</Text>
             <TextInput
-              style={styles.nameInput}
+              style={[styles.nameInput, nameError && styles.inputError]}
               value={name}
-              onChangeText={setName}
-              placeholder="e.g. UPPER BODY PUSH"
+              onChangeText={(v) => { setName(v); if (v.trim()) setNameError(""); }}
+              placeholder="ex. PIEPT ȘI TRICEPS"
               placeholderTextColor={Colors.outlineVariant}
               returnKeyType="next"
             />
+            {!!nameError && <Text style={styles.errorText}>{nameError}</Text>}
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>DESCRIPTION</Text>
+            <Text style={styles.fieldLabel}>DESCRIERE</Text>
             <TextInput
               style={styles.descInput}
               value={description}
               onChangeText={setDescription}
-              placeholder="What's the focus of this session..."
+              placeholder="Care este focusul acestei sesiuni..."
               placeholderTextColor={Colors.outlineVariant}
               multiline
               numberOfLines={3}
@@ -205,7 +218,7 @@ export default function CreateWorkoutScreen() {
 
           {/* Difficulty */}
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>DIFFICULTY</Text>
+            <Text style={styles.fieldLabel}>DIFICULTATE</Text>
             <View style={styles.diffRow}>
               {DIFFICULTIES.map((d) => (
                 <TouchableOpacity
@@ -232,13 +245,14 @@ export default function CreateWorkoutScreen() {
 
           {/* Exercises */}
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>EXERCISES</Text>
+            <Text style={styles.sectionTitle}>EXERCIȚII</Text>
             {exercises.length > 0 && (
               <View style={styles.countBadge}>
-                <Text style={styles.countText}>{exercises.length} ADDED</Text>
+                <Text style={styles.countText}>{exercises.length} ADĂUGATE</Text>
               </View>
             )}
           </View>
+          {!!exerciseError && <Text style={styles.errorText}>{exerciseError}</Text>}
 
           {exercises.map((item, index) => (
             <ExerciseRow
@@ -260,20 +274,21 @@ export default function CreateWorkoutScreen() {
               size={22}
               color={Colors.primary}
             />
-            <Text style={styles.addExText}>ADD EXERCISE</Text>
+            <Text style={styles.addExText}>ADAUGĂ EXERCIȚIU</Text>
           </TouchableOpacity>
 
           <View style={{ height: 120 }} />
         </ScrollView>
 
         <View style={styles.bottomBar}>
+          {!!saveError && <Text style={[styles.errorText, { textAlign: "center", marginBottom: 8 }]}>{saveError}</Text>}
           <TouchableOpacity
             style={[styles.launchBtn, saving && { opacity: 0.6 }]}
             onPress={handleSave}
             disabled={saving}
             activeOpacity={0.9}
           >
-            <Text style={styles.launchText}>SAVE WORKOUT</Text>
+            <Text style={styles.launchText}>SALVEAZĂ ANTRENAMENTUL</Text>
             <Ionicons name="flash" size={18} color={Colors.background} />
           </TouchableOpacity>
         </View>
@@ -357,6 +372,16 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   field: { gap: 8 },
+  errorText: {
+    fontSize: 12,
+    fontFamily: Fonts.body,
+    color: Colors.error,
+    marginTop: 2,
+  },
+  inputError: {
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
   fieldLabel: {
     fontSize: 9,
     fontWeight: "700",

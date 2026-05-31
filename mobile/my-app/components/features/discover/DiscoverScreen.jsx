@@ -34,7 +34,7 @@ function SearchBar({ value, onChange }) {
       />
       <TextInput
         style={styles.searchInput}
-        placeholder="Caută după numele trainerului..."
+        placeholder="Caută după numele antrenorului..."
         placeholderTextColor={Colors.onSurfaceVariant}
         value={value}
         onChangeText={onChange}
@@ -44,7 +44,11 @@ function SearchBar({ value, onChange }) {
       />
       {value.length > 0 && (
         <TouchableOpacity onPress={() => onChange("")} hitSlop={8}>
-          <Ionicons name="close-circle" size={16} color={Colors.onSurfaceVariant} />
+          <Ionicons
+            name="close-circle"
+            size={16}
+            color={Colors.onSurfaceVariant}
+          />
         </TouchableOpacity>
       )}
     </View>
@@ -64,12 +68,12 @@ function EmptyState({ hasSearch }) {
         color={Colors.outlineVariant}
       />
       <Text style={styles.emptyTitle}>
-        {hasSearch ? "Niciun trainer găsit" : "Niciun trainer disponibil"}
+        {hasSearch ? "Niciun antrenor găsit" : "Niciun antrenor disponibil"}
       </Text>
       <Text style={styles.emptySubtitle}>
         {hasSearch
           ? "Încearcă un alt nume sau șterge căutarea."
-          : "Nu există traineri înregistrați la sala ta."}
+          : "Nu există antrenori înregistrați la sala ta."}
       </Text>
     </View>
   );
@@ -81,7 +85,7 @@ function NoGymState() {
       <Ionicons name="card-outline" size={40} color={Colors.outlineVariant} />
       <Text style={styles.emptyTitle}>Fără abonament activ</Text>
       <Text style={styles.emptySubtitle}>
-        Ai nevoie de un abonament activ pentru a descoperi traineri.
+        Ai nevoie de un abonament activ pentru a descoperi antrenori.
       </Text>
     </View>
   );
@@ -103,7 +107,7 @@ export default function DiscoverScreen() {
         return;
       }
       loadAll();
-    }, [token, user?.gym_id])
+    }, [token, user?.gym_id]),
   );
 
   const loadAll = async () => {
@@ -126,21 +130,26 @@ export default function DiscoverScreen() {
       }
       setRequestMap(map);
     } catch (err) {
-      Alert.alert("Eroare", err.message ?? "Nu s-au putut încărca trainerii.");
+      Alert.alert("Eroare", err.message ?? "Nu s-au putut încărca antrenorii.");
     } finally {
       setLoading(false);
     }
   };
 
   const activeTrainerId = useMemo(
-    () => Object.keys(requestMap).find((id) => requestMap[id] === "accepted") ?? null,
-    [requestMap]
+    () =>
+      Object.keys(requestMap).find((id) => requestMap[id] === "accepted") ??
+      null,
+    [requestMap],
   );
   const hasActiveTrainer = activeTrainerId !== null;
 
   const activeTrainer = useMemo(
-    () => (activeTrainerId ? trainers.find((t) => String(t.user_id) === String(activeTrainerId)) : null),
-    [trainers, activeTrainerId]
+    () =>
+      activeTrainerId
+        ? trainers.find((t) => String(t.user_id) === String(activeTrainerId))
+        : null,
+    [trainers, activeTrainerId],
   );
 
   const filteredOtherTrainers = useMemo(() => {
@@ -153,8 +162,7 @@ export default function DiscoverScreen() {
       });
   }, [trainers, activeTrainerId, search]);
 
-  const setBusy = (id, val) =>
-    setBusyMap((prev) => ({ ...prev, [id]: val }));
+  const setBusy = (id, val) => setBusyMap((prev) => ({ ...prev, [id]: val }));
 
   const handleSendRequest = async (trainer) => {
     setBusy(trainer.user_id, true);
@@ -187,13 +195,16 @@ export default function DiscoverScreen() {
                 return next;
               });
             } catch (err) {
-              Alert.alert("Eroare", err.message ?? "Nu s-a putut încheia colaborarea.");
+              Alert.alert(
+                "Eroare",
+                err.message ?? "Nu s-a putut încheia colaborarea.",
+              );
             } finally {
               setBusy(trainer.user_id, false);
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -230,7 +241,7 @@ export default function DiscoverScreen() {
             ListHeaderComponent={
               activeTrainer ? (
                 <View style={styles.pinnedSection}>
-                  <SectionLabel>TRAINERUL TĂU</SectionLabel>
+                  <SectionLabel>ANTRENORUL TĂU</SectionLabel>
                   <TrainerCard
                     trainer={activeTrainer}
                     requestStatus="accepted"
@@ -240,7 +251,9 @@ export default function DiscoverScreen() {
                     busy={!!busyMap[activeTrainer.user_id]}
                   />
                   {filteredOtherTrainers.length > 0 && (
-                    <Text style={[styles.sectionLabel, { marginTop: 20 }]}>TOȚI TRAINERII</Text>
+                    <Text style={[styles.sectionLabel, { marginTop: 20 }]}>
+                      TOȚI ANTRENORII
+                    </Text>
                   )}
                 </View>
               ) : null
@@ -273,10 +286,7 @@ function Header() {
     <View style={styles.header}>
       <View>
         <Text style={styles.headerTitle}>Discover</Text>
-        <Text style={styles.headerSub}>Găsește-ți coachul de elită</Text>
-      </View>
-      <View style={styles.headerBadge}>
-        <Ionicons name="people-outline" size={16} color={Colors.primary} />
+        <Text style={styles.headerSub}>Găsește-ți antrenorul de elită</Text>
       </View>
     </View>
   );

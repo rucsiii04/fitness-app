@@ -186,7 +186,7 @@ export function TrainerCard({
                 size={10}
                 color={Colors.secondary}
               />
-              <Text style={styles.trainerBadgeText}>TRAINER</Text>
+              <Text style={styles.trainerBadgeText}>ANTRENOR</Text>
             </View>
           )}
         </View>

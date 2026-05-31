@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
-  getTrainersByGym,
+  getStaff,
   createTrainer,
   createFrontDesk,
   deleteTrainer,
@@ -24,6 +24,7 @@ export default function AdminStaff() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, role, name }
   const [form, setForm] = useState({
     email: "",
     first_name: "",
@@ -40,7 +41,7 @@ export default function AdminStaff() {
       setLoading(false);
       return;
     }
-    getTrainersByGym(gymId)
+    getStaff(gymId)
       .then((r) => setStaff(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -104,8 +105,9 @@ export default function AdminStaff() {
     }
   };
 
-  const handleDelete = async (id, role) => {
-    if (!window.confirm("Elimini acest angajat din sală?")) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    const { id, role } = deleteTarget;
     try {
       if (role === "front_desk") {
         await deleteFrontDesk(id);
@@ -116,6 +118,8 @@ export default function AdminStaff() {
       load();
     } catch (err) {
       toast(err.response?.data?.message || "Eroare", "coral");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -144,14 +148,14 @@ export default function AdminStaff() {
     filter === "all"
       ? staff
       : filter === "inactive"
-      ? staff.filter((s) => !s.is_active)
-      : staff.filter((s) => s.role === filter);
+        ? staff.filter((s) => !s.is_active)
+        : staff.filter((s) => s.role === filter);
 
   return (
     <>
       <TopBar
         title="Personal"
-        eyebrow={`${staff.length} membri în echipă`}
+        eyebrow={`${staff.length} ${staff.length === 1 ? "membru" : "membri"} în echipă`}
         actions={
           <Btn
             variant="primary"
@@ -275,7 +279,9 @@ export default function AdminStaff() {
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    background: s.is_active ? "var(--accent)" : "var(--text-dim)",
+                    background: s.is_active
+                      ? "var(--accent)"
+                      : "var(--text-dim)",
                     marginTop: 6,
                     flexShrink: 0,
                   }}
@@ -303,7 +309,7 @@ export default function AdminStaff() {
                     Telefon
                   </div>
                   <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                    {s.phone || "—"}
+                    {s.phone || "-"}
                   </div>
                 </div>
               </div>
@@ -316,12 +322,13 @@ export default function AdminStaff() {
                   borderTop: "1px solid var(--border-soft)",
                 }}
               >
-                {s.is_active
-                  ? <Pill tone="green">Activ</Pill>
-                  : <Pill tone="muted">Inactiv</Pill>
-                }
+                {s.is_active ? (
+                  <Pill tone="green">Activ</Pill>
+                ) : (
+                  <Pill tone="muted">Inactiv</Pill>
+                )}
                 <button
-                  onClick={() => handleDelete(s.user_id, s.role)}
+                  onClick={() => setDeleteTarget({ id: s.user_id, role: s.role, name })}
                   style={{ color: "var(--text-dim)", padding: 4 }}
                 >
                   <I.trash width={14} height={14} />
@@ -442,6 +449,29 @@ export default function AdminStaff() {
             </Btn>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Elimină angajat"
+        width={420}
+      >
+        <div style={{ padding: "8px 0 24px" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+            Ești sigur că vrei să elimini pe{" "}
+            <strong style={{ color: "var(--text)" }}>{deleteTarget?.name}</strong>{" "}
+            din sală? Contul va fi dezactivat.
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="ghost" onClick={() => setDeleteTarget(null)}>
+              Anulează
+            </Btn>
+            <Btn variant="primary" style={{ background: "var(--red)", borderColor: "var(--red)" }} icon={<I.trash />} onClick={handleDelete}>
+              Elimină
+            </Btn>
+          </div>
+        </div>
       </Modal>
     </>
   );

@@ -30,6 +30,13 @@ router.get(
   controllers.adminController.getMyGyms,
 );
 
+router.get(
+  "/gym/:gymId/staff",
+  verifyToken,
+  requireRole("gym_admin"),
+  controllers.adminController.getStaff,
+);
+
 router.put(
   "/gym/:gymId",
   verifyToken,

@@ -15,6 +15,7 @@ router.post(
 );
 
 router.put("/:id/finish", verifyToken, controllers.workoutSessionController.finish);
+router.delete("/:id/abandon", verifyToken, controllers.workoutSessionController.abandon);
 
 router.put("/:id", verifyToken, controllers.workoutSessionController.update);
 

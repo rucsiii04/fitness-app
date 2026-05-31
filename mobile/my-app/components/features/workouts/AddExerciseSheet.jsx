@@ -98,7 +98,9 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
   };
 
   const handleConfirm = () => {
-    const selected = allExercises.filter((ex) => selectedIds.has(ex.exercise_id));
+    const selected = Array.from(selectedIds)
+      .map((id) => allExercises.find((ex) => ex.exercise_id === id))
+      .filter(Boolean);
     onConfirm(selected);
   };
 
@@ -284,6 +286,9 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
                           </>
                         ) : null}
                       </View>
+                      {item.description ? (
+                        <Text style={styles.exDesc} numberOfLines={2}>{item.description}</Text>
+                      ) : null}
                     </View>
                     <View style={[styles.addBtn, added && styles.addBtnActive]}>
                       <Ionicons
@@ -499,6 +504,13 @@ const styles = StyleSheet.create({
   exDot: {
     fontSize: 10,
     color: Colors.onSurfaceVariant,
+  },
+  exDesc: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    lineHeight: 15,
+    marginTop: 2,
   },
   exEquip: {
     fontSize: 10,

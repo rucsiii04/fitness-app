@@ -90,6 +90,7 @@ export default function CoachScreen({ conversationId: initialConvId }) {
   const [showWelcome, setShowWelcome] = useState(false);
   const [linkedPlanId, setLinkedPlanId] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
+  const [convTitle, setConvTitle] = useState(null);
 
   useEffect(() => {
     if (!token) return;
@@ -104,9 +105,10 @@ export default function CoachScreen({ conversationId: initialConvId }) {
   const loadMessages = async () => {
     setLoading(true);
     try {
-      const { messages: msgs, linked_plan_id } =
+      const { messages: msgs, linked_plan_id, title } =
         await chatService.getMessagesWithMeta(token, convId);
       setLinkedPlanId(linked_plan_id);
+      if (title) setConvTitle(title);
       if (msgs.length > 0) {
         setMessages(msgs);
         setShowWelcome(false);
@@ -148,8 +150,9 @@ export default function CoachScreen({ conversationId: initialConvId }) {
       try {
         const id = await ensureConversation();
         await chatService.sendMessage(token, id, text);
-        const { messages: freshMsgs } = await chatService.getMessagesWithMeta(token, id);
+        const { messages: freshMsgs, title } = await chatService.getMessagesWithMeta(token, id);
         setMessages(Array.isArray(freshMsgs) ? freshMsgs : []);
+        if (title) setConvTitle(title);
       } catch (err) {
         console.error("Send error:", err.message);
         setMessages((prev) => [
@@ -177,10 +180,12 @@ export default function CoachScreen({ conversationId: initialConvId }) {
       try {
         const id = await ensureConversation();
         const workout = await chatService.generatePlan(token, id, preferences);
-        const { messages: msgs } = await chatService.getMessagesWithMeta(
+        const { messages: msgs, title } = await chatService.getMessagesWithMeta(
           token,
           id,
         );
+        if (title) setConvTitle(title);
+        else setConvTitle(workout.name);
         setLinkedPlanId(workout.workout_id);
         setMessages([
           ...(Array.isArray(msgs) ? msgs : []),
@@ -272,7 +277,8 @@ export default function CoachScreen({ conversationId: initialConvId }) {
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              {messages.find((m) => m.sender === "user")?.content ??
+              {convTitle ??
+                messages.find((m) => m.sender === "user")?.content ??
                 "Conversație nouă"}
             </Text>
           </View>
@@ -312,7 +318,6 @@ export default function CoachScreen({ conversationId: initialConvId }) {
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={0}
         >
           <FlatList
             ref={flatListRef}
@@ -443,6 +448,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 8,
     flexGrow: 1,
+    justifyContent: "flex-end",
   },
 
   planCard: {
@@ -513,7 +519,7 @@ const styles = StyleSheet.create({
 
   inputBar: {
     paddingHorizontal: 16,
-    paddingBottom: Platform.OS === "ios" ? 24 : 100,
+    paddingBottom: Platform.OS === "ios" ? 24 : 16,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: Colors.borderSubtle,

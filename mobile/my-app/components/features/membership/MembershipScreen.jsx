@@ -21,7 +21,7 @@ import { ScreenBackground } from "@/components/ui/ScreenBackground";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const formatDate = (dateString) => {
-  if (!dateString) return "—";
+  if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -30,10 +30,22 @@ const formatDate = (dateString) => {
 };
 
 const STATUS_CONFIG = {
-  active:  { label: "Activ",    color: Colors.primary,    bg: "rgba(209,255,0,0.12)" },
-  paused:  { label: "Pauzat",   color: Colors.tertiary,   bg: "rgba(255,238,171,0.12)" },
-  expired: { label: "Expirat",  color: Colors.onSurfaceVariant, bg: Colors.surfaceContainerHigh },
-  cancelled:{ label: "Anulat",  color: Colors.error,  bg: "rgba(255,115,81,0.1)" },
+  active: { label: "Activ", color: Colors.primary, bg: "rgba(209,255,0,0.12)" },
+  paused: {
+    label: "Pauzat",
+    color: Colors.tertiary,
+    bg: "rgba(255,238,171,0.12)",
+  },
+  expired: {
+    label: "Expirat",
+    color: Colors.onSurfaceVariant,
+    bg: Colors.surfaceContainerHigh,
+  },
+  cancelled: {
+    label: "Anulat",
+    color: Colors.error,
+    bg: "rgba(255,115,81,0.1)",
+  },
 };
 
 function StatusBadge({ status }) {
@@ -45,47 +57,143 @@ function StatusBadge({ status }) {
   );
 }
 
+function ResumeConfirmModal({ visible, onConfirm, onClose }) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalIconWrap}>
+              <Ionicons
+                name="play-circle-outline"
+                size={18}
+                color={Colors.primary}
+              />
+            </View>
+            <Text style={styles.modalTitle}>Reactivare abonament</Text>
+          </View>
+          <Text style={[styles.modalBody, { textAlign: "center" }]}>
+            Reactivezi abonamentul acum?{"\n"}
+            Zilele de îngheț neutilizate vor fi returnate.
+          </Text>
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={onClose}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalCancelText}>Anulează</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalConfirm}
+              onPress={onConfirm}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalConfirmText}>Reactivează</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
 function FreezeDaysModal({ visible, maxDays, onConfirm, onClose }) {
   const [days, setDays] = useState("");
+  const [error, setError] = useState("");
 
   const handleConfirm = () => {
     const n = parseInt(days, 10);
     if (!n || n < 1 || n > maxDays) {
-      Alert.alert("Eroare", `Introdu un număr între 1 și ${maxDays}.`);
+      setError(`Introdu un număr între 1 și ${maxDays}.`);
       return;
     }
+    setError("");
     onConfirm(n);
     setDays("");
   };
 
+  const handleClose = () => {
+    setError("");
+    setDays("");
+    onClose();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={handleClose}
+      >
         <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
           <View style={styles.modalHeader}>
             <View style={styles.modalIconWrap}>
-              <Ionicons name="snow-outline" size={18} color={Colors.secondary} />
+              <Ionicons
+                name="snow-outline"
+                size={18}
+                color={Colors.secondary}
+              />
             </View>
             <Text style={styles.modalTitle}>Îngheață abonamentul</Text>
           </View>
           <Text style={styles.modalBody}>
-            Ai <Text style={styles.modalHighlight}>{maxDays} zile de îngheț</Text> rămase.
-            Câte zile vrei să pauzi?
+            Ai{" "}
+            <Text style={styles.modalHighlight}>{maxDays} zile de îngheț</Text>{" "}
+            rămase. Câte zile vrei să pauzi?
           </Text>
           <TextInput
-            style={styles.modalInput}
+            style={[
+              styles.modalInput,
+              error ? { borderColor: Colors.error } : null,
+            ]}
             value={days}
-            onChangeText={setDays}
+            onChangeText={(v) => {
+              setDays(v);
+              setError("");
+            }}
             keyboardType="number-pad"
             placeholder={`1 – ${maxDays}`}
             placeholderTextColor={Colors.textMuted}
             maxLength={3}
           />
+          {error ? (
+            <View style={styles.modalError}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={13}
+                color={Colors.error}
+              />
+              <Text style={styles.modalErrorText}>{error}</Text>
+            </View>
+          ) : null}
           <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.modalCancel} onPress={onClose} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={handleClose}
+              activeOpacity={0.8}
+            >
               <Text style={styles.modalCancelText}>Anulează</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalConfirm} onPress={handleConfirm} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.modalConfirm}
+              onPress={handleConfirm}
+              activeOpacity={0.85}
+            >
               <Text style={styles.modalConfirmText}>Îngheață</Text>
             </TouchableOpacity>
           </View>
@@ -104,11 +212,13 @@ function HistoryItem({ item }) {
       <View style={styles.historyBody}>
         <Text style={styles.historyName}>{type?.name ?? "Membership"}</Text>
         <Text style={styles.historyDates}>
-          {formatDate(item.start_date)} — {formatDate(item.end_date)}
+          {formatDate(item.start_date)} - {formatDate(item.end_date)}
         </Text>
       </View>
       <View style={[styles.badge, { backgroundColor: cfg.bg }]}>
-        <Text style={[styles.badgeText, { color: cfg.color }]}>{cfg.label}</Text>
+        <Text style={[styles.badgeText, { color: cfg.color }]}>
+          {cfg.label}
+        </Text>
       </View>
     </View>
   );
@@ -122,6 +232,7 @@ export default function MembershipScreen() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [freezeVisible, setFreezeVisible] = useState(false);
+  const [resumeVisible, setResumeVisible] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
   const authHeader = { Authorization: `Bearer ${token}` };
@@ -129,7 +240,7 @@ export default function MembershipScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [token])
+    }, [token]),
   );
 
   const loadData = async () => {
@@ -149,8 +260,14 @@ export default function MembershipScreen() {
 
       if (historyRes.ok) {
         const data = await historyRes.json();
-        // Show past entries — exclude the current active/paused one
-        setHistory(Array.isArray(data) ? data.filter((m) => m.status === "expired" || m.status === "cancelled") : []);
+        // Show past entries - exclude the current active/paused one
+        setHistory(
+          Array.isArray(data)
+            ? data.filter(
+                (m) => m.status === "expired" || m.status === "cancelled",
+              )
+            : [],
+        );
       }
     } catch (err) {
       console.error("Load membership error:", err.message);
@@ -178,44 +295,42 @@ export default function MembershipScreen() {
     }
   };
 
-  const handleResume = () => {
-    Alert.alert(
-      "Reactivare abonament",
-      "Reactivezi abonamentul acum? Zilele de îngheț neutilizate vor fi returnate.",
-      [
-        { text: "Anulează", style: "cancel" },
-        {
-          text: "Reactivează",
-          onPress: async () => {
-            setActionLoading(true);
-            try {
-              const res = await fetch(`${API_BASE}/memberships/me/resume`, {
-                method: "POST",
-                headers: authHeader,
-              });
-              const data = await res.json();
-              if (!res.ok) throw new Error(data.message);
-              setCurrent(data);
-            } catch (err) {
-              Alert.alert("Eroare", err.message ?? "Nu s-a putut reactiva abonamentul.");
-            } finally {
-              setActionLoading(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleResume = () => setResumeVisible(true);
+
+  const doResume = async () => {
+    setResumeVisible(false);
+    setActionLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/memberships/me/resume`, {
+        method: "POST",
+        headers: authHeader,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setCurrent(data);
+    } catch (err) {
+      Alert.alert(
+        "Eroare",
+        err.message ?? "Nu s-a putut reactiva abonamentul.",
+      );
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const type = current?.Membership_Type;
-  const gym  = type?.Gym;
+  const gym = type?.Gym;
 
   return (
     <ScreenBackground>
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+          >
             <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Abonamentul meu</Text>
@@ -240,11 +355,18 @@ export default function MembershipScreen() {
                 <View style={styles.cardTop}>
                   <View style={styles.cardTopLeft}>
                     <StatusBadge status={current.status} />
-                    <Text style={styles.planName}>{type?.name ?? "Membership"}</Text>
-                    <Text style={styles.gymName}>{gym?.name ?? "—"}</Text>
+                    <Text style={styles.planName}>
+                      {type?.name ?? "Membership"}
+                    </Text>
+                    <Text style={styles.gymName}>{gym?.name ?? "-"}</Text>
                   </View>
                   <View style={styles.cardFitnessIcon}>
-                    <Ionicons name="barbell-outline" size={40} color={Colors.primary} style={{ opacity: 0.15 }} />
+                    <Ionicons
+                      name="barbell-outline"
+                      size={40}
+                      color={Colors.primary}
+                      style={{ opacity: 0.15 }}
+                    />
                   </View>
                 </View>
 
@@ -253,11 +375,15 @@ export default function MembershipScreen() {
                 <View style={styles.cardDates}>
                   <View style={styles.cardDateItem}>
                     <Text style={styles.cardDateLabel}>Data începerii</Text>
-                    <Text style={styles.cardDateValue}>{formatDate(current.start_date)}</Text>
+                    <Text style={styles.cardDateValue}>
+                      {formatDate(current.start_date)}
+                    </Text>
                   </View>
                   <View style={styles.cardDateItem}>
                     <Text style={styles.cardDateLabel}>
-                      {current.status === "paused" ? "Pauzat până la" : "Data reînnoirii"}
+                      {current.status === "paused"
+                        ? "Pauzat până la"
+                        : "Data reînnoirii"}
                     </Text>
                     <Text style={styles.cardDateValue}>
                       {current.status === "paused"
@@ -270,18 +396,30 @@ export default function MembershipScreen() {
                 {/* Freeze info row */}
                 {current.status === "active" && (
                   <View style={styles.freezeInfo}>
-                    <Ionicons name="snow-outline" size={14} color={Colors.secondary} />
+                    <Ionicons
+                      name="snow-outline"
+                      size={14}
+                      color={Colors.secondary}
+                    />
                     <Text style={styles.freezeInfoText}>
-                      <Text style={styles.freezeInfoNum}>{current.remaining_freeze_days}</Text>
-                      {" "}zile de îngheț rămase
+                      <Text style={styles.freezeInfoNum}>
+                        {current.remaining_freeze_days}
+                      </Text>{" "}
+                      zile de îngheț rămase
                     </Text>
                   </View>
                 )}
               </View>
             ) : (
               <View style={styles.noMembershipCard}>
-                <Ionicons name="card-outline" size={36} color={Colors.outlineVariant} />
-                <Text style={styles.noMembershipTitle}>Niciun abonament activ</Text>
+                <Ionicons
+                  name="card-outline"
+                  size={36}
+                  color={Colors.outlineVariant}
+                />
+                <Text style={styles.noMembershipTitle}>
+                  Niciun abonament activ
+                </Text>
                 <Text style={styles.noMembershipSub}>
                   Vizitează recepția sălii pentru a obține un abonament.
                 </Text>
@@ -295,15 +433,25 @@ export default function MembershipScreen() {
                   <TouchableOpacity
                     style={[styles.actionCard, styles.actionCardSecondary]}
                     onPress={() => setFreezeVisible(true)}
-                    disabled={actionLoading || current.remaining_freeze_days < 1}
+                    disabled={
+                      actionLoading || current.remaining_freeze_days < 1
+                    }
                     activeOpacity={0.8}
                   >
                     <View style={styles.actionTop}>
-                      <Ionicons name="snow-outline" size={24} color={Colors.secondary} />
-                      <Text style={styles.actionNum}>{current.remaining_freeze_days}</Text>
+                      <Ionicons
+                        name="snow-outline"
+                        size={24}
+                        color={Colors.secondary}
+                      />
+                      <Text style={styles.actionNum}>
+                        {current.remaining_freeze_days}
+                      </Text>
                     </View>
                     <Text style={styles.actionTitle}>Îngheț</Text>
-                    <Text style={styles.actionSub}>zile rămase luna aceasta</Text>
+                    <Text style={styles.actionSub}>
+                      zile rămase luna aceasta
+                    </Text>
                   </TouchableOpacity>
                 )}
 
@@ -319,11 +467,31 @@ export default function MembershipScreen() {
                     ) : (
                       <>
                         <View style={styles.actionTop}>
-                          <Ionicons name="play-circle-outline" size={24} color={Colors.background} />
-                          <Ionicons name="arrow-forward" size={18} color={Colors.background} />
+                          <Ionicons
+                            name="play-circle-outline"
+                            size={24}
+                            color={Colors.background}
+                          />
+                          <Ionicons
+                            name="arrow-forward"
+                            size={18}
+                            color={Colors.background}
+                          />
                         </View>
-                        <Text style={[styles.actionTitle, { color: Colors.background }]}>Reactivează</Text>
-                        <Text style={[styles.actionSub, { color: "rgba(14,14,14,0.6)" }]}>
+                        <Text
+                          style={[
+                            styles.actionTitle,
+                            { color: Colors.background },
+                          ]}
+                        >
+                          Reactivează
+                        </Text>
+                        <Text
+                          style={[
+                            styles.actionSub,
+                            { color: "rgba(14,14,14,0.6)" },
+                          ]}
+                        >
                           reactivează acum
                         </Text>
                       </>
@@ -335,9 +503,17 @@ export default function MembershipScreen() {
                 <View style={[styles.actionCard, styles.actionCardInfo]}>
                   <View style={styles.actionTop}>
                     <Ionicons
-                      name={type?.includes_group_classes ? "people-outline" : "person-outline"}
+                      name={
+                        type?.includes_group_classes
+                          ? "people-outline"
+                          : "person-outline"
+                      }
                       size={24}
-                      color={type?.includes_group_classes ? Colors.primary : Colors.outlineVariant}
+                      color={
+                        type?.includes_group_classes
+                          ? Colors.primary
+                          : Colors.outlineVariant
+                      }
                     />
                   </View>
                   <Text style={styles.actionTitle}>Cursuri</Text>
@@ -353,7 +529,11 @@ export default function MembershipScreen() {
               <>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Istoric</Text>
-                  <Ionicons name="time-outline" size={16} color={Colors.outlineVariant} />
+                  <Ionicons
+                    name="time-outline"
+                    size={16}
+                    color={Colors.outlineVariant}
+                  />
                 </View>
                 <View style={styles.historyCard}>
                   {history.map((item, i) => (
@@ -376,6 +556,11 @@ export default function MembershipScreen() {
         maxDays={current?.remaining_freeze_days ?? 0}
         onConfirm={handleFreeze}
         onClose={() => setFreezeVisible(false)}
+      />
+      <ResumeConfirmModal
+        visible={resumeVisible}
+        onConfirm={doResume}
+        onClose={() => setResumeVisible(false)}
       />
     </ScreenBackground>
   );
@@ -716,6 +901,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
+  },
+  modalError: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: -4,
+  },
+  modalErrorText: {
+    fontSize: 11,
+    fontFamily: Fonts.body,
+    color: Colors.error,
+    flex: 1,
   },
   modalActions: {
     flexDirection: "row",

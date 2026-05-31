@@ -135,18 +135,22 @@ export default function FindGymScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      setLocationGranted(true);
-      const loc = await Location.getCurrentPositionAsync({});
-      const userRegion = {
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      };
-      setRegion(userRegion);
-      mapRef.current?.animateToRegion(userRegion, 800);
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        setLocationGranted(true);
+        const loc = await Location.getCurrentPositionAsync({});
+        const userRegion = {
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        };
+        setRegion(userRegion);
+        mapRef.current?.animateToRegion(userRegion, 800);
+      } catch {
+        // location unavailable or denied — stay on default region
+      }
     })();
   }, []);
 
@@ -289,16 +293,20 @@ export default function FindGymScreen() {
             <TouchableOpacity
               style={styles.myLocationBtn}
               onPress={async () => {
-                const loc = await Location.getCurrentPositionAsync({});
-                mapRef.current?.animateToRegion(
-                  {
-                    latitude: loc.coords.latitude,
-                    longitude: loc.coords.longitude,
-                    latitudeDelta: 0.05,
-                    longitudeDelta: 0.05,
-                  },
-                  600,
-                );
+                try {
+                  const loc = await Location.getCurrentPositionAsync({});
+                  mapRef.current?.animateToRegion(
+                    {
+                      latitude: loc.coords.latitude,
+                      longitude: loc.coords.longitude,
+                      latitudeDelta: 0.05,
+                      longitudeDelta: 0.05,
+                    },
+                    600,
+                  );
+                } catch {
+                  // location unavailable
+                }
               }}
             >
               <Ionicons

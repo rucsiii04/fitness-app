@@ -193,7 +193,7 @@ function FreestyleButton({ token, router }) {
             size={18}
             color={Colors.primary}
           />
-          <Text style={styles.freestyleBtnText}>SESIUNE LIBERĂ</Text>
+          <Text style={styles.freestyleBtnText}>SESIUNE FREESTYLE</Text>
         </>
       )}
     </TouchableOpacity>
@@ -257,35 +257,26 @@ export default function WorkoutsScreen() {
     }, [fetchWorkouts]),
   );
 
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+
   const handleDeleteConfirm = () => {
-    Alert.alert(
-      "Șterge antrenamentul",
-      `Ești sigur că vrei să ștergi "${selectedWorkout.name}"?`,
-      [
-        {
-          text: "Nu",
-          style: "cancel",
-          onPress: () => setSelectedWorkout(null),
-        },
-        {
-          text: "Da",
-          style: "destructive",
-          onPress: async () => {
-            const id = selectedWorkout.workout_id;
-            setSelectedWorkout(null);
-            try {
-              await fetch(`${API_BASE}/workouts/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              setWorkouts((prev) => prev.filter((w) => w.workout_id !== id));
-            } catch {
-              // silent
-            }
-          },
-        },
-      ],
-    );
+    setSelectedWorkout(selectedWorkout);
+    setDeleteModalVisible(true);
+  };
+
+  const handleDeleteExecute = async () => {
+    const id = selectedWorkout.workout_id;
+    setDeleteModalVisible(false);
+    setSelectedWorkout(null);
+    try {
+      await fetch(`${API_BASE}/workouts/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setWorkouts((prev) => prev.filter((w) => w.workout_id !== id));
+    } catch {
+      // silent
+    }
   };
 
   const filtered = workouts.filter((w) => {
@@ -343,15 +334,12 @@ export default function WorkoutsScreen() {
               activeTab === "explore" ? (
                 <WorkoutCard
                   workout={item}
+                  hideStart
                   onPress={() => {
                     const already = workouts.some((w) => w.original_workout_id === item.workout_id);
                     router.push(`/workout/detail?id=${item.workout_id}&saved=${already}`);
                   }}
                   onLongPress={() => {
-                    const already = workouts.some((w) => w.original_workout_id === item.workout_id);
-                    router.push(`/workout/detail?id=${item.workout_id}&saved=${already}`);
-                  }}
-                  onStart={() => {
                     const already = workouts.some((w) => w.original_workout_id === item.workout_id);
                     router.push(`/workout/detail?id=${item.workout_id}&saved=${already}`);
                   }}
@@ -442,12 +430,122 @@ export default function WorkoutsScreen() {
           setEditWorkout(null);
         }}
       />
+
+      {/* Delete confirm modal */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.deleteOverlay}>
+          <View style={styles.deleteBox}>
+            <View style={styles.deleteIconWrap}>
+              <Ionicons name="trash-outline" size={28} color={Colors.error} />
+            </View>
+            <Text style={styles.deleteTitle}>Șterge antrenamentul</Text>
+            <Text style={styles.deleteMsg}>
+              Ești sigur că vrei să ștergi{" "}
+              <Text style={{ color: Colors.textPrimary, fontFamily: Fonts.bold }}>
+                {selectedWorkout?.name}
+              </Text>
+              ? Acțiunea este ireversibilă.
+            </Text>
+            <View style={styles.deleteBtns}>
+              <TouchableOpacity
+                style={styles.deleteCancelBtn}
+                onPress={() => setDeleteModalVisible(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.deleteCancelText}>Renunță</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteConfirmBtn}
+                onPress={handleDeleteExecute}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.deleteConfirmText}>Șterge</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
+  deleteOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  deleteBox: {
+    width: "100%",
+    backgroundColor: "#1a1a1a",
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+  },
+  deleteIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,59,48,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  deleteTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 18,
+    color: Colors.textPrimary,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  deleteMsg: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 24,
+  },
+  deleteBtns: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#333",
+    alignItems: "center",
+  },
+  deleteCancelText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: Colors.error,
+    alignItems: "center",
+  },
+  deleteConfirmText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: "#fff",
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",

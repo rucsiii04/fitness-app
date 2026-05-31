@@ -21,14 +21,40 @@ import Avatar from "../../components/ui/Avatar.jsx";
 import * as I from "../../components/ui/Icons.jsx";
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-const MONTHS_FULL = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
-const MONTHS_SHORT = ["Ian","Feb","Mar","Apr","Mai","Iun","Iul","Aug","Sep","Oct","Nov","Dec"];
-const DAY_HDR = ["Lu","Ma","Mi","Jo","Vi","Sâ","Du"];
+const MONTHS_FULL = [
+  "Ianuarie",
+  "Februarie",
+  "Martie",
+  "Aprilie",
+  "Mai",
+  "Iunie",
+  "Iulie",
+  "August",
+  "Septembrie",
+  "Octombrie",
+  "Noiembrie",
+  "Decembrie",
+];
+const MONTHS_SHORT = [
+  "Ian",
+  "Feb",
+  "Mar",
+  "Apr",
+  "Mai",
+  "Iun",
+  "Iul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const DAY_HDR = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
 const DURATIONS = [30, 45, 60, 90, 120];
 
 function buildWeeksForPicker(year, month) {
   const first = new Date(year, month, 1);
-  const last  = new Date(year, month + 1, 0);
+  const last = new Date(year, month + 1, 0);
   const startDow = (first.getDay() + 6) % 7;
   const days = [];
   for (let i = 0; i < startDow; i++) days.push(null);
@@ -39,31 +65,67 @@ function buildWeeksForPicker(year, month) {
   return weeks;
 }
 
-function ClassDateTimePicker({ date, hour = 9, minute = 0, duration = 60, minHour = 0, maxHour = 23, onDate, onHour, onMinute, onDuration }) {
+function ClassDateTimePicker({
+  date,
+  hour = 9,
+  minute = 0,
+  duration = 60,
+  minHour = 0,
+  maxHour = 23,
+  onDate,
+  onHour,
+  onMinute,
+  onDuration,
+}) {
   hour = isNaN(hour) || hour == null ? minHour : hour;
   minute = isNaN(minute) || minute == null ? 0 : minute;
   duration = isNaN(duration) || duration == null ? 60 : duration;
 
   const clampHour = (h) => Math.min(maxHour, Math.max(minHour, h));
   const now = new Date();
-  const todayKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const [calOpen, setCalOpen] = React.useState(false);
-  const [calYear, setCalYear]   = React.useState(() => date ? parseInt(date.slice(0,4)) : now.getFullYear());
-  const [calMonth, setCalMonth] = React.useState(() => date ? parseInt(date.slice(5,7))-1 : now.getMonth());
+  const [calYear, setCalYear] = React.useState(() =>
+    date ? parseInt(date.slice(0, 4)) : now.getFullYear(),
+  );
+  const [calMonth, setCalMonth] = React.useState(() =>
+    date ? parseInt(date.slice(5, 7)) - 1 : now.getMonth(),
+  );
 
   const dispDate = date
-    ? (() => { const [y,mo,d] = date.split("-").map(Number); return `${d} ${MONTHS_SHORT[mo-1]} ${y}`; })()
+    ? (() => {
+        const [y, mo, d] = date.split("-").map(Number);
+        return `${d} ${MONTHS_SHORT[mo - 1]} ${y}`;
+      })()
     : "Alege data";
 
-  function prevMonth() { if (calMonth === 0) { setCalYear(y=>y-1); setCalMonth(11); } else setCalMonth(m=>m-1); }
-  function nextMonth() { if (calMonth === 11) { setCalYear(y=>y+1); setCalMonth(0); } else setCalMonth(m=>m+1); }
+  function prevMonth() {
+    if (calMonth === 0) {
+      setCalYear((y) => y - 1);
+      setCalMonth(11);
+    } else setCalMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (calMonth === 11) {
+      setCalYear((y) => y + 1);
+      setCalMonth(0);
+    } else setCalMonth((m) => m + 1);
+  }
 
   const weeks = buildWeeksForPicker(calYear, calMonth);
 
   const spinBtn = {
-    background: "var(--surface-3)", border: "none", borderRadius: 5,
-    color: "var(--accent)", cursor: "pointer", width: 30, height: 20,
-    fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center",
+    background: "var(--surface-3)",
+    border: "none",
+    borderRadius: 5,
+    color: "var(--accent)",
+    cursor: "pointer",
+    width: 30,
+    height: 20,
+    fontSize: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   };
 
   // Compute end time display
@@ -72,57 +134,168 @@ function ClassDateTimePicker({ date, hour = 9, minute = 0, duration = 60, minHou
     const total = hour * 60 + minute + duration;
     const eh = Math.floor(total / 60) % 24;
     const em = total % 60;
-    return `${String(eh).padStart(2,"0")}:${String(em).padStart(2,"0")}`;
+    return `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
   })();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* Date picker */}
       <div style={{ position: "relative" }}>
-        {calOpen && <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={() => setCalOpen(false)} />}
-        <button type="button" onClick={() => setCalOpen(v => !v)} style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 10,
-          padding: "10px 14px",
-          background: "var(--surface-2)",
-          border: `1px solid ${calOpen ? "var(--accent)" : "var(--border)"}`,
-          borderRadius: 10, color: date ? "var(--text)" : "var(--text-dim)",
-          fontSize: 14, cursor: "pointer", textAlign: "left",
-        }}>
-          <I.calendar width={15} height={15} style={{ color: "var(--text-dim)", flexShrink: 0 }} />
+        {calOpen && (
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 49 }}
+            onClick={() => setCalOpen(false)}
+          />
+        )}
+        <button
+          type="button"
+          onClick={() => setCalOpen((v) => !v)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "10px 14px",
+            background: "var(--surface-2)",
+            border: `1px solid ${calOpen ? "var(--accent)" : "var(--border)"}`,
+            borderRadius: 10,
+            color: date ? "var(--text)" : "var(--text-dim)",
+            fontSize: 14,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <I.calendar
+            width={15}
+            height={15}
+            style={{ color: "var(--text-dim)", flexShrink: 0 }}
+          />
           <span style={{ flex: 1 }}>{dispDate}</span>
         </button>
         {calOpen && (
-          <div style={{
-            position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 50,
-            background: "var(--surface)", border: "1px solid var(--border-strong)",
-            borderRadius: 14, padding: 16, minWidth: 268,
-            boxShadow: "0 8px 32px rgba(0,0,0,.55)",
-          }}>
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: 10 }}>
-              <button type="button" onClick={prevMonth} style={{ background:"none", border:"none", color:"var(--accent)", cursor:"pointer", fontSize: 22, lineHeight:1, padding:"0 6px" }}>‹</button>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{MONTHS_FULL[calMonth]} {calYear}</span>
-              <button type="button" onClick={nextMonth} style={{ background:"none", border:"none", color:"var(--accent)", cursor:"pointer", fontSize: 22, lineHeight:1, padding:"0 6px" }}>›</button>
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 6px)",
+              left: 0,
+              zIndex: 50,
+              background: "var(--surface)",
+              border: "1px solid var(--border-strong)",
+              borderRadius: 14,
+              padding: 16,
+              minWidth: 268,
+              boxShadow: "0 8px 32px rgba(0,0,0,.55)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <button
+                type="button"
+                onClick={prevMonth}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--accent)",
+                  cursor: "pointer",
+                  fontSize: 22,
+                  lineHeight: 1,
+                  padding: "0 6px",
+                }}
+              >
+                ‹
+              </button>
+              <span
+                style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}
+              >
+                {MONTHS_FULL[calMonth]} {calYear}
+              </span>
+              <button
+                type="button"
+                onClick={nextMonth}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--accent)",
+                  cursor: "pointer",
+                  fontSize: 22,
+                  lineHeight: 1,
+                  padding: "0 6px",
+                }}
+              >
+                ›
+              </button>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", marginBottom: 4 }}>
-              {DAY_HDR.map(d => <div key={d} style={{ textAlign:"center", fontSize: 9, fontWeight: 700, color:"var(--text-dim)", letterSpacing:.5, paddingBottom: 6 }}>{d}</div>)}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(7,1fr)",
+                marginBottom: 4,
+              }}
+            >
+              {DAY_HDR.map((d) => (
+                <div
+                  key={d}
+                  style={{
+                    textAlign: "center",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: "var(--text-dim)",
+                    letterSpacing: 0.5,
+                    paddingBottom: 6,
+                  }}
+                >
+                  {d}
+                </div>
+              ))}
             </div>
             {weeks.map((week, wi) => (
-              <div key={wi} style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)" }}>
+              <div
+                key={wi}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(7,1fr)",
+                }}
+              >
                 {week.map((day, di) => {
                   if (!day) return <div key={di} />;
-                  const dk = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+                  const dk = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                   const isSel = dk === date;
                   const isPast = dk < todayKey;
                   return (
-                    <button key={di} type="button" onClick={() => { if (!isPast) { onDate(dk); setCalOpen(false); } }}
-                      style={{
-                        textAlign:"center", padding:"7px 0", borderRadius: 8,
-                        fontSize: 12, fontWeight: isSel ? 700 : 400,
-                        color: isPast ? "var(--text-dim)" : isSel ? "var(--bg)" : "var(--text)",
-                        background: isSel ? "var(--accent)" : "transparent",
-                        border:"none", cursor: isPast ? "default" : "pointer", opacity: isPast ? 0.3 : 1,
+                    <button
+                      key={di}
+                      type="button"
+                      onClick={() => {
+                        if (!isPast) {
+                          onDate(dk);
+                          setCalOpen(false);
+                        }
                       }}
-                    >{day}</button>
+                      style={{
+                        textAlign: "center",
+                        padding: "7px 0",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: isSel ? 700 : 400,
+                        color: isPast
+                          ? "var(--text-dim)"
+                          : isSel
+                            ? "var(--bg)"
+                            : "var(--text)",
+                        background: isSel ? "var(--accent)" : "transparent",
+                        border: "none",
+                        cursor: isPast ? "default" : "pointer",
+                        opacity: isPast ? 0.3 : 1,
+                      }}
+                    >
+                      {day}
+                    </button>
                   );
                 })}
               </div>
@@ -132,14 +305,40 @@ function ClassDateTimePicker({ date, hour = 9, minute = 0, duration = 60, minHou
       </div>
 
       {/* Start time */}
-      <div style={{ display:"flex", alignItems:"center", gap: 14, padding:"10px 16px", background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius: 10 }}>
-        <span style={{ fontSize: 12, color:"var(--text-dim)", minWidth: 60 }}>Start</span>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap: 3 }}>
-          <button type="button" onClick={() => onHour(clampHour(hour + 1))} style={{ ...spinBtn, opacity: hour >= maxHour ? 0.3 : 1 }} disabled={hour >= maxHour}>▲</button>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "10px 16px",
+          background: "var(--surface-2)",
+          border: "1px solid var(--border)",
+          borderRadius: 10,
+        }}
+      >
+        <span style={{ fontSize: 12, color: "var(--text-dim)", minWidth: 60 }}>
+          Start
+        </span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 3,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => onHour(clampHour(hour + 1))}
+            style={{ ...spinBtn, opacity: hour >= maxHour ? 0.3 : 1 }}
+            disabled={hour >= maxHour}
+          >
+            ▲
+          </button>
           <input
             type="text"
             inputMode="numeric"
-            value={String(hour).padStart(2,"0")}
+            value={String(hour).padStart(2, "0")}
             onChange={(e) => {
               const v = parseInt(e.target.value, 10);
               if (!isNaN(v)) onHour(clampHour(v));
@@ -148,17 +347,56 @@ function ClassDateTimePicker({ date, hour = 9, minute = 0, duration = 60, minHou
               const v = parseInt(e.target.value, 10);
               onHour(isNaN(v) ? minHour : clampHour(v));
             }}
-            style={{ fontSize: 20, fontWeight: 700, color:"var(--text)", width: 36, textAlign:"center", background:"transparent", border:"none", outline:"none", cursor:"text" }}
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "var(--text)",
+              width: 36,
+              textAlign: "center",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              cursor: "text",
+            }}
           />
-          <button type="button" onClick={() => onHour(clampHour(hour - 1))} style={{ ...spinBtn, opacity: hour <= minHour ? 0.3 : 1 }} disabled={hour <= minHour}>▼</button>
+          <button
+            type="button"
+            onClick={() => onHour(clampHour(hour - 1))}
+            style={{ ...spinBtn, opacity: hour <= minHour ? 0.3 : 1 }}
+            disabled={hour <= minHour}
+          >
+            ▼
+          </button>
         </div>
-        <span style={{ fontSize: 22, fontWeight: 700, color:"var(--text-dim)", marginBottom: 2 }}>:</span>
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap: 3 }}>
-          <button type="button" onClick={() => onMinute((minute + 5) % 60)} style={spinBtn}>▲</button>
+        <span
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: "var(--text-dim)",
+            marginBottom: 2,
+          }}
+        >
+          :
+        </span>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 3,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => onMinute((minute + 5) % 60)}
+            style={spinBtn}
+          >
+            ▲
+          </button>
           <input
             type="text"
             inputMode="numeric"
-            value={String(minute).padStart(2,"0")}
+            value={String(minute).padStart(2, "0")}
             onChange={(e) => {
               const v = parseInt(e.target.value, 10);
               if (!isNaN(v)) onMinute(Math.min(59, Math.max(0, v)));
@@ -167,31 +405,70 @@ function ClassDateTimePicker({ date, hour = 9, minute = 0, duration = 60, minHou
               const v = parseInt(e.target.value, 10);
               onMinute(isNaN(v) ? 0 : Math.min(59, Math.max(0, v)));
             }}
-            style={{ fontSize: 20, fontWeight: 700, color:"var(--text)", width: 36, textAlign:"center", background:"transparent", border:"none", outline:"none", cursor:"text" }}
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: "var(--text)",
+              width: 36,
+              textAlign: "center",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              cursor: "text",
+            }}
           />
-          <button type="button" onClick={() => onMinute((minute - 5 + 60) % 60)} style={spinBtn}>▼</button>
+          <button
+            type="button"
+            onClick={() => onMinute((minute - 5 + 60) % 60)}
+            style={spinBtn}
+          >
+            ▼
+          </button>
         </div>
         {endLabel && (
-          <span style={{ marginLeft: "auto", fontSize: 12, color:"var(--text-dim)" }}>
-            → <span style={{ color:"var(--text)", fontWeight: 600 }}>{endLabel}</span>
+          <span
+            style={{
+              marginLeft: "auto",
+              fontSize: 12,
+              color: "var(--text-dim)",
+            }}
+          >
+            →{" "}
+            <span style={{ color: "var(--text)", fontWeight: 600 }}>
+              {endLabel}
+            </span>
           </span>
         )}
       </div>
 
       {/* Duration chips */}
-      <div style={{ display:"flex", gap: 6, flexWrap:"wrap" }}>
-        {DURATIONS.map(d => {
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {DURATIONS.map((d) => {
           const endMin = hour * 60 + minute + d;
           const overflows = endMin > maxHour * 60;
           return (
-            <button key={d} type="button" onClick={() => !overflows && onDuration(d)} style={{
-              padding: "6px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600,
-              cursor: overflows ? "not-allowed" : "pointer",
-              border: `1px solid ${duration === d ? "var(--accent)" : overflows ? "transparent" : "var(--border)"}`,
-              background: duration === d ? "rgba(224,251,76,.12)" : "var(--surface-2)",
-              color: duration === d ? "var(--accent)" : overflows ? "var(--text-dim)" : "var(--text-dim)",
-              opacity: overflows ? 0.3 : 1,
-            }}>
+            <button
+              key={d}
+              type="button"
+              onClick={() => !overflows && onDuration(d)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: overflows ? "not-allowed" : "pointer",
+                border: `1px solid ${duration === d ? "var(--accent)" : overflows ? "transparent" : "var(--border)"}`,
+                background:
+                  duration === d ? "rgba(224,251,76,.12)" : "var(--surface-2)",
+                color:
+                  duration === d
+                    ? "var(--accent)"
+                    : overflows
+                      ? "var(--text-dim)"
+                      : "var(--text-dim)",
+                opacity: overflows ? 0.3 : 1,
+              }}
+            >
               {d} min
             </button>
           );
@@ -313,6 +590,8 @@ export default function AdminClasses() {
   const [typeOpen, setTypeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelNotify, setCancelNotify] = useState(true);
 
   const [sessionForm, setSessionForm] = useState(EMPTY_SESSION_FORM);
   const [typeForm, setTypeForm] = useState(EMPTY_TYPE_FORM);
@@ -335,10 +614,13 @@ export default function AdminClasses() {
       ]);
       setSessions(sessionsRes.data);
       setClassTypes(typesRes.data);
-      setTrainers(trainersRes.data.filter(t => t.role === "trainer"));
+      setTrainers(trainersRes.data.filter((t) => t.role === "trainer"));
       setGym(gymsRes.data[0] ?? null);
     } catch (err) {
-      toast(err.response?.data?.message || "Eroare la încărcarea datelor", "coral");
+      toast(
+        err.response?.data?.message || "Eroare la încărcarea datelor",
+        "coral",
+      );
     } finally {
       setLoading(false);
     }
@@ -359,21 +641,29 @@ export default function AdminClasses() {
       return;
     }
     const pad = (n) => String(n).padStart(2, "0");
-    const start = new Date(`${sessionForm.date}T${pad(sessionForm.start_hour)}:${pad(sessionForm.start_min)}:00`);
-    const end   = new Date(start.getTime() + sessionForm.duration * 60000);
+    const start = new Date(
+      `${sessionForm.date}T${pad(sessionForm.start_hour)}:${pad(sessionForm.start_min)}:00`,
+    );
+    const end = new Date(start.getTime() + sessionForm.duration * 60000);
 
     if (gym) {
-      const [openH, openM] = gym.opening_time.slice(0,5).split(":").map(Number);
-      const [closeH, closeM] = gym.closing_time.slice(0,5).split(":").map(Number);
-      const openMin  = openH * 60 + openM;
+      const [openH, openM] = gym.opening_time
+        .slice(0, 5)
+        .split(":")
+        .map(Number);
+      const [closeH, closeM] = gym.closing_time
+        .slice(0, 5)
+        .split(":")
+        .map(Number);
+      const openMin = openH * 60 + openM;
       const closeMin = closeH * 60 + closeM;
       const startMin = sessionForm.start_hour * 60 + sessionForm.start_min;
-      const endMin   = startMin + sessionForm.duration;
+      const endMin = startMin + sessionForm.duration;
 
       if (startMin < openMin || endMin > closeMin) {
         toast(
-          `Clasa trebuie să se încadreze între ${gym.opening_time.slice(0,5)} și ${gym.closing_time.slice(0,5)}`,
-          "coral"
+          `Clasa trebuie să se încadreze între ${gym.opening_time.slice(0, 5)} și ${gym.closing_time.slice(0, 5)}`,
+          "coral",
         );
         return;
       }
@@ -408,19 +698,22 @@ export default function AdminClasses() {
         .then((r) => setClassTypes(r.data))
         .catch(() => {});
     } catch (err) {
-      toast(err.response?.data?.message || "Eroare la crearea tipului", "coral");
+      toast(
+        err.response?.data?.message || "Eroare la crearea tipului",
+        "coral",
+      );
     }
   };
 
-  const handleCancelSession = async (sessionId) => {
-    if (
-      !window.confirm(
-        "Anulezi această clasă? Toți membrii înrolați vor fi notificați.",
-      )
-    )
-      return;
+  const handleCancelSession = (sessionId) => {
+    setCancelTarget(sessionId);
+    setCancelNotify(true);
+  };
+
+  const confirmCancel = async () => {
     try {
-      await cancelClassSession(sessionId);
+      await cancelClassSession(cancelTarget, true);
+      setCancelTarget(null);
       await load();
       toast("Clasă anulată");
     } catch (err) {
@@ -465,8 +758,14 @@ export default function AdminClasses() {
               variant="primary"
               icon={<I.plus />}
               onClick={() => {
-                const openHour = gym ? parseInt(gym.opening_time.slice(0, 2)) : 9;
-                setSessionForm({ ...EMPTY_SESSION_FORM, date: selectedDay, start_hour: openHour });
+                const openHour = gym
+                  ? parseInt(gym.opening_time.slice(0, 2))
+                  : 9;
+                setSessionForm({
+                  ...EMPTY_SESSION_FORM,
+                  date: selectedDay,
+                  start_hour: openHour,
+                });
                 setCreateOpen(true);
               }}
             >
@@ -515,7 +814,7 @@ export default function AdminClasses() {
               color: "var(--text)",
             }}
           >
-            {fmtWeekRange(week1)} — {fmtWeekRange(week2)}
+            {fmtWeekRange(week1)} - {fmtWeekRange(week2)}
           </span>
           {weekOffset !== 0 && (
             <button
@@ -620,7 +919,7 @@ export default function AdminClasses() {
                     fontWeight: cnt > 0 ? 700 : 400,
                   }}
                 >
-                  {cnt > 0 ? `${cnt} ${cnt > 1 ? "clase" : "clasă"}` : "—"}
+                  {cnt > 0 ? `${cnt} ${cnt > 1 ? "clase" : "clasă"}` : "-"}
                 </div>
               </button>
             );
@@ -670,7 +969,7 @@ export default function AdminClasses() {
                     fontWeight: cnt > 0 ? 700 : 400,
                   }}
                 >
-                  {cnt > 0 ? `${cnt} ${cnt > 1 ? "clase" : "clasă"}` : "—"}
+                  {cnt > 0 ? `${cnt} ${cnt > 1 ? "clase" : "clasă"}` : "-"}
                 </div>
               </button>
             );
@@ -753,7 +1052,7 @@ export default function AdminClasses() {
               const fill = (c.confirmed_count || 0) / (c.max_participants || 1);
               const trainerName = c.Trainer
                 ? `${c.Trainer.first_name} ${c.Trainer.last_name}`
-                : "—";
+                : "-";
               return (
                 <div
                   key={c.session_id}
@@ -790,7 +1089,7 @@ export default function AdminClasses() {
 
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>
-                      {c.Class_Type?.name || "—"}
+                      {c.Class_Type?.name || "-"}
                     </div>
                     <div style={{ marginTop: 4 }}>
                       <Pill tone={fill >= 1 ? "coral" : "accent"}>
@@ -887,7 +1186,7 @@ export default function AdminClasses() {
               required
               style={SELECT_STYLE}
             >
-              <option value="">— Selectează tipul —</option>
+              <option value="">- Selectează tipul -</option>
               {classTypes.map((t) => (
                 <option key={t.class_type_id} value={t.class_type_id}>
                   {t.name}
@@ -926,7 +1225,7 @@ export default function AdminClasses() {
               required
               style={SELECT_STYLE}
             >
-              <option value="">— Selectează antrenorul —</option>
+              <option value="">- Selectează antrenorul -</option>
               {trainers.map((t) => (
                 <option key={t.user_id} value={t.user_id}>
                   {t.first_name} {t.last_name}
@@ -935,7 +1234,14 @@ export default function AdminClasses() {
             </select>
           </Field>
 
-          <Field label="Dată & Oră" hint={gym ? `Program sală: ${gym.opening_time.slice(0,5)} – ${gym.closing_time.slice(0,5)}` : undefined}>
+          <Field
+            label="Dată & Oră"
+            hint={
+              gym
+                ? `Program sală: ${gym.opening_time.slice(0, 5)} – ${gym.closing_time.slice(0, 5)}`
+                : undefined
+            }
+          >
             <ClassDateTimePicker
               date={sessionForm.date}
               hour={sessionForm.start_hour}
@@ -943,10 +1249,10 @@ export default function AdminClasses() {
               duration={sessionForm.duration}
               minHour={gym ? parseInt(gym.opening_time.slice(0, 2)) : 0}
               maxHour={gym ? parseInt(gym.closing_time.slice(0, 2)) : 23}
-              onDate={(v) => setSessionForm(f => ({ ...f, date: v }))}
-              onHour={(v) => setSessionForm(f => ({ ...f, start_hour: v }))}
-              onMinute={(v) => setSessionForm(f => ({ ...f, start_min: v }))}
-              onDuration={(v) => setSessionForm(f => ({ ...f, duration: v }))}
+              onDate={(v) => setSessionForm((f) => ({ ...f, date: v }))}
+              onHour={(v) => setSessionForm((f) => ({ ...f, start_hour: v }))}
+              onMinute={(v) => setSessionForm((f) => ({ ...f, start_min: v }))}
+              onDuration={(v) => setSessionForm((f) => ({ ...f, duration: v }))}
             />
           </Field>
 
@@ -1080,7 +1386,7 @@ export default function AdminClasses() {
                   padding: "32px 0",
                 }}
               >
-                Nicio înrolare încă.
+                Niciun client înscris.
               </div>
             ) : (
               enrollments.map((e) => {
@@ -1126,6 +1432,41 @@ export default function AdminClasses() {
                 );
               })
             )}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!cancelTarget}
+        onClose={() => setCancelTarget(null)}
+        title="Anulează clasa"
+      >
+        <div
+          style={{
+            padding: "0 20px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 20,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: 14,
+              color: "var(--text-muted)",
+              lineHeight: 1.6,
+            }}
+          >
+            Ești sigur că vrei să anulezi această sesiune? Toți membrii înrolați
+            vor pierde locul și vor primi un email de notificare.
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="ghost" onClick={() => setCancelTarget(null)}>
+              Înapoi
+            </Btn>
+            <Btn variant="danger" onClick={confirmCancel}>
+              Anulează clasa
+            </Btn>
           </div>
         </div>
       </Modal>

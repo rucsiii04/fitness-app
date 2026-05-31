@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -103,6 +103,7 @@ export default function ConversationListScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -123,32 +124,20 @@ export default function ConversationListScreen() {
     }
   };
 
-  const handleDelete = (item) => {
-    Alert.alert(
-      "Șterge conversația",
-      `Ștergi conversația #${item.conversation_id}? Această acțiune nu poate fi anulată.${item.linked_plan_id ? "\n\nPlanul de antrenament generat va fi păstrat." : ""}`,
-      [
-        { text: "Anulează", style: "cancel" },
-        {
-          text: "Șterge",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await chatService.deleteConversation(token, item.conversation_id);
-              setConversations((prev) =>
-                prev.filter((c) => c.conversation_id !== item.conversation_id),
-              );
-            } catch (err) {
-              console.error("Delete error:", err.message);
-              Alert.alert(
-                "Eroare",
-                "Nu s-a putut șterge conversația. Te rugăm să încerci din nou.",
-              );
-            }
-          },
-        },
-      ],
-    );
+  const handleDelete = (item) => setDeleteTarget(item);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await chatService.deleteConversation(token, deleteTarget.conversation_id);
+      setConversations((prev) =>
+        prev.filter((c) => c.conversation_id !== deleteTarget.conversation_id),
+      );
+    } catch (err) {
+      console.error("Delete error:", err.message);
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const handleNewChat = () => {
@@ -174,7 +163,7 @@ export default function ConversationListScreen() {
             onPress={handleNewChat}
             activeOpacity={0.85}
           >
-            <Ionicons name="add" size={16} color={Colors.background} />
+            <Ionicons name="add" size={14} color={Colors.background} />
             <Text style={styles.newChatBtnText}>Conversație nouă</Text>
           </TouchableOpacity>
         </View>
@@ -201,6 +190,27 @@ export default function ConversationListScreen() {
           />
         )}
       </SafeAreaView>
+
+      <Modal visible={!!deleteTarget} transparent animationType="fade" onRequestClose={() => setDeleteTarget(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDeleteTarget(null)}>
+          <TouchableOpacity activeOpacity={1} style={styles.modalCard}>
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="trash-outline" size={22} color={Colors.error} />
+            </View>
+            <Text style={styles.modalTitle}>Șterge conversația</Text>
+            <Text style={styles.modalBody}>
+              Ești sigur că vrei să ștergi această conversație? Acțiunea nu poate fi anulată.
+              {deleteTarget?.linked_plan_id ? "\n\nPlanul de antrenament generat va fi păstrat." : ""}
+            </Text>
+            <TouchableOpacity style={styles.modalDeleteBtn} onPress={confirmDelete} activeOpacity={0.85}>
+              <Text style={styles.modalDeleteText}>Șterge</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setDeleteTarget(null)} activeOpacity={0.8}>
+              <Text style={styles.modalCancelText}>Anulează</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScreenBackground>
   );
 }
@@ -254,28 +264,27 @@ const styles = StyleSheet.create({
   newChatBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
     backgroundColor: Colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
-    minWidth: 44,
     justifyContent: "center",
   },
   newChatBtnDisabled: {
     opacity: 0.6,
   },
   newChatBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Fonts.label,
     fontWeight: "700",
     color: Colors.background,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
 
   listContent: {
@@ -404,5 +413,71 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.background,
     letterSpacing: 0.5,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  modalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,115,81,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+    textAlign: "center",
+  },
+  modalBody: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  modalDeleteBtn: {
+    width: "100%",
+    backgroundColor: Colors.error,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  modalDeleteText: {
+    fontSize: 13,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: "#fff",
+    letterSpacing: 1,
+  },
+  modalCancelBtn: {
+    width: "100%",
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 13,
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
   },
 });

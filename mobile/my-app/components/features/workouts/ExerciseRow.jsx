@@ -39,7 +39,7 @@ export function ExerciseRow({ item, onChangeSets, onChangeReps, onRemove }) {
             {isFailure ? (
               <TouchableOpacity style={styles.failurePill} onPress={toggleFailure} activeOpacity={0.8}>
                 <Ionicons name="flame" size={11} color={Colors.background} />
-                <Text style={styles.failurePillText}>FAILURE</Text>
+                <Text style={styles.failurePillText}>MAX</Text>
               </TouchableOpacity>
             ) : (
               <TextInput

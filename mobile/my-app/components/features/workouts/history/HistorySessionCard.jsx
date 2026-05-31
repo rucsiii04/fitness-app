@@ -47,7 +47,7 @@ function SetChip({ set, color }) {
       <Text style={styles.setLabel}>SET {set.set_number}</Text>
       <Text style={[styles.setValue, { color }]}>
         {set.weight != null ? `${set.weight}kg × ` : ""}
-        {set.reps} rep{set.reps !== 1 ? "s" : ""}
+        {set.reps === 0 ? "MAX" : `${set.reps} rep${set.reps !== 1 ? "s" : ""}`}
       </Text>
     </View>
   );
@@ -75,6 +75,7 @@ export function HistorySessionCard({ session }) {
   const [expanded, setExpanded] = useState(false);
   const [logs, setLogs] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [logsError, setLogsError] = useState(false);
 
   const workoutName = session.Workout?.name ?? "Freestyle Session";
   const duration = formatDuration(session.started_at, session.finished_at);
@@ -86,8 +87,10 @@ export function HistorySessionCard({ session }) {
       try {
         const data = await fetchSessionLogs(session.session_id, token);
         setLogs(Array.isArray(data) ? data : []);
+        setLogsError(false);
       } catch {
         setLogs([]);
+        setLogsError(true);
       } finally {
         setLoading(false);
       }
@@ -126,8 +129,10 @@ export function HistorySessionCard({ session }) {
             <View style={styles.loadingBox}>
               <ActivityIndicator size="small" color={Colors.primary} />
             </View>
+          ) : logsError ? (
+            <Text style={styles.emptyLogs}>Nu s-au putut încărca exercițiile.</Text>
           ) : exercises.length === 0 ? (
-            <Text style={styles.emptyLogs}>No exercises logged.</Text>
+            <Text style={styles.emptyLogs}>Niciun exercițiu logat.</Text>
           ) : (
             exercises.map((ex, i) => (
               <ExerciseBlock key={i} exercise={ex} index={i} />

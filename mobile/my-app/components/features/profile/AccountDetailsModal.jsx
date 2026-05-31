@@ -16,7 +16,14 @@ import { Colors, Fonts } from "@/constants/theme";
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
-function Field({ label, value, onChangeText, keyboardType, autoCapitalize, placeholder }) {
+function Field({
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  autoCapitalize,
+  placeholder,
+}) {
   return (
     <View style={styles.fieldGroup}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -40,13 +47,19 @@ function InfoRow({ icon, label, value }) {
       <Ionicons name={icon} size={16} color={Colors.onSurfaceVariant} />
       <View style={styles.infoText}>
         <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value || "—"}</Text>
+        <Text style={styles.infoValue}>{value || "-"}</Text>
       </View>
     </View>
   );
 }
 
-export default function AccountDetailsModal({ visible, user, token, onClose, onSaved }) {
+export default function AccountDetailsModal({
+  visible,
+  user,
+  token,
+  onClose,
+  onSaved,
+}) {
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -98,7 +111,12 @@ export default function AccountDetailsModal({ visible, user, token, onClose, onS
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -107,7 +125,11 @@ export default function AccountDetailsModal({ visible, user, token, onClose, onS
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>DETALII CONT</Text>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={22} color={Colors.onSurfaceVariant} />
+              <Ionicons
+                name="close"
+                size={22}
+                color={Colors.onSurfaceVariant}
+              />
             </TouchableOpacity>
           </View>
 
@@ -118,13 +140,29 @@ export default function AccountDetailsModal({ visible, user, token, onClose, onS
             {!editing ? (
               <>
                 <View style={styles.infoCard}>
-                  <InfoRow icon="person-outline" label="Prenume" value={user?.first_name} />
+                  <InfoRow
+                    icon="person-outline"
+                    label="Prenume"
+                    value={user?.first_name}
+                  />
                   <View style={styles.rowDivider} />
-                  <InfoRow icon="person-outline" label="Nume" value={user?.last_name} />
+                  <InfoRow
+                    icon="person-outline"
+                    label="Nume"
+                    value={user?.last_name}
+                  />
                   <View style={styles.rowDivider} />
-                  <InfoRow icon="mail-outline" label="Email" value={user?.email} />
+                  <InfoRow
+                    icon="mail-outline"
+                    label="Email"
+                    value={user?.email}
+                  />
                   <View style={styles.rowDivider} />
-                  <InfoRow icon="call-outline" label="Telefon" value={user?.phone} />
+                  <InfoRow
+                    icon="call-outline"
+                    label="Telefon"
+                    value={user?.phone}
+                  />
                 </View>
 
                 <TouchableOpacity
@@ -132,7 +170,11 @@ export default function AccountDetailsModal({ visible, user, token, onClose, onS
                   onPress={() => setEditing(true)}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="create-outline" size={16} color={Colors.background} />
+                  <Ionicons
+                    name="create-outline"
+                    size={16}
+                    color={Colors.background}
+                  />
                   <Text style={styles.editBtnText}>MODIFICĂ DATELE</Text>
                 </TouchableOpacity>
               </>
@@ -172,7 +214,10 @@ export default function AccountDetailsModal({ visible, user, token, onClose, onS
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={styles.cancelBtn}
-                    onPress={() => { setEditing(false); setError(null); }}
+                    onPress={() => {
+                      setEditing(false);
+                      setError(null);
+                    }}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.cancelBtnText}>ANULEAZĂ</Text>
@@ -184,7 +229,10 @@ export default function AccountDetailsModal({ visible, user, token, onClose, onS
                     activeOpacity={0.85}
                   >
                     {loading ? (
-                      <ActivityIndicator size="small" color={Colors.background} />
+                      <ActivityIndicator
+                        size="small"
+                        color={Colors.background}
+                      />
                     ) : (
                       <Text style={styles.saveBtnText}>SALVEAZĂ</Text>
                     )}

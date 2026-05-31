@@ -288,7 +288,7 @@ export default function AdminAttendance() {
               icon={<I.qr />}
               onClick={() => setScanOpen(true)}
             >
-              Scan QR
+              Scanează QR
             </Btn>
           </div>
         }

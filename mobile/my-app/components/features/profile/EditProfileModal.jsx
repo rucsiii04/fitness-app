@@ -15,17 +15,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Colors, Fonts } from "@/constants/theme";
 
 const ACTIVITY_OPTIONS = [
-  { value: "sedentary", label: "Sedentary" },
-  { value: "light", label: "Light" },
-  { value: "moderate", label: "Moderate" },
-  { value: "active", label: "Active" },
-  { value: "very_active", label: "Very Active" },
+  { value: "sedentary", label: "Sedentar" },
+  { value: "light", label: "Ușor activ" },
+  { value: "moderate", label: "Moderat activ" },
+  { value: "active", label: "Activ" },
+  { value: "very_active", label: "Foarte activ" },
 ];
 
 const GOAL_OPTIONS = [
-  { value: "lose_weight", label: "Lose Weight" },
-  { value: "maintain", label: "Maintain" },
-  { value: "gain_weight", label: "Gain Weight" },
+  { value: "lose_weight", label: "Slăbire" },
+  { value: "maintain", label: "Menținere" },
+  { value: "gain_weight", label: "Masă Musculară" },
 ];
 
 const GENDER_OPTIONS = [

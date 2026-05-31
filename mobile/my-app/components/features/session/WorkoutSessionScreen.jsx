@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,7 +54,7 @@ function buildSetsMapFromLogs(exerciseList, logs) {
 
     const sets = exLogs.map((l) => ({
       weight: String(l.weight ?? 0),
-      reps: String(l.reps ?? 0),
+      reps: l.reps === 0 ? "failure" : String(l.reps ?? 8),
       status: "completed",
     }));
 
@@ -83,11 +84,16 @@ function buildSetsMapFromLogs(exerciseList, logs) {
   return { map, resumeIndex };
 }
 
+function parseReps(val) {
+  const n = parseInt(val, 10);
+  return isNaN(n) ? 8 : n;
+}
+
 function buildFreshSetsMap(exerciseList) {
   const map = {};
   exerciseList.forEach((ex, i) => {
     const count = ex.sets || 3;
-    const reps = ex.reps || 8;
+    const reps = parseReps(ex.reps);
     map[i] = Array.from({ length: count }, () => makeSet(0, reps));
     if (i === 0) map[i][0].status = "active";
   });
@@ -108,6 +114,7 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
   const [restKey, setRestKey] = useState(0);
   const [setsMap, setSetsMap] = useState({});
   const [notesModalVisible, setNotesModalVisible] = useState(false);
+  const [abandonVisible, setAbandonVisible] = useState(false);
 
   const startedAtRef = useRef(
     activeSession?.started_at
@@ -184,18 +191,23 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
           }),
         ]);
 
-        const exerciseList = await exercisesRes.json();
+        const [exerciseList, sessionData] = await Promise.all([
+          exercisesRes.json(),
+          sessionRes.json(),
+        ]);
+
         const exArr = Array.isArray(exerciseList) ? exerciseList : [];
+
         setExercises(exArr);
         setSetsMap(buildFreshSetsMap(exArr));
-
-        if (sessionRes.ok) {
-          const sessionData = await sessionRes.json();
+        if (sessionRes.ok && sessionData?.session_id) {
           setSessionId(sessionData.session_id);
           if (sessionData.started_at) {
             startedAtRef.current = new Date(sessionData.started_at).getTime();
           }
           setActiveSession(sessionData);
+        } else {
+          console.error("Session creation failed:", sessionData?.message);
         }
       } catch (err) {
         console.error(err);
@@ -231,22 +243,34 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
     const set = currentSets[setIndex];
     if (!set || set.status === "completed") return;
 
-    if (sessionId && currentExercise) {
+    const exerciseId = currentExercise?.exercise_id ?? exercises[currentIndex]?.exercise_id;
+    const repsRaw = Number(set.reps);
+    const repsVal = set.reps === "failure" ? 0 : (isNaN(repsRaw) ? 0 : repsRaw);
+    const weightRaw = Number(set.weight);
+    const weightVal = isNaN(weightRaw) ? 0 : weightRaw;
+
+    if (sessionId && exerciseId != null) {
       try {
-        await fetch(`${API_BASE}/workout-sessions/${sessionId}/logs`, {
+        const res = await fetch(`${API_BASE}/workout-sessions/${sessionId}/logs`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            exercise_id: currentExercise.exercise_id,
-            reps: Number(set.reps),
-            weight: Number(set.weight),
+            exercise_id: exerciseId,
+            reps: repsVal,
+            weight: weightVal,
           }),
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("Log set failed:", res.status, err.message);
+          return;
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Log set network error:", err);
+        return;
       }
     }
 
@@ -302,6 +326,18 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
     setNotesModalVisible(true);
   };
 
+  const handleAbandon = async () => {
+    setAbandonVisible(false);
+    if (sessionId) {
+      await fetch(`${API_BASE}/workout-sessions/${sessionId}/abandon`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(console.error);
+    }
+    setActiveSession(null);
+    router.back();
+  };
+
   const handleConfirmFinish = async (notes) => {
     setNotesModalVisible(false);
     if (sessionId) {
@@ -325,8 +361,8 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color={Colors.primary} />
+          <TouchableOpacity onPress={() => setAbandonVisible(true)}>
+            <Ionicons name="trash-outline" size={20} color={Colors.error} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>WORKOUT</Text>
@@ -417,6 +453,26 @@ export default function WorkoutSessionScreen({ resumeSessionId, resumeWorkoutId 
         onConfirm={handleConfirmFinish}
         onClose={() => setNotesModalVisible(false)}
       />
+
+      <Modal visible={abandonVisible} transparent animationType="fade" onRequestClose={() => setAbandonVisible(false)}>
+        <TouchableOpacity style={styles.abandonOverlay} activeOpacity={1} onPress={() => setAbandonVisible(false)}>
+          <TouchableOpacity activeOpacity={1} style={styles.abandonCard}>
+            <View style={styles.abandonIconWrap}>
+              <Ionicons name="trash-outline" size={22} color={Colors.error} />
+            </View>
+            <Text style={styles.abandonTitle}>Renunți la antrenament?</Text>
+            <Text style={styles.abandonBody}>
+              Sesiunea va fi ștearsă complet și nu va apărea în istoric.
+            </Text>
+            <TouchableOpacity style={styles.abandonConfirmBtn} onPress={handleAbandon} activeOpacity={0.85}>
+              <Text style={styles.abandonConfirmText}>Renunță</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.abandonCancelBtn} onPress={() => setAbandonVisible(false)} activeOpacity={0.8}>
+              <Text style={styles.abandonCancelText}>Continuă antrenamentul</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScreenBackground>
   );
 }
@@ -528,5 +584,70 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.label,
     color: Colors.primary,
     letterSpacing: 1,
+  },
+  abandonOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  abandonCard: {
+    backgroundColor: Colors.surfaceContainerHigh,
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+  },
+  abandonIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,115,81,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  abandonTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: Fonts.headline,
+    color: Colors.textPrimary,
+    textAlign: "center",
+  },
+  abandonBody: {
+    fontSize: 13,
+    fontFamily: Fonts.body,
+    color: Colors.onSurfaceVariant,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  abandonConfirmBtn: {
+    width: "100%",
+    backgroundColor: Colors.error,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  abandonConfirmText: {
+    fontSize: 13,
+    fontWeight: "700",
+    fontFamily: Fonts.label,
+    color: "#fff",
+    letterSpacing: 1,
+  },
+  abandonCancelBtn: {
+    width: "100%",
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  abandonCancelText: {
+    fontSize: 13,
+    fontFamily: Fonts.label,
+    color: Colors.onSurfaceVariant,
   },
 });

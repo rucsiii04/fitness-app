@@ -112,12 +112,16 @@ export default function ProfileScreen() {
   };
 
   const formatGoal = (goal) => {
-    if (!goal) return "—";
-    return goal.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const map = {
+      lose_weight: "Slăbire",
+      maintain: "Menținere",
+      gain_weight: "Masă Musculară",
+    };
+    return map[goal] ?? "-";
   };
 
   const formatActivity = (level) => {
-    if (!level) return "—";
+    if (!level) return "-";
     const map = {
       sedentary: "Sedentar",
       light: "Ușor",
@@ -182,14 +186,14 @@ export default function ProfileScreen() {
           <View style={styles.metricsGrid}>
             <MetricCard
               label="Greutate"
-              value={profile?.current_weight ?? "—"}
+              value={profile?.current_weight ?? "-"}
               unit={profile?.current_weight ? "KG" : ""}
               icon="scale-outline"
               iconColor={Colors.primaryDim}
             />
             <MetricCard
               label="Înălțime"
-              value={profile?.height ?? "—"}
+              value={profile?.height ?? "-"}
               unit={profile?.height ? "CM" : ""}
               icon="body-outline"
               iconColor={Colors.secondary}

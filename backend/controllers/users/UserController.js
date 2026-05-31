@@ -202,7 +202,8 @@ export const controller = {
       const trainers = await User.findAll({
         where: {
           gym_id: gymId,
-          role: ["trainer", "front_desk"],
+          role: "trainer",
+          is_active: true,
         },
         attributes: [
           "user_id",

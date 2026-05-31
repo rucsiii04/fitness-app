@@ -86,7 +86,15 @@ function fmtDayTitle(dateKey) {
 // maxTotalMin: absolute ceiling in minutes for the start time (hour*60+minute).
 // When provided, the minute "+" arrow is disabled once adding 5 more minutes
 // would exceed it (i.e. no session could fit before gym closing).
-function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, maxHour = 23, maxTotalMin = null }) {
+function TimePicker({
+  hour,
+  minute,
+  onHourChange,
+  onMinuteChange,
+  minHour = 0,
+  maxHour = 23,
+  maxTotalMin = null,
+}) {
   const [hourText, setHourText] = React.useState(String(hour).padStart(2, "0"));
   const [minText, setMinText] = React.useState(String(minute).padStart(2, "0"));
   const hourFocused = React.useRef(false);
@@ -95,7 +103,8 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
   const clampHour = (h) => Math.min(maxHour, Math.max(minHour, h));
 
   const currentTotalMin = hour * 60 + minute;
-  const minUpDisabled = maxTotalMin !== null && currentTotalMin + 5 > maxTotalMin;
+  const minUpDisabled =
+    maxTotalMin !== null && currentTotalMin + 5 > maxTotalMin;
   const minDownDisabled = minute === 0;
 
   React.useEffect(() => {
@@ -108,8 +117,10 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
   const stepMinuteUp = () => {
     if (minUpDisabled) return;
     let m = minute + 5;
-    if (m >= 60) { onHourChange(clampHour(hour + 1)); onMinuteChange(m - 60); }
-    else onMinuteChange(m);
+    if (m >= 60) {
+      onHourChange(clampHour(hour + 1));
+      onMinuteChange(m - 60);
+    } else onMinuteChange(m);
   };
 
   const stepMinuteDown = () => {
@@ -127,7 +138,11 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
           hitSlop={6}
           disabled={hour >= maxHour}
         >
-          <Ionicons name="chevron-up" size={13} color={hour >= maxHour ? Colors.textMuted : Colors.primary} />
+          <Ionicons
+            name="chevron-up"
+            size={13}
+            color={hour >= maxHour ? Colors.textMuted : Colors.primary}
+          />
         </TouchableOpacity>
         <TextInput
           style={tpStyles.val}
@@ -136,7 +151,9 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
           maxLength={2}
           selectTextOnFocus
           underlineColorAndroid="transparent"
-          onFocus={() => { hourFocused.current = true; }}
+          onFocus={() => {
+            hourFocused.current = true;
+          }}
           onChangeText={(v) => setHourText(v)}
           onBlur={() => {
             hourFocused.current = false;
@@ -152,7 +169,11 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
           hitSlop={6}
           disabled={hour <= minHour}
         >
-          <Ionicons name="chevron-down" size={13} color={hour <= minHour ? Colors.textMuted : Colors.primary} />
+          <Ionicons
+            name="chevron-down"
+            size={13}
+            color={hour <= minHour ? Colors.textMuted : Colors.primary}
+          />
         </TouchableOpacity>
       </View>
       <Text style={tpStyles.colon}>:</Text>
@@ -163,7 +184,11 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
           hitSlop={6}
           disabled={minUpDisabled}
         >
-          <Ionicons name="chevron-up" size={13} color={minUpDisabled ? Colors.textMuted : Colors.primary} />
+          <Ionicons
+            name="chevron-up"
+            size={13}
+            color={minUpDisabled ? Colors.textMuted : Colors.primary}
+          />
         </TouchableOpacity>
         <TextInput
           style={tpStyles.val}
@@ -172,16 +197,17 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
           maxLength={2}
           selectTextOnFocus
           underlineColorAndroid="transparent"
-          onFocus={() => { minFocused.current = true; }}
+          onFocus={() => {
+            minFocused.current = true;
+          }}
           onChangeText={(v) => setMinText(v)}
           onBlur={() => {
             minFocused.current = false;
             const n = parseInt(minText, 10);
             // clamp typed minute to what's allowed given the hour and maxTotalMin
             const raw = isNaN(n) ? 0 : Math.min(59, Math.max(0, n));
-            const maxAllowedMin = maxTotalMin !== null
-              ? Math.min(59, maxTotalMin - hour * 60)
-              : 59;
+            const maxAllowedMin =
+              maxTotalMin !== null ? Math.min(59, maxTotalMin - hour * 60) : 59;
             const clamped = Math.min(raw, Math.max(0, maxAllowedMin));
             onMinuteChange(clamped);
             setMinText(String(clamped).padStart(2, "0"));
@@ -193,7 +219,11 @@ function TimePicker({ hour, minute, onHourChange, onMinuteChange, minHour = 0, m
           hitSlop={6}
           disabled={minDownDisabled}
         >
-          <Ionicons name="chevron-down" size={13} color={minDownDisabled ? Colors.textMuted : Colors.primary} />
+          <Ionicons
+            name="chevron-down"
+            size={13}
+            color={minDownDisabled ? Colors.textMuted : Colors.primary}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -242,14 +272,16 @@ function SessionCard({ session, userId, onPress }) {
     ? "Tu"
     : trainer
       ? `${trainer.first_name} ${trainer.last_name}`
-      : "—";
+      : "-";
 
   const inner = (
-    <View style={[
-      scStyles.card,
-      isMine && !isCancelled && scStyles.cardMine,
-      isCancelled && scStyles.cardCancelled,
-    ]}>
+    <View
+      style={[
+        scStyles.card,
+        isMine && !isCancelled && scStyles.cardMine,
+        isCancelled && scStyles.cardCancelled,
+      ]}
+    >
       <View style={scStyles.timeCol}>
         <Text style={[scStyles.timeStart, isCancelled && scStyles.textDim]}>
           {fmtTime(session.start_datetime)}
@@ -261,7 +293,10 @@ function SessionCard({ session, userId, onPress }) {
       </View>
       <View style={scStyles.info}>
         <View style={scStyles.typeRow}>
-          <Text style={[scStyles.typeName, isCancelled && scStyles.textDim]} numberOfLines={1}>
+          <Text
+            style={[scStyles.typeName, isCancelled && scStyles.textDim]}
+            numberOfLines={1}
+          >
             {typeName}
           </Text>
           {isCancelled && (
@@ -271,12 +306,25 @@ function SessionCard({ session, userId, onPress }) {
           )}
         </View>
         <View style={scStyles.metaRow}>
-          <Ionicons name="person-outline" size={11} color={Colors.onSurfaceVariant} />
-          <Text style={[scStyles.metaText, isMine && !isCancelled && scStyles.metaMine]}>
+          <Ionicons
+            name="person-outline"
+            size={11}
+            color={Colors.onSurfaceVariant}
+          />
+          <Text
+            style={[
+              scStyles.metaText,
+              isMine && !isCancelled && scStyles.metaMine,
+            ]}
+          >
             {trainerLabel}
           </Text>
           <Text style={scStyles.metaSep}>·</Text>
-          <Ionicons name="people-outline" size={11} color={Colors.onSurfaceVariant} />
+          <Ionicons
+            name="people-outline"
+            size={11}
+            color={Colors.onSurfaceVariant}
+          />
           <Text style={scStyles.metaText}>
             {session.confirmed_count ?? 0}/{session.max_participants}
           </Text>
@@ -436,20 +484,32 @@ function CreateSessionModal({
     const startMin = startH * 60 + startM;
 
     if (!gymHours) {
-      Alert.alert("Eroare", "Nu s-au putut încărca orele de funcționare ale sălii. Încearcă din nou.");
+      Alert.alert(
+        "Eroare",
+        "Nu s-au putut încărca orele de funcționare ale sălii. Încearcă din nou.",
+      );
       return;
     }
 
     if (startMin < gymHours.openMin) {
-      Alert.alert("Eroare", `Sala deschide la ${gymHours.label.split(" – ")[0]}. Alege o oră de start mai târzie.`);
+      Alert.alert(
+        "Eroare",
+        `Sala deschide la ${gymHours.label.split(" – ")[0]}. Alege o oră de start mai târzie.`,
+      );
       return;
     }
     if (startMin >= gymHours.closeMin) {
-      Alert.alert("Eroare", `Ora de start trebuie să fie înainte de ${gymHours.label.split(" – ")[1]} (ora de închidere).`);
+      Alert.alert(
+        "Eroare",
+        `Ora de start trebuie să fie înainte de ${gymHours.label.split(" – ")[1]} (ora de închidere).`,
+      );
       return;
     }
     if (totalEndMin > gymHours.closeMin) {
-      Alert.alert("Eroare", `Sesiunea depășește ora de închidere (${gymHours.label.split(" – ")[1]}). Alege o durată mai scurtă.`);
+      Alert.alert(
+        "Eroare",
+        `Sesiunea depășește ora de închidere (${gymHours.label.split(" – ")[1]}). Alege o durată mai scurtă.`,
+      );
       return;
     }
 
@@ -458,7 +518,14 @@ function CreateSessionModal({
       return;
     }
 
-    const endDt = new Date(y, m - 1, d, computedEndH, computedEndM, 0).toISOString();
+    const endDt = new Date(
+      y,
+      m - 1,
+      d,
+      computedEndH,
+      computedEndM,
+      0,
+    ).toISOString();
 
     if (new Date(startDt) >= new Date(endDt)) {
       Alert.alert(
@@ -953,8 +1020,10 @@ export default function TrainerScheduleScreen() {
         const openMin = oh * 60 + om;
         const closeMin = ch * 60 + cm;
         setGymHours({
-          openMin, closeMin,
-          openH: oh, maxH: Math.floor((closeMin - 1) / 60),
+          openMin,
+          closeMin,
+          openH: oh,
+          maxH: Math.floor((closeMin - 1) / 60),
           label: `${data.gym_hours.opening_time} – ${data.gym_hours.closing_time}`,
         });
       }

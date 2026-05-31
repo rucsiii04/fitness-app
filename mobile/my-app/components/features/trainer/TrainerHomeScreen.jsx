@@ -78,9 +78,7 @@ function ClientMiniCard({ client, lastSession }) {
           </View>
         ) : null}
       </View>
-      <Text style={styles.clientLastSession}>
-        {lastSessionText ?? "—"}
-      </Text>
+      <Text style={styles.clientLastSession}>{lastSessionText ?? "-"}</Text>
     </View>
   );
 }
@@ -150,7 +148,7 @@ export default function TrainerHomeScreen() {
   return (
     <ScreenBackground>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <View style={styles.header}>
           <Text style={styles.logoText}>KINETIC</Text>
           <View style={styles.headerActions}>
@@ -196,20 +194,56 @@ export default function TrainerHomeScreen() {
                 <View style={styles.liveDot} />
                 <Text style={styles.liveText}>LIVE</Text>
               </View>
-              <Text style={styles.heroValue}>{stats ? activeClients : "—"}</Text>
+              <Text style={styles.heroValue}>
+                {stats ? activeClients : "-"}
+              </Text>
               <Text style={styles.heroLabel}>
                 {stats ? pluralClients(activeClients) : "Clienți Activi"}
               </Text>
             </View>
-            <View style={[styles.heroCard, { backgroundColor: Colors.error + "18", borderColor: Colors.error + "30" }]}>
-              <Ionicons name="mail-outline" size={18} color={Colors.error} style={{ marginBottom: 6 }} />
-              <Text style={[styles.heroValue, { color: Colors.error }]}>{stats ? pendingRequests : "—"}</Text>
-              <Text style={styles.heroLabel}>{stats ? pluralRequests(pendingRequests) : "Cereri"}</Text>
+            <View
+              style={[
+                styles.heroCard,
+                {
+                  backgroundColor: Colors.error + "18",
+                  borderColor: Colors.error + "30",
+                },
+              ]}
+            >
+              <Ionicons
+                name="mail-outline"
+                size={18}
+                color={Colors.error}
+                style={{ marginBottom: 6 }}
+              />
+              <Text style={[styles.heroValue, { color: Colors.error }]}>
+                {stats ? pendingRequests : "-"}
+              </Text>
+              <Text style={styles.heroLabel}>
+                {stats ? pluralRequests(pendingRequests) : "Cereri"}
+              </Text>
             </View>
-            <View style={[styles.heroCard, { backgroundColor: Colors.secondary + "18", borderColor: Colors.secondary + "30" }]}>
-              <Ionicons name="calendar-outline" size={18} color={Colors.secondary} style={{ marginBottom: 6 }} />
-              <Text style={[styles.heroValue, { color: Colors.secondary }]}>{stats ? classesToday : "—"}</Text>
-              <Text style={styles.heroLabel}>{stats ? pluralClasses(classesToday) : "Cursuri Azi"}</Text>
+            <View
+              style={[
+                styles.heroCard,
+                {
+                  backgroundColor: Colors.secondary + "18",
+                  borderColor: Colors.secondary + "30",
+                },
+              ]}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color={Colors.secondary}
+                style={{ marginBottom: 6 }}
+              />
+              <Text style={[styles.heroValue, { color: Colors.secondary }]}>
+                {stats ? classesToday : "-"}
+              </Text>
+              <Text style={styles.heroLabel}>
+                {stats ? pluralClasses(classesToday) : "Cursuri Azi"}
+              </Text>
             </View>
           </View>
 

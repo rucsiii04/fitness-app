@@ -42,7 +42,7 @@ export default function ResetPassword() {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Invalid or expired link. Request a new one.",
+          "Link invalid sau expirat. Solicită unul nou.",
       );
     } finally {
       setLoading(false);
@@ -159,7 +159,7 @@ export default function ResetPassword() {
                 verticalAlign: "middle",
               }}
             />
-            Secure Recovery
+            Recuperare Securizată
           </div>
           <div
             className="display"
@@ -171,11 +171,11 @@ export default function ResetPassword() {
               marginBottom: 12,
             }}
           >
-            New
+            Credențiale
             <br />
-            credentials.
+            noi.
             <br />
-            <span style={{ color: "var(--accent)" }}>Fresh start.</span>
+            <span style={{ color: "var(--accent)" }}>Start proaspăt.</span>
           </div>
         </div>
 
@@ -200,7 +200,7 @@ export default function ResetPassword() {
             ))}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            {["REQUEST", "VERIFY", "SET NEW", "COMPLETE"].map((l, i) => (
+            {["SOLICITARE", "VERIFICARE", "SETARE", "COMPLET"].map((l, i) => (
               <div
                 key={l}
                 className="mono"
@@ -250,7 +250,7 @@ export default function ResetPassword() {
                 className="display upper"
                 style={{ fontSize: 32, margin: "0 0 12px", lineHeight: 1 }}
               >
-                Invalid link
+                Link invalid
               </h1>
               <p
                 style={{
@@ -259,7 +259,7 @@ export default function ResetPassword() {
                   marginBottom: 24,
                 }}
               >
-                This reset link is invalid or has expired.
+                Acest link de resetare este invalid sau a expirat.
               </p>
               <Link to="/forgot-password">
                 <Btn
@@ -267,7 +267,7 @@ export default function ResetPassword() {
                   size="lg"
                   style={{ width: "100%", justifyContent: "center" }}
                 >
-                  Request new link
+                  Solicită un link nou
                 </Btn>
               </Link>
             </div>
@@ -284,7 +284,7 @@ export default function ResetPassword() {
                   marginBottom: 10,
                 }}
               >
-                STEP 03 · SET NEW
+                PAS 03 · SETEAZĂ PAROLA
               </div>
               <h1
                 className="display upper"
@@ -295,9 +295,9 @@ export default function ResetPassword() {
                   lineHeight: 1,
                 }}
               >
-                New
+                Credențiale
                 <br />
-                credentials.
+                noi.
               </h1>
               <p
                 style={{
@@ -307,13 +307,13 @@ export default function ResetPassword() {
                   lineHeight: 1.5,
                 }}
               >
-                Choose a strong password you haven't used before.
+                Alege o parolă puternică pe care nu ai mai folosit-o.
               </p>
 
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 16 }}
               >
-                <Field label="New Password">
+                <Field label="Parolă Nouă">
                   <Input
                     icon={<I.lock />}
                     type={showPw ? "text" : "password"}
@@ -367,10 +367,10 @@ export default function ResetPassword() {
                     }}
                   >
                     {[
-                      { c: pw.length >= 8, l: "8+ characters" },
-                      { c: /[A-Z]/.test(pw), l: "Uppercase" },
-                      { c: /[0-9]/.test(pw), l: "Number" },
-                      { c: /[^A-Za-z0-9]/.test(pw), l: "Symbol" },
+                      { c: pw.length >= 8, l: "8+ caractere" },
+                      { c: /[A-Z]/.test(pw), l: "Literă mare" },
+                      { c: /[0-9]/.test(pw), l: "Cifră" },
+                      { c: /[^A-Za-z0-9]/.test(pw), l: "Simbol" },
                     ].map((r) => (
                       <div
                         key={r.l}
@@ -405,8 +405,8 @@ export default function ResetPassword() {
                 </div>
 
                 <Field
-                  label="Confirm Password"
-                  error={pw2 && !pwMatch ? "Passwords don't match" : ""}
+                  label="Confirmă Parola"
+                  error={pw2 && !pwMatch ? "Parolele nu coincid" : ""}
                 >
                   <Input
                     icon={<I.lock />}
@@ -452,7 +452,7 @@ export default function ResetPassword() {
                   disabled={strength < 3 || !pwMatch || loading}
                   style={{ width: "100%", justifyContent: "center" }}
                 >
-                  {loading ? "Updating..." : "Update Password"}
+                  {loading ? "Se actualizează..." : "Actualizează Parola"}
                 </Btn>
               </div>
             </form>
@@ -469,7 +469,7 @@ export default function ResetPassword() {
                   marginBottom: 10,
                 }}
               >
-                STEP 04 · COMPLETE
+                PAS 04 · COMPLET
               </div>
               <div
                 style={{
@@ -495,9 +495,9 @@ export default function ResetPassword() {
                   lineHeight: 1,
                 }}
               >
-                You're
+                Parolă
                 <br />
-                back in.
+                resetată.
               </h1>
               <p
                 style={{
@@ -509,8 +509,7 @@ export default function ResetPassword() {
                   margin: "0 auto 32px",
                 }}
               >
-                Your password has been updated. Sign in with your new
-                credentials.
+                Parola ta a fost actualizată. Autentifică-te cu noile credențiale.
               </p>
               <Btn
                 variant="primary"
@@ -519,7 +518,7 @@ export default function ResetPassword() {
                 onClick={() => navigate("/login")}
                 style={{ width: "100%", justifyContent: "center" }}
               >
-                Continue to Login
+                Continuă la Autentificare
               </Btn>
             </div>
           )}

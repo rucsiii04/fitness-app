@@ -15,8 +15,8 @@ export const getSessionsByGym = (gymId) =>
 export const createClassSession = (data) =>
   api.post("/classes/class-sessions", data);
 
-export const cancelClassSession = (sessionId) =>
-  api.patch(`/classes/class-sessions/${sessionId}/cancel`);
+export const cancelClassSession = (sessionId, notify = false) =>
+  api.patch(`/classes/class-sessions/${sessionId}/cancel${notify ? "?notify=1" : ""}`);
 
 export const getSessionEnrollments = (sessionId) =>
   api.get(`/classes/class-sessions/${sessionId}/enrollments`);

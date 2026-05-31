@@ -21,9 +21,8 @@ export const controller = {
       });
 
       if (existingSession) {
-        return res.status(400).json({
-          message: "You already have an active session",
-        });
+        await Session_Exercise_Log.destroy({ where: { session_id: existingSession.session_id } });
+        await existingSession.destroy();
       }
 
       if (workout_id) {
@@ -82,6 +81,23 @@ export const controller = {
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Error finishing session" });
+    }
+  },
+
+  abandon: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.user_id;
+      const session = await Workout_Session.findByPk(id);
+      if (!session) return res.status(404).json({ message: "Session not found" });
+      if (session.user_id !== userId) return res.status(403).json({ message: "Forbidden" });
+      if (session.finished_at) return res.status(400).json({ message: "Session already finished" });
+      await Session_Exercise_Log.destroy({ where: { session_id: id } });
+      await session.destroy();
+      return res.status(200).json({ message: "Session abandoned" });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Error abandoning session" });
     }
   },
 

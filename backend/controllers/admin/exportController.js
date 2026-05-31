@@ -24,7 +24,12 @@ function toCSV(headers, rows) {
 }
 
 function fmtDate(d) {
-  return d ? new Date(d).toISOString().split("T")[0] : "";
+  if (!d) return "";
+  const dt = new Date(d);
+  const day = String(dt.getDate()).padStart(2, "0");
+  const month = String(dt.getMonth() + 1).padStart(2, "0");
+  const year = dt.getFullYear();
+  return `${day}/${month}/${year}`;
 }
 
 function fmtTime(d) {
@@ -90,7 +95,7 @@ export const controller = {
         "Content-Disposition",
         `attachment; filename="memberships_${todayStr()}.csv"`,
       );
-      return res.send(csv);
+      return res.send("﻿" + csv);
     } catch (err) {
       return res.status(500).json({ message: "Export failed: " + err.message });
     }
@@ -139,7 +144,7 @@ export const controller = {
         "Content-Disposition",
         `attachment; filename="users_${todayStr()}.csv"`,
       );
-      return res.send(csv);
+      return res.send("﻿" + csv);
     } catch (err) {
       return res.status(500).json({ message: "Export failed: " + err.message });
     }
@@ -187,7 +192,7 @@ export const controller = {
         "Content-Disposition",
         `attachment; filename="checkins_${todayStr()}.csv"`,
       );
-      return res.send(csv);
+      return res.send("﻿" + csv);
     } catch (err) {
       return res.status(500).json({ message: "Export failed: " + err.message });
     }

@@ -23,7 +23,7 @@ const SOURCE_ICON = {
   ai: { icon: "sparkles-outline", color: Colors.tertiary },
 };
 
-export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
+export function WorkoutCard({ workout, onLongPress, onStart, onPress, hideStart }) {
   const diff = DIFFICULTY[workout.difficulty_level] ?? DIFFICULTY.beginner;
   const src = SOURCE_ICON[workout.source] ?? null;
   const [expanded, setExpanded] = useState(false);
@@ -34,16 +34,16 @@ export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
   }, []);
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      activeOpacity={0.85}
-    >
+    <View style={styles.card}>
       <View style={[styles.accent, { backgroundColor: diff.color }]} />
 
-      <View style={styles.body}>
+      <TouchableOpacity
+        style={styles.body}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={350}
+        activeOpacity={0.85}
+      >
         <View style={styles.topRow}>
           <View style={styles.badges}>
             <View style={[styles.diffBadge, { borderColor: diff.color }]}>
@@ -58,15 +58,6 @@ export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
               </View>
             )}
           </View>
-
-          <TouchableOpacity
-            style={styles.startBtn}
-            onPress={onStart}
-            activeOpacity={0.85}
-            hitSlop={8}
-          >
-            <Ionicons name="play" size={22} color={Colors.background} />
-          </TouchableOpacity>
         </View>
 
         <Text style={styles.name} numberOfLines={1}>
@@ -115,8 +106,20 @@ export function WorkoutCard({ workout, onLongPress, onStart, onPress }) {
             )}
           </>
         ) : null}
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+
+      {!hideStart && (
+        <TouchableOpacity
+          style={styles.startBtnArea}
+          onPress={onStart}
+          activeOpacity={0.85}
+        >
+          <View style={styles.startBtn}>
+            <Ionicons name="play" size={24} color={Colors.background} />
+          </View>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
@@ -166,10 +169,15 @@ const styles = StyleSheet.create({
   srcBadge: {
     padding: 4,
   },
+  startBtnArea: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
   startBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",
