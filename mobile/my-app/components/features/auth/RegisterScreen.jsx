@@ -144,12 +144,11 @@ export default function RegisterScreen() {
           >
             <View style={styles.heroSection}>
               <Text style={styles.heroTitle}>
-                {"UNLOCK\n"}
-                <Text style={styles.heroAccent}>PRECISION.</Text>
+                {"ÎNCEPE\n"}
+                <Text style={styles.heroAccent}>ACUM.</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
-                Join the elite tier of performance tracking. High-tech tools for
-                the high-performance athlete.
+                Creează-ți contul și începe să îți urmărești progresul.
               </Text>
             </View>
 
@@ -158,7 +157,7 @@ export default function RegisterScreen() {
                 <View style={styles.row}>
                   <View style={styles.rowItem}>
                     <InputField
-                      label="First Name"
+                      label="Prenume"
                       placeholder="Alex"
                       autoCapitalize="words"
                       value={firstName}
@@ -167,8 +166,8 @@ export default function RegisterScreen() {
                   </View>
                   <View style={styles.rowItem}>
                     <InputField
-                      label="Last Name"
-                      placeholder="Rivera"
+                      label="Nume"
+                      placeholder="Popescu"
                       autoCapitalize="words"
                       value={lastName}
                       onChangeText={setLastName}
@@ -177,7 +176,7 @@ export default function RegisterScreen() {
                 </View>
 
                 <InputField
-                  label="Phone Number"
+                  label="Număr de telefon"
                   placeholder="07xxxxxxxx"
                   keyboardType="phone-pad"
                   value={phone}
@@ -185,8 +184,8 @@ export default function RegisterScreen() {
                 />
 
                 <InputField
-                  label="Email Address"
-                  placeholder="alex@performance.tech"
+                  label="Adresă email"
+                  placeholder="alex@exemplu.ro"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={email}
@@ -194,7 +193,7 @@ export default function RegisterScreen() {
                 />
 
                 <InputField
-                  label="Password"
+                  label="Parolă"
                   placeholder="••••••••••••"
                   secureTextEntry={!showPassword}
                   value={password}
@@ -226,14 +225,14 @@ export default function RegisterScreen() {
                 ) : null}
 
                 <PrimaryButton
-                  label={loading ? "Creating Account..." : "Create Account"}
+                  label={loading ? "Se creează contul..." : "Creează cont"}
                   onPress={handleRegister}
                   style={styles.buttonSpacing}
                 />
 
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>Secure Registration</Text>
+                  <Text style={styles.dividerText}>Înregistrare securizată</Text>
                   <View style={styles.dividerLine} />
                 </View>
               </View>
@@ -242,9 +241,9 @@ export default function RegisterScreen() {
         </KeyboardAvoidingView>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
+          <Text style={styles.footerText}>Ai deja un cont? </Text>
           <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-            <Text style={styles.footerLink}>Login</Text>
+            <Text style={styles.footerLink}>Conectează-te</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

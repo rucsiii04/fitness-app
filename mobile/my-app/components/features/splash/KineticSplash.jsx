@@ -97,10 +97,10 @@ export default function KineticSplash() {
             },
           ]}
         >
-          <Text style={styles.eyebrow}>Precision Performance</Text>
+          <Text style={styles.eyebrow}>Performanță de Elită</Text>
           <Text style={styles.heroTitle}>
-            {"BEYOND\n"}
-            <Text style={styles.heroTitleAccent}>LIMITS</Text>
+            {"DINCOLO\n"}
+            <Text style={styles.heroTitleAccent}>DE LIMITE</Text>
           </Text>
         </Animated.View>
 
@@ -118,14 +118,14 @@ export default function KineticSplash() {
             activeOpacity={0.85}
             onPress={() => router.push("/(auth)/register")}
           >
-            <Text style={styles.primaryButtonText}>JOIN THE ELITE</Text>
+            <Text style={styles.primaryButtonText}>ÎNREGISTREAZĂ-TE</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
             activeOpacity={0.85}
             onPress={() => router.push("/(auth)/login")}
           >
-            <Text style={styles.secondaryButtonText}>LOGIN</Text>
+            <Text style={styles.secondaryButtonText}>CONECTEAZĂ-TE</Text>
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>

@@ -89,32 +89,32 @@ export function ActivityStep({ data, onChange, onNext, onBack }) {
 const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 24,
+    paddingBottom: 24,
+    gap: 16,
   },
   hero: {
-    paddingTop: 24,
-    gap: 12,
+    paddingTop: 12,
+    gap: 8,
   },
   title: {
-    fontSize: 42,
+    fontSize: 30,
     fontWeight: "700",
     fontFamily: Fonts.headline,
     color: Colors.textPrimary,
-    letterSpacing: -2,
-    lineHeight: 44,
+    letterSpacing: -1,
+    lineHeight: 32,
     textTransform: "uppercase",
   },
   titleAccent: {
     color: Colors.primaryDim,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 24,
+    fontSize: 13,
+    lineHeight: 20,
     color: Colors.onSurfaceVariant,
     fontFamily: Fonts.body,
   },
   list: {
-    gap: 12,
+    gap: 10,
   },
 });

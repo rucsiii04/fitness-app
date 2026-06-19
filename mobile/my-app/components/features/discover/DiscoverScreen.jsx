@@ -285,7 +285,7 @@ function Header() {
   return (
     <View style={styles.header}>
       <View>
-        <Text style={styles.headerTitle}>Discover</Text>
+        <Text style={styles.headerTitle}>Descoperă</Text>
         <Text style={styles.headerSub}>Găsește-ți antrenorul de elită</Text>
       </View>
     </View>

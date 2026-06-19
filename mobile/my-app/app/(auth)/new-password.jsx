@@ -35,12 +35,12 @@ export default function NewPasswordScreen() {
 
   const handleReset = async () => {
     if (!password || !confirmPassword) {
-      setError("Please fill in both fields.");
+      setError("Completează ambele câmpuri.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setError("Parolele nu coincid.");
       return;
     }
 
@@ -57,13 +57,13 @@ export default function NewPasswordScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Something went wrong.");
+        setError(data.message || "Ceva a mers greșit.");
         return;
       }
 
       router.replace("/(auth)/login");
     } catch {
-      setError("Something went wrong. Check your connection.");
+      setError("Ceva a mers greșit. Verifică conexiunea.");
     } finally {
       setLoading(false);
     }
@@ -90,17 +90,17 @@ export default function NewPasswordScreen() {
           >
             <View style={styles.heroSection}>
               <Text style={styles.heroTitle}>
-                {"NEW\n"}
-                <Text style={styles.heroAccent}>PASSWORD.</Text>
+                {"PAROLĂ\n"}
+                <Text style={styles.heroAccent}>NOUĂ.</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
-                Choose a strong password for your account.
+                Alege o parolă puternică pentru contul tău.
               </Text>
             </View>
 
             <View style={styles.form}>
               <InputField
-                label="New Password"
+                label="Parolă nouă"
                 placeholder="••••••••"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -117,7 +117,7 @@ export default function NewPasswordScreen() {
               />
 
               <InputField
-                label="Confirm Password"
+                label="Confirmă parola"
                 placeholder="••••••••"
                 secureTextEntry={!showConfirm}
                 value={confirmPassword}
@@ -145,7 +145,7 @@ export default function NewPasswordScreen() {
               ) : null}
 
               <PrimaryButton
-                label={loading ? "Saving..." : "Set New Password"}
+                label={loading ? "Se salvează..." : "Setează parola nouă"}
                 onPress={handleReset}
                 style={styles.buttonSpacing}
               />

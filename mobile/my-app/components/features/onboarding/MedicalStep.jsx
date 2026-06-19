@@ -140,19 +140,19 @@ export function MedicalStep({ data, onChange, onSubmit, loading, onBack }) {
 const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    gap: 24,
+    paddingBottom: 16,
+    gap: 16,
   },
   hero: {
-    paddingTop: 24,
+    paddingTop: 12,
   },
   title: {
-    fontSize: 42,
+    fontSize: 30,
     fontWeight: "700",
     fontFamily: Fonts.headline,
     color: Colors.textPrimary,
-    letterSpacing: -2,
-    lineHeight: 44,
+    letterSpacing: -1,
+    lineHeight: 32,
     textTransform: "uppercase",
   },
   titleAccent: {
@@ -161,14 +161,14 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 10,
   },
   restrictionCard: {
     width: "47%",
     backgroundColor: Colors.surfaceContainerHigh,
-    borderRadius: 16,
-    padding: 20,
-    gap: 10,
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
     borderWidth: 2,
     borderColor: "transparent",
   },
@@ -205,12 +205,12 @@ const styles = StyleSheet.create({
   },
   textArea: {
     backgroundColor: Colors.surfaceContainerHighest,
-    borderRadius: 16,
-    padding: 20,
-    fontSize: 14,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 13,
     color: Colors.textPrimary,
     fontFamily: Fonts.body,
-    minHeight: 120,
+    minHeight: 80,
     textAlignVertical: "top",
   },
   disclaimer: {

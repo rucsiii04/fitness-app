@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
 
   const handleRequest = async () => {
     if (!email) {
-      setError("Please enter your email address.");
+      setError("Introduceți adresa de email.");
       return;
     }
 
@@ -47,13 +47,13 @@ export default function ForgotPasswordScreen() {
 
       if (!response.ok) {
         const data = await response.json();
-        setError(data.message || "Something went wrong.");
+        setError(data.message || "Ceva a mers greșit.");
         return;
       }
 
       router.push({ pathname: "/(auth)/verify-code", params: { email } });
     } catch {
-      setError("Something went wrong. Check your connection.");
+      setError("Ceva a mers greșit. Verifică conexiunea.");
     } finally {
       setLoading(false);
     }
@@ -83,17 +83,17 @@ export default function ForgotPasswordScreen() {
           >
             <View style={styles.heroSection}>
               <Text style={styles.heroTitle}>
-                {"FORGOT\n"}
-                <Text style={styles.heroAccent}>PASSWORD?</Text>
+                {"AI UITAT\n"}
+                <Text style={styles.heroAccent}>PAROLA?</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
-                Enter your email and we'll send you a 6-digit code.
+                Introdu emailul și îți trimitem un cod de 6 cifre.
               </Text>
             </View>
 
             <View style={styles.form}>
               <InputField
-                label="Email Address"
+                label="Adresă email"
                 placeholder="name@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -113,7 +113,7 @@ export default function ForgotPasswordScreen() {
               ) : null}
 
               <PrimaryButton
-                label={loading ? "Sending..." : "Send Code"}
+                label={loading ? "Se trimite..." : "Trimite codul"}
                 onPress={handleRequest}
                 style={styles.buttonSpacing}
               />
@@ -122,9 +122,9 @@ export default function ForgotPasswordScreen() {
         </KeyboardAvoidingView>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Remembered it? </Text>
+          <Text style={styles.footerText}>Ți-ai amintit? </Text>
           <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-            <Text style={styles.footerLink}>Sign In</Text>
+            <Text style={styles.footerLink}>Conectează-te</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

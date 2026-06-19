@@ -51,7 +51,7 @@ export default function VerifyCodeScreen() {
   const handleVerify = async () => {
     const otp = digits.join("");
     if (otp.length < CODE_LENGTH) {
-      setError("Please enter the full 6-digit code.");
+      setError("Introduceți codul complet de 6 cifre.");
       return;
     }
 
@@ -68,7 +68,7 @@ export default function VerifyCodeScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Invalid code.");
+        setError(data.message || "Cod invalid.");
         return;
       }
 
@@ -77,7 +77,7 @@ export default function VerifyCodeScreen() {
         params: { userId: data.userId, otp },
       });
     } catch {
-      setError("Something went wrong. Check your connection.");
+      setError("Ceva a mers greșit. Verifică conexiunea.");
     } finally {
       setLoading(false);
     }
@@ -107,11 +107,11 @@ export default function VerifyCodeScreen() {
           >
             <View style={styles.heroSection}>
               <Text style={styles.heroTitle}>
-                {"ENTER\n"}
-                <Text style={styles.heroAccent}>CODE.</Text>
+                {"INTRODU\n"}
+                <Text style={styles.heroAccent}>CODUL.</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
-                We sent a 6-digit code to{"\n"}
+                Am trimis un cod de 6 cifre la{"\n"}
                 <Text style={styles.emailHighlight}>{email}</Text>
               </Text>
             </View>
@@ -144,7 +144,7 @@ export default function VerifyCodeScreen() {
             ) : null}
 
             <PrimaryButton
-              label={loading ? "Verifying..." : "Verify Code"}
+              label={loading ? "Se verifică..." : "Verifică codul"}
               onPress={handleVerify}
               style={styles.buttonSpacing}
             />
@@ -153,8 +153,8 @@ export default function VerifyCodeScreen() {
               style={styles.resendRow}
               onPress={() => router.back()}
             >
-              <Text style={styles.resendText}>Didn't receive a code? </Text>
-              <Text style={styles.resendLink}>Resend</Text>
+              <Text style={styles.resendText}>Nu ai primit codul? </Text>
+              <Text style={styles.resendLink}>Retrimite</Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>

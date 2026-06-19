@@ -35,7 +35,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError("Please fill in all fields.");
+      setError("Completează toate câmpurile.");
       return;
     }
 
@@ -52,7 +52,7 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Invalid credentials.");
+        setError(data.message || "Email sau parolă incorectă.");
         return;
       }
 
@@ -76,7 +76,7 @@ export default function LoginScreen() {
           router.replace("/(tabs)/home");
       }
     } catch (err) {
-      setError("Something went wrong. Check your connection.");
+      setError("Ceva a mers greșit. Verifică conexiunea.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -104,17 +104,17 @@ export default function LoginScreen() {
           >
             <View style={styles.heroSection}>
               <Text style={styles.heroTitle}>
-                {"WELCOME\n"}
-                <Text style={styles.heroAccent}>BACK.</Text>
+                {"BUN VENIT\n"}
+                <Text style={styles.heroAccent}>ÎNAPOI.</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
-                Sign in to resume your peak performance journey.
+                Conectează-te pentru a-ți relua parcursul de performanță.
               </Text>
             </View>
 
             <View style={styles.form}>
               <InputField
-                label="Email Address"
+                label="Adresă email"
                 placeholder="name@example.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -123,7 +123,7 @@ export default function LoginScreen() {
               />
 
               <InputField
-                label="Password"
+                label="Parolă"
                 placeholder="••••••••"
                 secureTextEntry={!showPassword}
                 value={password}
@@ -132,7 +132,7 @@ export default function LoginScreen() {
                   <TouchableOpacity
                     onPress={() => router.push("/(auth)/forgot-password")}
                   >
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                    <Text style={styles.forgotText}>Ai uitat parola?</Text>
                   </TouchableOpacity>
                 }
                 rightElement={
@@ -158,7 +158,7 @@ export default function LoginScreen() {
               ) : null}
 
               <PrimaryButton
-                label={loading ? "Signing in..." : "Login"}
+                label={loading ? "Se conectează..." : "Conectează-te"}
                 onPress={handleLogin}
                 style={styles.buttonSpacing}
               />
@@ -167,9 +167,9 @@ export default function LoginScreen() {
         </KeyboardAvoidingView>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>Nu ai cont? </Text>
           <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
-            <Text style={styles.footerLink}>Sign Up</Text>
+            <Text style={styles.footerLink}>Înregistrează-te</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
