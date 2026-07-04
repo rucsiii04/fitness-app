@@ -2,7 +2,11 @@ import express from "express";
 import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/requireRole.js";
-import { createClassSessionValidation } from "../validators/classValidators.js";
+import {
+  createClassSessionValidation,
+  createClassTypeValidation,
+  markAttendanceValidation,
+} from "../validators/classValidators.js";
 import { handleValidation } from "../validators/handleValidation.js";
 
 export const router = express.Router();
@@ -19,6 +23,8 @@ router.post(
   "/class-types",
   verifyToken,
   requireRole("gym_admin"),
+  createClassTypeValidation,
+  handleValidation,
   controllers.classController.createClassType
 );
 
@@ -82,5 +88,7 @@ router.patch(
   "/enrollments/:enrollmentId/attendance",
   verifyToken,
   requireRole("trainer", "gym_admin"),
+  markAttendanceValidation,
+  handleValidation,
   controllers.classController.markAttendance
 );

@@ -107,6 +107,31 @@ export const resetPasswordOtpValidation = [
     .withMessage("Password not strong enough"),
 ];
 
+export const updateAccountValidation = [
+  body("first_name")
+    .optional()
+    .notEmpty()
+    .withMessage("Prenumele nu poate fi gol.")
+    .trim(),
+
+  body("last_name")
+    .optional()
+    .notEmpty()
+    .withMessage("Numele nu poate fi gol.")
+    .trim(),
+
+  body("email")
+    .optional()
+    .isEmail()
+    .withMessage("Format email invalid."),
+
+  body("phone")
+    .optional()
+    .customSanitizer((value) => value.replace(/\D/g, ""))
+    .matches(/^07\d{8}$/)
+    .withMessage("Număr de telefon invalid. Folosește formatul 07xxxxxxxx."),
+];
+
 export const updatePasswordValidation = [
   body("oldPassword").notEmpty().withMessage("Old password is required"),
 

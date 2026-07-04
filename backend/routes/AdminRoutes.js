@@ -6,6 +6,11 @@ import {
   createGymValidation,
   updateGymValidation,
 } from "../validators/gymValidators.js";
+import {
+  createStaffValidation,
+  updateStaffValidation,
+  setAlertValidation,
+} from "../validators/adminValidators.js";
 import { handleValidation } from "../validators/handleValidation.js";
 export const router = express.Router();
 
@@ -13,6 +18,8 @@ router.post(
   "/trainers",
   verifyToken,
   requireRole("gym_admin"),
+  createStaffValidation,
+  handleValidation,
   controllers.adminController.createTrainer,
 );
 router.post(
@@ -57,6 +64,8 @@ router.put(
   "/trainers/:trainerId",
   verifyToken,
   requireRole("gym_admin"),
+  updateStaffValidation,
+  handleValidation,
   controllers.adminController.updateTrainer,
 );
 
@@ -71,6 +80,8 @@ router.post(
   "/front-desk",
   verifyToken,
   requireRole("gym_admin"),
+  createStaffValidation,
+  handleValidation,
   controllers.adminController.createFrontDesk,
 );
 
@@ -78,6 +89,8 @@ router.put(
   "/front-desk/:userId",
   verifyToken,
   requireRole("gym_admin"),
+  updateStaffValidation,
+  handleValidation,
   controllers.adminController.updateFrontDesk,
 );
 
@@ -107,6 +120,8 @@ router.put(
   "/gym/:gymId/alert",
   verifyToken,
   requireRole("gym_admin"),
+  setAlertValidation,
+  handleValidation,
   controllers.gymController.setAlert,
 );
 

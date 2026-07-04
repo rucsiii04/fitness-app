@@ -1,7 +1,11 @@
 import express from "express";
 import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
-import { setWorkoutExercisesValidation } from "../validators/workoutValidators.js";
+import {
+  setWorkoutExercisesValidation,
+  addWorkoutExerciseValidation,
+  updateWorkoutExerciseValidation,
+} from "../validators/workoutValidators.js";
 import { handleValidation } from "../validators/handleValidation.js";
 
 export const router = express.Router();
@@ -15,6 +19,8 @@ router.get(
 router.post(
   "/:workoutId/exercises",
   verifyToken,
+  addWorkoutExerciseValidation,
+  handleValidation,
   controllers.workoutExerciseController.addOne,
 );
 
@@ -29,6 +35,8 @@ router.put(
 router.put(
   "/:workoutId/exercises/:id",
   verifyToken,
+  updateWorkoutExerciseValidation,
+  handleValidation,
   controllers.workoutExerciseController.update,
 );
 

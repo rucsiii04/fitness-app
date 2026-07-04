@@ -19,14 +19,14 @@ import { Colors, Fonts } from "@/constants/theme";
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const MUSCLE_OPTIONS = [
-  { key: "all", label: "All Muscles" },
-  { key: "chest", label: "Chest" },
-  { key: "back", label: "Back" },
-  { key: "legs", label: "Legs" },
-  { key: "shoulders", label: "Shoulders" },
-  { key: "arms", label: "Arms" },
+  { key: "all", label: "Toți Mușchii" },
+  { key: "chest", label: "Piept" },
+  { key: "back", label: "Spate" },
+  { key: "legs", label: "Picioare" },
+  { key: "shoulders", label: "Umeri" },
+  { key: "arms", label: "Brațe" },
   { key: "core", label: "Core" },
-  { key: "full-body", label: "Full Body" },
+  { key: "full-body", label: "Corp Complet" },
 ];
 
 export function AddExerciseSheet({ visible, token, currentExercises, onClose, onConfirm }) {
@@ -72,8 +72,8 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
         .filter((e) => e && e.trim() !== "")
     );
     return [
-      { key: "all", label: "All Equipment" },
-      { key: "none", label: "No Equipment" },
+      { key: "all", label: "Tot Echipamentul" },
+      { key: "none", label: "Fără Echipament" },
       ...Array.from(set)
         .sort()
         .map((e) => ({ key: e, label: e })),
@@ -104,8 +104,8 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
     onConfirm(selected);
   };
 
-  const muscleLabel = MUSCLE_OPTIONS.find((m) => m.key === muscle)?.label ?? "Muscles";
-  const equipmentLabel = equipmentOptions.find((e) => e.key === equipment)?.label ?? "Equipment";
+  const muscleLabel = MUSCLE_OPTIONS.find((m) => m.key === muscle)?.label ?? "Mușchi";
+  const equipmentLabel = equipmentOptions.find((e) => e.key === equipment)?.label ?? "Echipament";
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -118,9 +118,9 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={Colors.onSurfaceVariant} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>ADD EXERCISES</Text>
+          <Text style={styles.headerTitle}>ADAUGĂ EXERCIȚII</Text>
           <TouchableOpacity onPress={handleConfirm}>
-            <Text style={styles.headerDone}>DONE</Text>
+            <Text style={styles.headerDone}>GATA</Text>
           </TouchableOpacity>
         </View>
 
@@ -129,7 +129,7 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
           <Ionicons name="search-outline" size={18} color={Colors.onSurfaceVariant} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search exercises..."
+            placeholder="Caută exerciții..."
             placeholderTextColor={Colors.onSurfaceVariant}
             value={search}
             onChangeText={setSearch}
@@ -304,7 +304,7 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
-                <Text style={styles.emptyText}>No exercises found</Text>
+                <Text style={styles.emptyText}>Nu s-au găsit exerciții</Text>
               }
             />
           )}
@@ -318,12 +318,12 @@ export function AddExerciseSheet({ visible, token, currentExercises, onClose, on
                 <Ionicons name="barbell-outline" size={16} color={Colors.primary} />
               </View>
               <View>
-                <Text style={styles.confirmLabel}>SELECTED</Text>
-                <Text style={styles.confirmCount}>{selectedIds.size} EXERCISES</Text>
+                <Text style={styles.confirmLabel}>SELECTATE</Text>
+                <Text style={styles.confirmCount}>{selectedIds.size} EXERCIȚII</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} activeOpacity={0.85}>
-              <Text style={styles.confirmBtnText}>ADD TO WORKOUT</Text>
+              <Text style={styles.confirmBtnText}>ADAUGĂ LA ANTRENAMENT</Text>
             </TouchableOpacity>
           </View>
         )}

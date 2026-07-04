@@ -3,7 +3,12 @@ import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { upload } from "../config/multer.js";
-import { createTrainerProfileValidation } from "../validators/trainerProfileValidators.js";
+import {
+  createTrainerProfileValidation,
+  updateTrainerProfileValidation,
+  sendTrainerRequestValidation,
+  respondToTrainerRequestValidation,
+} from "../validators/trainerProfileValidators.js";
 import { handleValidation } from "../validators/handleValidation.js";
 export const router = express.Router();
 
@@ -11,6 +16,8 @@ router.post(
   "/trainer-assignments",
   verifyToken,
   requireRole("trainer", "client"),
+  sendTrainerRequestValidation,
+  handleValidation,
   controllers.userController.sendRequest,
 );
 
@@ -46,6 +53,8 @@ router.patch(
   "/trainer-assignments/:requestId",
   verifyToken,
   requireRole("trainer", "client"),
+  respondToTrainerRequestValidation,
+  handleValidation,
   controllers.userController.respondToRequest,
 );
 
@@ -119,6 +128,8 @@ router.put(
   verifyToken,
   requireRole("trainer"),
   upload.single("image"),
+  updateTrainerProfileValidation,
+  handleValidation,
   controllers.trainerProfileController.updateTrainerProfile,
 );
 

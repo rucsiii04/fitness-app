@@ -19,9 +19,9 @@ import { ExerciseRowView } from "@/components/features/workouts/ExerciseRowView"
 const API_BASE = process.env.EXPO_PUBLIC_API_URL;
 
 const DIFFICULTY = {
-  beginner: { label: "Beginner", color: Colors.primary, icon: "leaf-outline" },
-  intermediate: { label: "Intermediate", color: Colors.tertiary, icon: "flash-outline" },
-  advanced: { label: "Advanced", color: Colors.error, icon: "flame-outline" },
+  beginner: { label: "Începător", color: Colors.primary, icon: "leaf-outline" },
+  intermediate: { label: "Intermediar", color: Colors.tertiary, icon: "flash-outline" },
+  advanced: { label: "Avansat", color: Colors.error, icon: "flame-outline" },
 };
 
 export default function WorkoutDetailScreen() {
@@ -88,7 +88,7 @@ export default function WorkoutDetailScreen() {
           <TouchableOpacity onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerLabel}>WORKOUT DETAILS</Text>
+          <Text style={styles.headerLabel}>DETALII ANTRENAMENT</Text>
           <View style={{ width: 34 }} />
         </View>
 
@@ -98,7 +98,7 @@ export default function WorkoutDetailScreen() {
           </View>
         ) : !workout ? (
           <View style={styles.center}>
-            <Text style={styles.errorText}>Workout not found.</Text>
+            <Text style={styles.errorText}>Antrenamentul nu a fost găsit.</Text>
           </View>
         ) : (
           <>
@@ -131,11 +131,11 @@ export default function WorkoutDetailScreen() {
               ) : null}
 
               <Text style={styles.sectionLabel}>
-                EXERCISES{exercises.length > 0 ? ` (${exercises.length})` : ""}
+                EXERCIȚII{exercises.length > 0 ? ` (${exercises.length})` : ""}
               </Text>
 
               {exercises.length === 0 ? (
-                <Text style={styles.emptyText}>No exercises added yet.</Text>
+                <Text style={styles.emptyText}>Nu există exerciții adăugate.</Text>
               ) : (
                 <View style={styles.exerciseList}>
                   {exercises.map((item) => (
@@ -162,7 +162,7 @@ export default function WorkoutDetailScreen() {
                       color={Colors.background}
                     />
                     <Text style={styles.saveBtnText}>
-                      {saved ? "SAVED TO MY WORKOUTS" : "SAVE TO MY WORKOUTS"}
+                      {saved ? "SALVAT ÎN ANTRENAMENTELE MELE" : "SALVEAZĂ ÎN ANTRENAMENTELE MELE"}
                     </Text>
                   </>
                 )}

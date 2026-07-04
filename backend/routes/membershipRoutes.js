@@ -2,6 +2,14 @@ import express from "express";
 import { controllers } from "../controllers/index.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 import { requireRole } from "../middleware/requireRole.js";
+import {
+  createMembershipTypeValidation,
+  updateMembershipTypeValidation,
+  issueMembershipValidation,
+  pauseMembershipValidation,
+  pauseGymMembershipsValidation,
+} from "../validators/membershipValidators.js";
+import { handleValidation } from "../validators/handleValidation.js";
 
 export const router = express.Router();
 
@@ -29,6 +37,8 @@ router.post(
   "/types",
   verifyToken,
   requireRole("gym_admin"),
+  createMembershipTypeValidation,
+  handleValidation,
   controllers.membershipController.createMembershipType,
 );
 
@@ -36,6 +46,8 @@ router.put(
   "/types/:membershipTypeId",
   verifyToken,
   requireRole("gym_admin"),
+  updateMembershipTypeValidation,
+  handleValidation,
   controllers.membershipController.updateMembershipType,
 );
 
@@ -43,6 +55,8 @@ router.post(
   "/issue",
   verifyToken,
   requireRole("front_desk", "gym_admin"),
+  issueMembershipValidation,
+  handleValidation,
   controllers.membershipController.issueMembership,
 );
 
@@ -50,6 +64,8 @@ router.post(
   "/me/pause",
   verifyToken,
   requireRole("client"),
+  pauseMembershipValidation,
+  handleValidation,
   controllers.membershipController.pauseMyMembership,
 );
 
@@ -57,6 +73,8 @@ router.post(
   "/gyms/:gymId/pause-memberships",
   verifyToken,
   requireRole("gym_admin"),
+  pauseGymMembershipsValidation,
+  handleValidation,
   controllers.membershipController.pauseGymMemberships,
 );
 

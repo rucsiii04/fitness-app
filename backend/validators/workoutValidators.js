@@ -35,6 +35,56 @@ export const updateWorkoutValidation = [
     .withMessage(`source must be one of: ${SOURCES.join(", ")}`),
 ];
 
+export const addWorkoutExerciseValidation = [
+  body("exercise_id")
+    .notEmpty()
+    .withMessage("exercise_id is required")
+    .isInt()
+    .withMessage("exercise_id must be an integer"),
+
+  body("sets")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("sets must be a positive integer"),
+
+  body("reps")
+    .optional()
+    .isString()
+    .withMessage("reps must be a string"),
+
+  body("rest_time")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("rest_time must be a non-negative integer"),
+
+  body("notes")
+    .optional()
+    .isString()
+    .withMessage("notes must be a string"),
+];
+
+export const updateWorkoutExerciseValidation = [
+  body("sets")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("sets must be a positive integer"),
+
+  body("reps")
+    .optional()
+    .isString()
+    .withMessage("reps must be a string"),
+
+  body("rest_time")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("rest_time must be a non-negative integer"),
+
+  body("notes")
+    .optional()
+    .isString()
+    .withMessage("notes must be a string"),
+];
+
 export const setWorkoutExercisesValidation = [
   body("exercises")
     .isArray({ min: 1 })

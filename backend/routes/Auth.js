@@ -10,6 +10,7 @@ import {
   verifyOtpValidation,
   resetPasswordOtpValidation,
   updatePasswordValidation,
+  updateAccountValidation,
 } from "../validators/authValidators.js";
 
 import { handleValidation } from "../validators/handleValidation.js";
@@ -47,6 +48,8 @@ authRouter.put(
 authRouter.put(
   "/update-account",
   verifyToken,
+  updateAccountValidation,
+  handleValidation,
   controllers.authController.updateAccount,
 );
 

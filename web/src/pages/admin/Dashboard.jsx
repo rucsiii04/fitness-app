@@ -129,6 +129,10 @@ export default function AdminDashboard() {
   }, [gymId]);
 
   const gym = gyms[0];
+  const activeAlert =
+    gym?.alert_message &&
+    (!gym.alert_expires_at || new Date(gym.alert_expires_at) > new Date());
+
   const todaySessions = sessions.filter(
     (s) => new Date(s.start_datetime).toDateString() === new Date().toDateString(),
   );
@@ -202,7 +206,7 @@ export default function AdminDashboard() {
         />
         <div
           className="eyebrow"
-          style={{ color: "var(--teal)", marginBottom: 8 }}
+          style={{ color: activeAlert ? "var(--coral)" : "var(--teal)", marginBottom: 8 }}
         >
           <span
             className="pulse-dot"
@@ -211,13 +215,29 @@ export default function AdminDashboard() {
               width: 6,
               height: 6,
               borderRadius: 3,
-              background: "var(--teal)",
+              background: activeAlert ? "var(--coral)" : "var(--teal)",
               marginRight: 6,
               verticalAlign: "middle",
             }}
           />
-          Operațiuni Active
+          {activeAlert ? "Alertă Activă · Sală Închisă" : "Operațiuni Active"}
         </div>
+        {activeAlert && (
+          <div
+            style={{
+              marginBottom: 8,
+              padding: "8px 12px",
+              background: "rgba(255,115,81,.1)",
+              border: "1px solid rgba(255,115,81,.25)",
+              borderRadius: 8,
+              fontSize: 12,
+              color: "var(--coral)",
+              display: "inline-block",
+            }}
+          >
+            {gym.alert_message}
+          </div>
+        )}
         <div
           className="display"
           style={{ fontSize: 28, lineHeight: 1.05, marginBottom: 4 }}

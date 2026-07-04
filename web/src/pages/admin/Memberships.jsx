@@ -907,8 +907,7 @@ export default function AdminMemberships() {
                   gap: 14,
                 }}
               >
-                {plans.map((m, i) => {
-                  const isElite = i === 0;
+                {plans.map((m) => {
                   return (
                     <div
                       key={m.membership_type_id}
@@ -916,29 +915,17 @@ export default function AdminMemberships() {
                       style={{
                         padding: 20,
                         position: "relative",
-                        borderColor: isElite
-                          ? "rgba(224,251,76,.4)"
-                          : "var(--border)",
-                        background: isElite
-                          ? "linear-gradient(180deg, rgba(224,251,76,.06), var(--surface))"
-                          : "var(--surface)",
+                        borderColor: "var(--border)",
+                        background: "var(--surface)",
                       }}
                     >
-                      {isElite && (
-                        <Pill
-                          tone="accent"
-                          style={{ position: "absolute", top: 16, right: 16 }}
-                        >
-                          Top plan
-                        </Pill>
-                      )}
                       <div
                         className="display upper"
                         style={{
                           fontSize: 14,
                           letterSpacing: 0.04,
                           marginBottom: 8,
-                          color: isElite ? "var(--accent)" : "var(--text)",
+                          color: "var(--text)",
                         }}
                       >
                         {m.name}
@@ -955,7 +942,7 @@ export default function AdminMemberships() {
                           className="display"
                           style={{
                             fontSize: 30,
-                            color: isElite ? "var(--accent)" : "var(--text)",
+                            color: "var(--text)",
                           }}
                         >
                           RON {m.price}
