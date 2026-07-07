@@ -8,11 +8,12 @@ let socket = null;
 // and attached automatically once the socket is ready.
 const pendingListeners = {};
 
-export const connectSocket = (userId) => {
+export const connectSocket = (userId, gymId) => {
   if (socket?.connected) return;
   socket = io(SOCKET_URL, { transports: ["websocket"] });
   socket.on("connect", () => {
     socket.emit("join_user_room", userId);
+    if (gymId) socket.emit("join_gym_room", gymId);
     Object.entries(pendingListeners).forEach(([event, handlers]) => {
       handlers.forEach((h) => socket.on(event, h));
     });

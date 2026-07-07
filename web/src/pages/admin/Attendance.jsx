@@ -55,7 +55,9 @@ function timeSince(iso) {
   const mins = Math.floor(diffMs / 60000);
   if (mins < 1) return "acum";
   if (mins < 60) return `${mins}m`;
-  return `${Math.floor(mins / 60)}h`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 96) return `${hours}h`;
+  return `${Math.floor(hours / 24)}z`;
 }
 
 function fmtDate(iso) {
@@ -528,37 +530,6 @@ export default function AdminAttendance() {
               </div>
             )}
 
-            <div
-              style={{
-                marginTop: 16,
-                padding: 14,
-                background: "var(--surface-2)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <I.qr width={20} height={20} style={{ color: "var(--accent)" }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500 }}>Check-in QR</div>
-                <div
-                  className="mono"
-                  style={{ fontSize: 11, color: "var(--text-dim)" }}
-                >
-                  Scanează codul QR al unui membru
-                </div>
-              </div>
-              <Btn
-                variant="outline"
-                size="sm"
-                icon={<I.qr />}
-                onClick={() => setScanOpen(true)}
-              >
-                Scanează QR
-              </Btn>
-            </div>
           </Panel>
         </div>
       )}

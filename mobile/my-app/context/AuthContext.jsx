@@ -12,8 +12,8 @@ export function AuthProvider({ children }) {
   const [profileComplete, setProfileComplete] = useState(null);
 
   useEffect(() => {
-    if (user?.user_id) connectSocket(user.user_id);
-  }, [user?.user_id]);
+    if (user?.user_id) connectSocket(user.user_id, user.gym_id);
+  }, [user?.user_id, user?.gym_id]);
 
   useEffect(() => {
     const loadSession = async () => {

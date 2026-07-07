@@ -152,10 +152,11 @@ Exerciții disponibile pentru adăugare (folosește exercise_id):
 ${libraryLines}
 Reguli tools:
 - Adaugă exercițiu: add_exercise(exercise_id)
-- Șterge exercițiu: remove_exercise(workout_exercise_id)
-- Actualizează seturi/repetări: update_exercise(workout_exercise_id)
-- Înlocuiește exercițiu: replace_exercise
+- Șterge exercițiu: remove_exercise(workout_exercise_id SAU exercise_name)
+- Actualizează seturi/repetări: update_exercise(workout_exercise_id SAU exercise_name)
+- Înlocuiește exercițiu: replace_exercise(workout_exercise_id SAU exercise_name, + exercise_id nou)
 - Redenumește planul: update_workout
+- Dacă nu ești 100% sigur de workout_exercise_id, trimite exercise_name (numele exact din lista de mai sus) - e mai sigur decât să ghicești un ID.
 - Apelează întotdeauna funcția direct, fără explicații prealabile. Confirmă printr-un mesaj scurt după execuție.`;
 };
 
@@ -196,10 +197,14 @@ const WORKOUT_TOOLS = [
             workout_exercise_id: {
               type: "number",
               description:
-                "The workout_exercise_id from the current plan exercises list.",
+                "The workout_exercise_id from the current plan exercises list, if you're certain of it.",
+            },
+            exercise_name: {
+              type: "string",
+              description:
+                "The exercise's name as it appears in the current plan exercises list. Use this if you're not 100% sure of the exact workout_exercise_id - it's safer than guessing a number.",
             },
           },
-          required: ["workout_exercise_id"],
         },
       },
       {
@@ -212,7 +217,12 @@ const WORKOUT_TOOLS = [
             workout_exercise_id: {
               type: "number",
               description:
-                "The workout_exercise_id from the current plan exercises list.",
+                "The workout_exercise_id from the current plan exercises list, if you're certain of it.",
+            },
+            exercise_name: {
+              type: "string",
+              description:
+                "The exercise's name as it appears in the current plan exercises list. Use this if you're not 100% sure of the exact workout_exercise_id - it's safer than guessing a number.",
             },
             sets: { type: "number", description: "New number of sets." },
             reps: {
@@ -220,7 +230,6 @@ const WORKOUT_TOOLS = [
               description: "New number of reps as a string.",
             },
           },
-          required: ["workout_exercise_id"],
         },
       },
       {
@@ -232,7 +241,13 @@ const WORKOUT_TOOLS = [
           properties: {
             workout_exercise_id: {
               type: "number",
-              description: "The workout_exercise_id of the exercise to remove.",
+              description:
+                "The workout_exercise_id of the exercise to remove, if you're certain of it.",
+            },
+            exercise_name: {
+              type: "string",
+              description:
+                "The name of the exercise to remove, as it appears in the current plan exercises list. Use this if you're not 100% sure of the exact workout_exercise_id - it's safer than guessing a number.",
             },
             exercise_id: {
               type: "number",
@@ -252,7 +267,7 @@ const WORKOUT_TOOLS = [
               description: "Rest time in seconds (default 60).",
             },
           },
-          required: ["workout_exercise_id", "exercise_id", "sets", "reps"],
+          required: ["exercise_id", "sets", "reps"],
         },
       },
       {
@@ -278,6 +293,40 @@ const WORKOUT_TOOLS = [
     ],
   },
 ];
+
+// The model must reference an existing plan exercise either by its
+// workout_exercise_id or by name. IDs are easy for a small/fast model to
+// misremember or fabricate, so name matching (scoped to the current workout)
+// is the reliable fallback instead of trusting a guessed number.
+const findTargetExercise = async (workoutId, { workout_exercise_id, exercise_name }) => {
+  if (workout_exercise_id) {
+    const item = await Workout_Exercise.findOne({
+      where: { workout_exercise_id, workout_id: workoutId },
+      include: [{ model: Exercise }],
+    });
+    if (item) return item;
+  }
+
+  if (exercise_name) {
+    const items = await Workout_Exercise.findAll({
+      where: { workout_id: workoutId },
+      include: [{ model: Exercise }],
+    });
+    const norm = normalize(exercise_name);
+    return (
+      items.find((i) => normalize(i.Exercise?.name ?? "") === norm) ??
+      items.find(
+        (i) =>
+          norm &&
+          (normalize(i.Exercise?.name ?? "").includes(norm) ||
+            norm.includes(normalize(i.Exercise?.name ?? ""))),
+      ) ??
+      null
+    );
+  }
+
+  return null;
+};
 
 const executeWorkoutAction = async (name, args, workoutId, userId) => {
   try {
@@ -321,12 +370,7 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
     }
 
     if (name === "remove_exercise") {
-      const { workout_exercise_id } = args;
-      const item = await Workout_Exercise.findByPk(workout_exercise_id);
-
-      if (!item) return { success: false, error: "Exercise entry not found." };
-
-      const workout = await Workout.findByPk(item.workout_id);
+      const workout = await Workout.findByPk(workoutId);
       if (!workout || workout.created_by_user_id !== userId) {
         return {
           success: false,
@@ -334,22 +378,23 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
         };
       }
 
-      const exercise = await Exercise.findByPk(item.exercise_id);
+      const item = await findTargetExercise(workoutId, args);
+      if (!item)
+        return { success: false, error: "Exercise entry not found in this workout." };
+
+      const exerciseName = item.Exercise?.name ?? "exercise";
       await item.destroy();
 
       return {
         success: true,
-        message: `Removed "${exercise?.name ?? "exercise"}" from the workout.`,
+        message: `Removed "${exerciseName}" from the workout.`,
       };
     }
 
     if (name === "replace_exercise") {
-      const { workout_exercise_id, exercise_id, sets, reps, rest_time } = args;
+      const { exercise_id, sets, reps, rest_time } = args;
 
-      const item = await Workout_Exercise.findByPk(workout_exercise_id);
-      if (!item) return { success: false, error: "Exercise entry not found." };
-
-      const workout = await Workout.findByPk(item.workout_id);
+      const workout = await Workout.findByPk(workoutId);
       if (!workout || workout.created_by_user_id !== userId) {
         return {
           success: false,
@@ -357,20 +402,22 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
         };
       }
 
-      const [oldExercise, newExercise] = await Promise.all([
-        Exercise.findByPk(item.exercise_id),
-        Exercise.findByPk(exercise_id),
-      ]);
+      const item = await findTargetExercise(workoutId, args);
+      if (!item)
+        return { success: false, error: "Exercise entry not found in this workout." };
+
+      const newExercise = await Exercise.findByPk(exercise_id);
       if (!newExercise)
         return {
           success: false,
           error: `No exercise found with id ${exercise_id}.`,
         };
 
+      const oldExerciseName = item.Exercise?.name ?? "exercise";
       const orderIndex = item.order_index;
       await item.destroy();
       await Workout_Exercise.create({
-        workout_id: item.workout_id,
+        workout_id: workoutId,
         exercise_id,
         order_index: orderIndex,
         sets,
@@ -380,17 +427,14 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       return {
         success: true,
-        message: `Replaced "${oldExercise?.name ?? "exercise"}" with "${newExercise.name}" - ${sets} sets × ${reps} reps.`,
+        message: `Replaced "${oldExerciseName}" with "${newExercise.name}" - ${sets} sets × ${reps} reps.`,
       };
     }
 
     if (name === "update_exercise") {
-      const { workout_exercise_id, sets, reps } = args;
-      const item = await Workout_Exercise.findByPk(workout_exercise_id);
+      const { sets, reps } = args;
 
-      if (!item) return { success: false, error: "Exercise entry not found." };
-
-      const workout = await Workout.findByPk(item.workout_id);
+      const workout = await Workout.findByPk(workoutId);
       if (!workout || workout.created_by_user_id !== userId) {
         return {
           success: false,
@@ -398,12 +442,15 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
         };
       }
 
+      const item = await findTargetExercise(workoutId, args);
+      if (!item)
+        return { success: false, error: "Exercise entry not found in this workout." };
+
       const updates = {};
       if (sets !== undefined) updates.sets = sets;
       if (reps !== undefined) updates.reps = String(reps);
       await item.update(updates);
 
-      const exercise = await Exercise.findByPk(item.exercise_id);
       const summary = [
         sets !== undefined ? `${sets} sets` : null,
         reps !== undefined ? `${reps} reps` : null,
@@ -413,7 +460,7 @@ const executeWorkoutAction = async (name, args, workoutId, userId) => {
 
       return {
         success: true,
-        message: `Updated "${exercise?.name ?? "exercise"}": ${summary}.`,
+        message: `Updated "${item.Exercise?.name ?? "exercise"}": ${summary}.`,
       };
     }
 
@@ -624,21 +671,38 @@ export const controller = {
       let tools;
       let toolConfig;
       if (conversation.linked_plan_id) {
-        const [workout, workoutExercises, allExercises] = await Promise.all([
-          Workout.findByPk(conversation.linked_plan_id),
-          Workout_Exercise.findAll({
-            where: { workout_id: conversation.linked_plan_id },
-            include: [{ model: Exercise }],
-            order: [["order_index", "ASC"]],
-          }),
-          Exercise.findAll({
-            where: { is_active: true },
-            attributes: ["exercise_id", "name", "muscle_group"],
-            order: [["name", "ASC"]],
-          }),
-        ]);
+        let workout = await Workout.findByPk(conversation.linked_plan_id);
+
+        // The linked plan may have been replaced or deleted since this
+        // conversation last touched it (e.g. a newer plan was generated in
+        // another conversation). Fall back to the user's current workout
+        // instead of silently dropping tool access, which used to make the
+        // model hallucinate plausible-sounding "not found" replies with zero
+        // real context.
+        if (!workout) {
+          workout = await Workout.findOne({
+            where: { created_by_user_id: req.user.user_id },
+            order: [["workout_id", "DESC"]],
+          });
+          if (workout) {
+            await conversation.update({ linked_plan_id: workout.workout_id });
+          }
+        }
 
         if (workout) {
+          const [workoutExercises, allExercises] = await Promise.all([
+            Workout_Exercise.findAll({
+              where: { workout_id: workout.workout_id },
+              include: [{ model: Exercise }],
+              order: [["order_index", "ASC"]],
+            }),
+            Exercise.findAll({
+              where: { is_active: true },
+              attributes: ["exercise_id", "name", "muscle_group"],
+              order: [["name", "ASC"]],
+            }),
+          ]);
+
           systemPrompt += buildWorkoutContextSection(
             workout,
             workoutExercises,
@@ -685,6 +749,15 @@ export const controller = {
       let result = chatResult;
       let response = result.response;
 
+      // `toolConfig` (including a forced "ANY" mode) is bound to the whole
+      // ChatSession, not just this call. If we kept using `chat` for the
+      // follow-up turns below, the model would stay forced to call another
+      // function forever instead of being able to reply with plain text once
+      // the action is done. So after the first (possibly forced) turn, switch
+      // to a fresh session seeded with the same history but no forced mode.
+      let followUpChat = null;
+      let lastActionResults = null;
+
       while (response.functionCalls()?.length) {
         const calls = response.functionCalls();
         const functionResponses = await Promise.all(
@@ -700,12 +773,31 @@ export const controller = {
             },
           })),
         );
+        lastActionResults = functionResponses.map((f) => f.functionResponse.response);
 
-        result = await chat.sendMessage(functionResponses);
+        if (!followUpChat) {
+          followUpChat = geminiModel.startChat({
+            history: await chat.getHistory(),
+            systemInstruction: { role: "user", parts: [{ text: systemPrompt }] },
+            ...(tools && { tools }),
+          });
+        }
+
+        result = await followUpChat.sendMessage(functionResponses);
         response = result.response;
       }
 
-      const aiText = response.text();
+      // The model sometimes ends a function-calling turn without any text
+      // (especially the lightweight model). Fall back to a summary built
+      // from the action results so the user never sees an empty bubble.
+      let aiText = response.text();
+      if (!aiText?.trim() && lastActionResults) {
+        aiText =
+          lastActionResults
+            .map((r) => r.message || r.error)
+            .filter(Boolean)
+            .join(" ") || "Am realizat modificarea cerută.";
+      }
       const aiMessage = await Message.create({
         conversation_id: conversationId,
         sender: "AI",

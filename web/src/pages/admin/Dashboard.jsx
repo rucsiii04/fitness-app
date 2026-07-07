@@ -156,7 +156,7 @@ export default function AdminDashboard() {
   const peakDayIdx = daily.some(Boolean)
     ? daily.indexOf(Math.max(...daily))
     : -1;
-  const mrr = revenue?.mrr ?? 0;
+  const currentMonthRevenue = revenue?.currentMonthRevenue ?? 0;
 
   const MONTHS_RO = [
     "Ian",
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
 
         <Panel
           title="Venituri"
-          eyebrow="Ultimele 6 luni"
+          eyebrow="Luna curentă · Ultimele 6 luni"
           style={{ padding: 16 }}
           action={
             <Btn
@@ -400,10 +400,10 @@ export default function AdminDashboard() {
             }}
           >
             <div className="display" style={{ fontSize: 36, lineHeight: 1 }}>
-              RON {mrr.toLocaleString()}
+              RON {currentMonthRevenue.toLocaleString()}
             </div>
             <div style={{ paddingBottom: 4 }}>
-              <Pill tone={mrr > 0 ? "green" : "muted"}>
+              <Pill tone={currentMonthRevenue > 0 ? "green" : "muted"}>
                 {revenue?.activeMemberships ?? 0} active
               </Pill>
             </div>
@@ -461,17 +461,17 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12, fontWeight: 500 }}>
-                      {s.class_type?.name || "Class"}
+                      {s.Class_Type?.name || "Clasă"}
                     </div>
                     <div
                       className="mono"
                       style={{ fontSize: 10, color: "var(--text-dim)" }}
                     >
-                      {s.enrollment_count || 0}/{s.max_capacity}
+                      {s.confirmed_count || 0}/{s.max_participants}
                     </div>
                   </div>
                   <Progress
-                    value={(s.enrollment_count / s.max_capacity) * 100}
+                    value={((s.confirmed_count || 0) / s.max_participants) * 100}
                     style={{ width: 60 }}
                   />
                 </div>

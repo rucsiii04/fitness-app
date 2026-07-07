@@ -84,7 +84,8 @@ export const controller = {
         },
       });
     } catch (err) {
-      res.status(500).json({ message: "Login error: " + err });
+      console.error("Login error:", err);
+      res.status(500).json({ message: "Server error" });
     }
   },
 
@@ -346,7 +347,7 @@ export const controller = {
       const hashedPassword = await hashPassword(newPassword);
 
       await User.update(
-        { password: hashedPassword },
+        { password: hashedPassword, is_active: true },
         { where: { user_id: userId } },
       );
 

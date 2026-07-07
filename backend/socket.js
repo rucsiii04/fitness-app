@@ -9,6 +9,9 @@ export const initSocket = (server) => {
     socket.on("join_user_room", (userId) => {
       socket.join(`user_${userId}`);
     });
+    socket.on("join_gym_room", (gymId) => {
+      socket.join(`gym_${gymId}`);
+    });
   });
 };
 

@@ -6,9 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,7 +30,7 @@ const WELCOME_MESSAGE = {
   sent_at: new Date().toISOString(),
 };
 
-function ErrorCard({ onDismiss }) {
+function ErrorCard({ onDismiss, onRetry }) {
   return (
     <View style={styles.errorCard}>
       <View style={styles.errorHeader}>
@@ -48,6 +48,14 @@ function ErrorCard({ onDismiss }) {
         Serverele AI sunt momentan ocupate. Încearcă din nou peste câteva
         secunde.
       </Text>
+      <TouchableOpacity
+        style={styles.errorRetryBtn}
+        onPress={onRetry}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="refresh" size={13} color={Colors.error} />
+        <Text style={styles.errorRetryText}>Reîncearcă</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -91,6 +99,24 @@ export default function CoachScreen({ conversationId: initialConvId }) {
   const [linkedPlanId, setLinkedPlanId] = useState(null);
   const [showFormModal, setShowFormModal] = useState(false);
   const [convTitle, setConvTitle] = useState(null);
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKbHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKbHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -161,6 +187,7 @@ export default function CoachScreen({ conversationId: initialConvId }) {
             message_id: `error_${tempId}`,
             sender: "__error__",
             prevMsgId: tempId,
+            content: text,
             sent_at: new Date().toISOString(),
           },
         ]);
@@ -221,17 +248,21 @@ export default function CoachScreen({ conversationId: initialConvId }) {
 
   const renderItem = ({ item }) => {
     if (item.sender === "__error__") {
+      const dismiss = () =>
+        setMessages((prev) =>
+          prev.filter(
+            (m) =>
+              m.message_id !== item.message_id &&
+              m.message_id !== item.prevMsgId,
+          ),
+        );
       return (
         <ErrorCard
-          onDismiss={() =>
-            setMessages((prev) =>
-              prev.filter(
-                (m) =>
-                  m.message_id !== item.message_id &&
-                  m.message_id !== item.prevMsgId,
-              ),
-            )
-          }
+          onDismiss={dismiss}
+          onRetry={() => {
+            dismiss();
+            handleSend(item.content);
+          }}
         />
       );
     }
@@ -315,10 +346,7 @@ export default function CoachScreen({ conversationId: initialConvId }) {
           )}
         </View>
 
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+        <View style={[styles.flex, { paddingBottom: kbHeight }]}>
           <FlatList
             ref={flatListRef}
             data={displayMessages}
@@ -343,7 +371,7 @@ export default function CoachScreen({ conversationId: initialConvId }) {
               disabled={sending || generatingPlan}
             />
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </SafeAreaView>
 
       <PlanFormModal
@@ -554,5 +582,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
     color: Colors.onSurfaceVariant,
     lineHeight: 20,
+  },
+  errorRetryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,115,81,0.3)",
+  },
+  errorRetryText: {
+    fontSize: 11,
+    fontFamily: Fonts.label,
+    fontWeight: "700",
+    color: Colors.error,
+    letterSpacing: 0.5,
   },
 });

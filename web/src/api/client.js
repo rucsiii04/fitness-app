@@ -15,7 +15,13 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem("kn.token");
-      window.location.href = "/login";
+      // Avoid a pointless hard reload while already on the login page - it
+      // wipes out any error the login form is showing (e.g. from a stale
+      // token check racing with an in-progress login attempt) and looks like
+      // the error "flashes and disappears" for no reason.
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(err);
   }

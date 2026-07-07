@@ -52,7 +52,11 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || "Email sau parolă incorectă.");
+        setError(
+          response.status === 401
+            ? data.message || "Email sau parolă incorectă."
+            : "Ceva a mers greșit. Încearcă din nou mai târziu."
+        );
         return;
       }
 

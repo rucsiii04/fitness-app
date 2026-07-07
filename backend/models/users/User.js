@@ -64,6 +64,10 @@ export const User = db.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    removed_from_staff: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     freezeTableName: true,

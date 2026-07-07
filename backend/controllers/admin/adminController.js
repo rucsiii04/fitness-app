@@ -62,20 +62,29 @@ export const controller = {
       if (!gym) {
         return res.status(403).json({ message: "You do not manage this gym" });
       }
-      const existing = await User.findOne({
-        where: {
-          [Op.or]: [{ email }, { phone }],
-        },
-      });
-      if (existing) {
-        if (existing.email === email) {
-          return res.status(409).json({ message: "Email already used" });
-        }
+      const existingByEmail = await User.findOne({ where: { email } });
+      const existingByPhone = await User.findOne({ where: { phone } });
 
-        if (existing.phone === phone) {
-          return res.status(409).json({ message: "Phone number already used" });
-        }
+      // A pending invite that was never activated (e.g. the reset link/OTP
+      // expired before the trainer set their password, or the admin removed
+      // the never-activated invite) shouldn't permanently block re-inviting
+      // that same email - reuse and reset that account instead of
+      // hard-blocking on it forever.
+      const reinvite =
+        existingByEmail &&
+        existingByEmail.role === "trainer" &&
+        !existingByEmail.is_active;
+
+      if (!reinvite && existingByEmail) {
+        return res.status(409).json({ message: "Email already used" });
       }
+      if (
+        existingByPhone &&
+        (!reinvite || existingByPhone.user_id !== existingByEmail.user_id)
+      ) {
+        return res.status(409).json({ message: "Phone number already used" });
+      }
+
       const tempPassword = crypto.randomBytes(16).toString("hex");
       const token = crypto.randomBytes(32).toString("hex");
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -85,17 +94,31 @@ export const controller = {
         bcrypt.hash(token, 10),
       ]);
 
-      const trainer = await User.create({
-        email,
-        password: hashedPassword,
-        first_name,
-        last_name,
-        role: "trainer",
-        phone,
-        gym_id: gym_id,
-        registration_date: new Date(),
-        is_active: false,
-      });
+      let trainer;
+      if (reinvite) {
+        trainer = existingByEmail;
+        await trainer.update({
+          password: hashedPassword,
+          first_name,
+          last_name,
+          phone,
+          gym_id,
+          removed_from_staff: false,
+        });
+        await Reset_Token.destroy({ where: { user_id: trainer.user_id } });
+      } else {
+        trainer = await User.create({
+          email,
+          password: hashedPassword,
+          first_name,
+          last_name,
+          role: "trainer",
+          phone,
+          gym_id: gym_id,
+          registration_date: new Date(),
+          is_active: false,
+        });
+      }
 
       await Reset_Token.create({
         user_id: trainer.user_id,
@@ -184,7 +207,7 @@ export const controller = {
       if (!gym) return res.status(403).json({ message: "You do not manage this gym" });
 
       const staff = await User.findAll({
-        where: { gym_id: gymId, role: ["trainer", "front_desk"] },
+        where: { gym_id: gymId, role: ["trainer", "front_desk"], removed_from_staff: false },
         attributes: ["user_id", "first_name", "last_name", "email", "role", "phone", "is_active"],
       });
       return res.status(200).json(staff);
@@ -356,6 +379,11 @@ export const controller = {
           .json({ message: "You do not manage this trainer's gym" });
       }
 
+      if (!trainer.is_active) {
+        await trainer.update({ removed_from_staff: true });
+        return res.status(200).json({ message: "Trainer removed" });
+      }
+
       await trainer.update({ is_active: false });
       return res.status(200).json({ message: "Trainer deactivated" });
     } catch (err) {
@@ -385,14 +413,27 @@ export const controller = {
         return res.status(403).json({ message: "You do not manage this gym" });
       }
 
-      const existing = await User.findOne({
-        where: { [Op.or]: [{ email }, { phone }] },
-      });
-      if (existing) {
-        if (existing.email === email)
-          return res.status(409).json({ message: "Email already used" });
-        if (existing.phone === phone)
-          return res.status(409).json({ message: "Phone number already used" });
+      const existingByEmail = await User.findOne({ where: { email } });
+      const existingByPhone = await User.findOne({ where: { phone } });
+
+      // A pending invite that was never activated (e.g. the reset link/OTP
+      // expired before the front desk user set their password, or the admin
+      // removed the never-activated invite) shouldn't permanently block
+      // re-inviting that same email - reuse and reset that account instead
+      // of hard-blocking on it forever.
+      const reinvite =
+        existingByEmail &&
+        existingByEmail.role === "front_desk" &&
+        !existingByEmail.is_active;
+
+      if (!reinvite && existingByEmail) {
+        return res.status(409).json({ message: "Email already used" });
+      }
+      if (
+        existingByPhone &&
+        (!reinvite || existingByPhone.user_id !== existingByEmail.user_id)
+      ) {
+        return res.status(409).json({ message: "Phone number already used" });
       }
 
       const tempPassword = crypto.randomBytes(16).toString("hex");
@@ -404,17 +445,31 @@ export const controller = {
         bcrypt.hash(token, 10),
       ]);
 
-      const frontDesk = await User.create({
-        email,
-        password: hashedPassword,
-        first_name,
-        last_name,
-        role: "front_desk",
-        phone,
-        gym_id,
-        registration_date: new Date(),
-        is_active: false,
-      });
+      let frontDesk;
+      if (reinvite) {
+        frontDesk = existingByEmail;
+        await frontDesk.update({
+          password: hashedPassword,
+          first_name,
+          last_name,
+          phone,
+          gym_id,
+          removed_from_staff: false,
+        });
+        await Reset_Token.destroy({ where: { user_id: frontDesk.user_id } });
+      } else {
+        frontDesk = await User.create({
+          email,
+          password: hashedPassword,
+          first_name,
+          last_name,
+          role: "front_desk",
+          phone,
+          gym_id,
+          registration_date: new Date(),
+          is_active: false,
+        });
+      }
 
       await Reset_Token.create({
         user_id: frontDesk.user_id,
@@ -517,6 +572,11 @@ export const controller = {
         return res
           .status(403)
           .json({ message: "You do not manage this user's gym" });
+      }
+
+      if (!frontDesk.is_active) {
+        await frontDesk.update({ removed_from_staff: true });
+        return res.status(200).json({ message: "Front desk user removed" });
       }
 
       await frontDesk.update({ is_active: false });
@@ -703,6 +763,7 @@ export const controller = {
 
       return res.status(200).json({
         mrr: Math.round(mrr),
+        currentMonthRevenue: monthly[5] || 0,
         activeMemberships: activeMemberships.length,
         monthly,
       });

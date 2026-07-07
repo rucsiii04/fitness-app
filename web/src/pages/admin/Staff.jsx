@@ -114,7 +114,9 @@ export default function AdminStaff() {
       } else {
         await deleteTrainer(id);
       }
-      toast("Angajat dezactivat");
+      toast(
+        deleteTarget.isActive ? "Angajat dezactivat" : "Angajat eliminat",
+      );
       load();
     } catch (err) {
       toast(err.response?.data?.message || "Eroare", "coral");
@@ -328,7 +330,14 @@ export default function AdminStaff() {
                   <Pill tone="muted">Inactiv</Pill>
                 )}
                 <button
-                  onClick={() => setDeleteTarget({ id: s.user_id, role: s.role, name })}
+                  onClick={() =>
+                    setDeleteTarget({
+                      id: s.user_id,
+                      role: s.role,
+                      name,
+                      isActive: s.is_active,
+                    })
+                  }
                   style={{ color: "var(--text-dim)", padding: 4 }}
                 >
                   <I.trash width={14} height={14} />
@@ -457,11 +466,14 @@ export default function AdminStaff() {
         title="Elimină angajat"
         width={420}
       >
-        <div style={{ padding: "8px 0 24px" }}>
+        <div style={{ padding: "8px 24px 24px" }}>
           <p style={{ color: "var(--text-muted)", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
             Ești sigur că vrei să elimini pe{" "}
             <strong style={{ color: "var(--text)" }}>{deleteTarget?.name}</strong>{" "}
-            din sală? Contul va fi dezactivat.
+            din sală?{" "}
+            {deleteTarget?.isActive
+              ? "Contul va fi dezactivat."
+              : "Este deja inactiv - va fi eliminat definitiv din listă."}
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setDeleteTarget(null)}>

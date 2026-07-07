@@ -102,24 +102,12 @@ export const controller = {
         alert_expires_at: alertExpiresAt,
       });
 
-      const memberships = await Membership.findAll({
-        attributes: ["client_id"],
-        where: { status: { [Op.in]: ["active", "paused"] } },
-        include: {
-          model: Membership_Type,
-          where: { gym_id: gymId },
-          attributes: [],
-        },
-      });
-
       const io = getIO();
       if (io) {
-        for (const m of memberships) {
-          io.to(`user_${m.client_id}`).emit("gym_alert", {
-            message: message || null,
-            expires_at: alertExpiresAt,
-          });
-        }
+        io.to(`gym_${gymId}`).emit("gym_alert", {
+          message: message || null,
+          expires_at: alertExpiresAt,
+        });
       }
 
       return res.json({ message: message || null, expires_at: alertExpiresAt });
